@@ -1,6 +1,6 @@
 ---
 name: research-paper-writing
-description: Improve academic paper writing quality for ML/CV/NLP-style papers with clear section structure, paragraph flow, and reviewer-facing presentation. Use when drafting or revising Abstract, Introduction, Related Work, Method, Experiments, or Conclusion; polishing figures/tables; checking claim-support alignment; or performing self-review before submission.
+description: Improve academic paper writing quality for ML/CV/NLP-style papers with clear section structure, paragraph flow, and reviewer-facing presentation. Use when drafting or revising Abstract, Introduction, Related Work, Preliminaries, Method, Experiments, or Conclusion; polishing figures/tables, wording, or LaTeX typesetting; checking claim-support alignment; or performing self-review before submission.
 ---
 # Research Paper Writing
 
@@ -17,6 +17,7 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 4. Run reverse outlining after writing each section.
 5. Check every major claim in Abstract/Introduction against experimental evidence.
 6. Run final-paper adversarial review with `references/paper-review.md`.
+7. Run a final typesetting and wording pass with `references/typesetting-and-wording.md`.
 
 ## Global Principles
 
@@ -29,6 +30,7 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 7. Use a clean teaser and pipeline figure.
 8. Use readable, minimal-ink tables.
 9. Keep formatting consistent and tidy.
+10. Sell the paper, do not just introduce it: state explicitly what our method brings over prior work, and back every selling point with evidence.
 
 ## Paragraph Clarity Check (Important)
 
@@ -58,10 +60,12 @@ Load only the needed section file:
 - Introduction: `references/introduction.md`
 - Abstract: `references/abstract.md`
 - Related Work: `references/related-work.md`
+- Preliminary (optional; when the paper relies on a technique uncommon in its field, or the task needs a formal definition): `references/preliminary.md`
 - Method: `references/method.md`
 - Experiments: `references/experiments.md`
 - Conclusion: `references/conclusion.md`
 - Paper review (Paper Review): `references/paper-review.md`
+- Typesetting and wording (final polish): `references/typesetting-and-wording.md`
 - Paragraph clarity source: `references/does-my-writing-flow-source.md`
 - Example bank index: `references/examples/index.md`
 
@@ -87,7 +91,7 @@ Use `references/paper-review.md` for the full checklist and workflow.
 4. Keep terminology stable across the full paper.
 5. If a claim cannot be supported by results, weaken or remove the claim.
 6. Before finalizing, append and answer a five-dimension self-review question list, then revise the paper based on unresolved items.
-7. Do not load all section references (Introduction/Abstract/Related Work/Method/Experiments/Conclusion) at once; load only the specific section guide needed for the current edit target.
+7. Do not load all section references (Introduction/Abstract/Related Work/Preliminary/Method/Experiments/Conclusion) at once; load only the specific section guide needed for the current edit target.
 
 ## Output Contract
 

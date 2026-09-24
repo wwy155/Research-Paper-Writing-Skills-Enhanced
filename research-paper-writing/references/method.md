@@ -138,6 +138,7 @@ Local cite:
 ```latex
 \section{Method}
 % Overview
+% (Optional) Preliminaries, if not a separate section: see references/preliminary.md
 % Section 3.1
 % Section 3.2
 % Section 3.3
