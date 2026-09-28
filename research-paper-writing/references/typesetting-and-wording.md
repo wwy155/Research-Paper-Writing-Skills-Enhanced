@@ -39,7 +39,7 @@ Use for the final polish, after the story, structure, and experiments are stable
 3. Write ``` ``quotes'' ``` instead of `"quotes"`, `--` for ranges, and `e.g.,` / `i.e.,` with a comma.
 4. Remove full-width punctuation (`，。：（）`) left by Chinese input methods.
 5. Bibliography: consistent venue names, published versions instead of arXiv, protected capitals (`{NeRF}`).
-6. Cite every named model, method, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. Cite every important claim that is not ours. Never invent a reference; mark an unknown source as `\cite{TODO}`.
+6. Cite every named model, method, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. Every claim that is not our own result must cite a source, especially in the Introduction. Never invent a reference; mark an unknown source as `\cite{TODO}`.
 7. Do not end a long sentence with a long citation list; split it and cite each point where it is made.
 8. In general, cite at least 35 references.
 
@@ -75,4 +75,4 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 
 ## Output Contract
 
-Return the revised text with LaTeX commands, labels, and citation keys unchanged; a short change log with one example per type of change; and the `[TODO]` items that need the author.
+Review the paper against every rule in this file, fix the failures, and re-review until all rules pass. Then return the revised text with LaTeX commands, labels, and citation keys unchanged; a pass list for A1-A4 and B1-B4; a short change log with one example per type of change; and the `[TODO]` items that need the author.

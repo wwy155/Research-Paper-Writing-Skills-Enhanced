@@ -17,7 +17,10 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 4. Run reverse outlining after writing each section.
 5. Check every major claim in Abstract/Introduction against experimental evidence.
 6. Run final-paper adversarial review with `references/paper-review.md`.
-7. Run a final typesetting and wording pass with `references/typesetting-and-wording.md`.
+7. Review wording, references, and typesetting against `references/typesetting-and-wording.md`; fix and re-review until every rule passes. If sub-agents are available, run one reviewer per aspect in parallel:
+   - references: every entry exists, and its title, authors, and venue match the real paper (no hallucinated citations);
+   - wording and format;
+   - template compliance when the venue is known: page limit, anonymity, Appendix/Supplementary rules.
 
 ## Global Principles
 
@@ -94,6 +97,7 @@ Use `references/paper-review.md` for the full checklist and workflow.
 7. Do not load all section references (Introduction/Abstract/Related Work/Preliminary/Method/Experiments/Conclusion) at once; load only the specific section guide needed for the current edit target.
 8. If the paper template (target venue) is unknown, ask the user. Once it is known, the main text must end exactly at the page limit: neither short of it nor over it.
 9. Create the Appendix or Supplementary Material at the start, following the template: check which name it uses and whether it goes in the same file or a separate one. Move overly detailed or redundant content there, and reference its important parts from the main text.
+10. Compile with `pdflatex` (then `bibtex` and `pdflatex` twice), installing TeX Live or MiKTeX if it is missing. After each major revision, check the PDF and log: page limit, float positions, paragraph last lines, `??` / `[?]`, and overfull boxes.
 
 ## Output Contract
 

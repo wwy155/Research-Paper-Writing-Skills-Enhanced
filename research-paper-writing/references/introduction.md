@@ -408,3 +408,4 @@ Local cite:
 3. Are technical challenge, technical reason, and solved mechanism all explicit?
 4. Are claims in Introduction aligned with experiment evidence?
 5. Is terminology stable across all sections?
+6. Does every claim that is not our own result cite a source?
