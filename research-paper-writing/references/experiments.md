@@ -22,6 +22,8 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
+To choose figures and tables, check the closest prior work: see what it analyzes, and run the same analyses.
+
 ```mermaid
 flowchart TB
     A["Key Paper Claims"] --> B["What Contributions Are Claimed?"]

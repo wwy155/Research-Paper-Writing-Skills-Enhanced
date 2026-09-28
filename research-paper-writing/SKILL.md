@@ -92,6 +92,8 @@ Use `references/paper-review.md` for the full checklist and workflow.
 5. If a claim cannot be supported by results, weaken or remove the claim.
 6. Before finalizing, append and answer a five-dimension self-review question list, then revise the paper based on unresolved items.
 7. Do not load all section references (Introduction/Abstract/Related Work/Preliminary/Method/Experiments/Conclusion) at once; load only the specific section guide needed for the current edit target.
+8. If the paper template (target venue) is unknown, ask the user. Once it is known, the main text must end exactly at the page limit: neither short of it nor over it.
+9. Create the Appendix or Supplementary Material at the start, following the template: check which name it uses and whether it goes in the same file or a separate one. Move overly detailed or redundant content there, and reference its important parts from the main text.
 
 ## Output Contract
 

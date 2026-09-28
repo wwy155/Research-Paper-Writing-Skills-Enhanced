@@ -10,19 +10,21 @@ Use for the final polish, after the story, structure, and experiments are stable
 
 ## Part A: Typesetting
 
-### A1. Compliance (Desk-Reject Risks)
+### A1. Page Layout and Compliance
 
-1. Never change the template's margins, fonts, or spacing; stay within the page limit.
-2. Review version: no author names, acknowledgments, identifying links, or author PDF metadata; cite your own work in the third person.
-3. Embed all fonts and avoid Type 3 fonts (check with `pdffonts`; in Matplotlib set `pdf.fonttype` to 42).
-4. Leave no `??` or `[?]` in the paper or the supplement.
+1. Never change the template's margins, fonts, or spacing; the main text must end exactly at the page limit.
+2. The last line of every paragraph must fill more than 60% of the line width; fix it by rewording, not by spacing tricks.
+3. Review version: no author names, acknowledgments, identifying links, or author PDF metadata; cite your own work in the third person.
+4. Embed all fonts and avoid Type 3 fonts (check with `pdffonts`; in Matplotlib set `pdf.fonttype` to 42).
+5. Leave no `??` or `[?]` in the paper or the supplement.
 
 ### A2. Figures and Floats
 
-1. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
-2. Give each method the same name, color, and order in every figure and table, and always highlight ours.
-3. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
-4. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. Check the compiled PDF.
+1. Each figure and table must support a different conclusion and show different content; merge or cut any that repeats another's message.
+2. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
+3. Give each method the same name, color, and order in every figure and table, and always highlight ours.
+4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
+5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. Check the compiled PDF.
 
 ### A3. Math
 
@@ -37,7 +39,9 @@ Use for the final polish, after the story, structure, and experiments are stable
 3. Write ``` ``quotes'' ``` instead of `"quotes"`, `--` for ranges, and `e.g.,` / `i.e.,` with a comma.
 4. Remove full-width punctuation (`，。：（）`) left by Chinese input methods.
 5. Bibliography: consistent venue names, published versions instead of arXiv, protected capitals (`{NeRF}`).
-6. Cite at first mention every named model, method, dataset, benchmark, metric, or application, and every important claim that is not ours. Never invent a reference; mark an unknown source as `\cite{TODO}`.
+6. Cite every named model, method, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. Cite every important claim that is not ours. Never invent a reference; mark an unknown source as `\cite{TODO}`.
+7. Do not end a long sentence with a long citation list; split it and cite each point where it is made.
+8. In general, cite at least 35 references.
 
 ## Part B: Wording
 

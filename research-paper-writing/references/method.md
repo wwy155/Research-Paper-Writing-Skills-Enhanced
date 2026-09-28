@@ -180,6 +180,16 @@ flowchart TB
     M3 --> M4["Explain technical advantages and verifiable gains"]
 ```
 
+## Optional Components
+
+Add these only when they help readers understand or trust the method:
+
+1. Algorithm (pseudocode): for multi-stage or iterative procedures that prose describes poorly; use the same notation as the text.
+2. Theorem / Proposition: for key theoretical properties; state the assumptions, and put long proofs in the Appendix.
+3. Complexity analysis: when efficiency is a claimed advantage.
+4. Training vs. inference: when the two procedures differ.
+5. Discussion of other methods: how ours differs from or generalizes the closest methods, and design choices reviewers will ask about.
+
 ## Implementation Details
 
 `Implementation details include hyperparameters (e.g., layer count, feature dimensions), coordinate transforms/normalization, and other practical details. Put them near the end of Method or in a dedicated Implementation Details section.`

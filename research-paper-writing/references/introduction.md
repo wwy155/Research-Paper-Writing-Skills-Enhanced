@@ -8,6 +8,8 @@ Write a strong introduction in three steps:
 2. Apply a suitable template below.
 3. Revise the introduction repeatedly.
 
+In most cases, use a funnel structure: start from the broad task and its applications, narrow down through prior methods and the remaining technical challenge, and end at our solution and contributions.
+
 ## Introduction Logic Map
 
 ```mermaid
