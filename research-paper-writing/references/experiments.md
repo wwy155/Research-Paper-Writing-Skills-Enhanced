@@ -22,7 +22,7 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
-To choose figures and tables, check the closest prior work: see what it analyzes, and run the same analyses.
+To choose figures and tables, check the closest prior work: see what it analyzes, and run the same analyses. Try to reproduce as many of the closest methods' figures and tables as possible, under the same settings and with our method included.
 
 ```mermaid
 flowchart TB
