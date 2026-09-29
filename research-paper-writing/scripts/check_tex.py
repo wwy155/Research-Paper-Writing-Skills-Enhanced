@@ -420,7 +420,20 @@ def check_floats(f, rep, plan=None):
                 rep.add(f, off + caps[-1].start(), ERROR, "A2.4", "Put the figure caption below the figure")
 
 
+# All-caps names that always need a citation; is_named misses them otherwise.
+CITED_ACRONYMS = {
+    "CLIP", "DINO", "BERT", "VGG", "BLIP", "YOLO", "DETR", "SIREN", "COLMAP",  # methods and tools
+    "SSIM", "MS-SSIM", "LPIPS", "FID", "KID", "FVD", "BLEU", "ROUGE", "METEOR", "SPICE",  # metrics
+    "KITTI", "COCO", "MS-COCO", "DTU", "LLFF", "MNIST", "LVIS", "GLUE", "MMLU"}  # datasets
+# A mention counts as cited when \cite follows the name, a version ("360", "v3"), or a generic noun.
+CITED_AFTER = re.compile(r"(?:\s+(?:\d[\w.]*|v\d[\w.]*))?(?:\s+(?:" + GENERIC_NOUNS + r"))?"
+                         r"\s*\)?\s*~?\s*\\cite[a-zA-Z]*")
+EXP_TITLE = re.compile(r"Experiment|Evaluation|Results")
+
+
 def is_named(tok):
+    if tok in CITED_ACRONYMS:
+        return True
     if len(tok) <= 2 or tok in NAME_EXCLUDE:
         return False
     if re.fullmatch(r"\d+D(?:-\d+D)*", tok) or re.fullmatch(r"[A-Z]{2,}s", tok):
@@ -433,23 +446,130 @@ def is_named(tok):
     return (inner_upper and lower_or_digit) or (letters[0].isdigit() and any(c.isupper() for c in letters))
 
 
-def check_named_items(files, rep):
-    seen = set()
+def experiment_spans(files, root):
+    """{path: [(start, end)]}: the parts of each file inside a main-text Experiments section.
+    An \\input file starts in the section that surrounds its \\input command."""
+    appendix_paths = split_main(files, root)[0]
+    inherited, spans = {}, {}
     for f in files:
-        text = f.prose
-        for m in re.finditer(r"\\begin\{abstract\}.*?\\end\{abstract\}", f.nonverbatim, re.S):
-            text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
-        for m in re.finditer(r"(?<![\\\w-])([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)(?![\w-])", text):
-            tok = NAME_SUFFIXES.sub("", m.group(1))
-            if tok.endswith("s") and is_named(tok[:-1]) and not tok.isupper():
-                tok = tok[:-1]
-            if not is_named(tok) or tok in seen:
-                continue
+        key = os.path.abspath(f.path)
+        title, in_app = inherited.get(key, ("", False))
+        marks = [(0, title, in_app or key in appendix_paths)]
+        for m in re.finditer(r"\\section\*?\{([^}]*)\}|\\appendix\b", f.clean):
+            in_app = marks[-1][2] or m.group(0).startswith("\\appendix")
+            marks.append((m.start(), m.group(1) or "", in_app))
+        for m in re.finditer(r"\\(?:input|include|subfile)\{([^}]+)\}", f.clean):
+            child = resolve(root, m.group(1).strip(), ".tex") or resolve(os.path.dirname(key), m.group(1).strip(), ".tex")
+            if child:
+                state = [s for s in marks if s[0] <= m.start()][-1]
+                inherited.setdefault(os.path.abspath(child), state[1:])
+        ends = [s[0] for s in marks[1:]] + [len(f.clean)]
+        spans[key] = [(a, b) for (a, title, app), b in zip(marks, ends) if not app and EXP_TITLE.search(title)]
+    return spans
+
+
+def named_mentions(f):
+    """(position, name, cited, adjective) for every named item in the prose of f, outside the abstract.
+    adjective: the name was used with a suffix, as in "NeRF-based"."""
+    text = f.prose
+    for m in re.finditer(r"\\begin\{abstract\}.*?\\end\{abstract\}", f.nonverbatim, re.S):
+        text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
+    for m in re.finditer(r"(?<![\\\w-])([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)(?![\w-])", text):
+        tok = NAME_SUFFIXES.sub("", m.group(1))
+        adjective = tok != m.group(1)
+        if tok.endswith("s") and is_named(tok[:-1]) and not tok.isupper():
+            tok = tok[:-1]
+        if not is_named(tok) and tok.split("-")[0] in CITED_ACRONYMS:
+            tok = tok.split("-")[0]  # ROUGE-L
+        if is_named(tok):
+            yield m.start(), tok, bool(CITED_AFTER.match(text, m.end())), adjective
+
+
+def check_named_items(files, rep, exp_spans):
+    """A4.6: cite a name at its first mention, and again at its first mention in Experiments.
+    Returns the names cited somewhere, i.e. prior work."""
+    mentions = [(f, *m) for f in files for m in named_mentions(f)]
+    known = {tok for _, _, tok, cited, _ in mentions if cited}
+    seen, seen_exp = set(), set()
+    for f, pos, tok, cited, adjective in mentions:
+        in_exp = any(a <= pos < b for a, b in exp_spans.get(os.path.abspath(f.path), ()))
+        if tok not in seen:
             seen.add(tok)
-            after = text[m.end():m.end() + 60]
-            if not re.match(r"(?:\s+(?:" + GENERIC_NOUNS + r"))?\s*\)?\s*~?\s*\\cite[a-zA-Z]*", after):
-                rep.add(f, m.start(), WARN, "A4.6",
+            if in_exp:
+                seen_exp.add(tok)
+            if not cited:
+                rep.add(f, pos, WARN, "A4.6",
                         f"'{tok}' has no citation at its first mention: cite it, or justify (ours / generic)")
+        elif in_exp and tok not in seen_exp and not adjective:
+            seen_exp.add(tok)
+            if tok in known and not cited:
+                rep.add(f, pos, WARN, "A4.6", f"'{tok}' is not cited at its first mention in Experiments: "
+                        "cite it again here, even though it was cited earlier")
+    return known
+
+
+ROW_NOISE = re.compile(r"\\(?:toprule|midrule|bottomrule|hline|oursrow|addlinespace)\b(?:\[[^\]]*\])?|"
+                       r"\\(?:cmidrule|cline)(?:\([^)]*\))?\{[^}]*\}|"
+                       r"\\(?:rowcolor|cellcolor)(?:\[[^\]]*\])?\{[^}]*\}|\\multi(?:row|column)\{[^}]*\}\{[^}]*\}")
+
+
+def check_table_citations(files, root, rep, known):
+    """A4.6: a main-text table row that names prior work cites it in the row."""
+    appendix_paths = split_main(files, root)[0]
+    for f in files:
+        if os.path.abspath(f.path) in appendix_paths:
+            continue
+        cut = re.search(r"\\appendix\b", f.nonverbatim)
+        text = f.nonverbatim[:cut.start()] if cut else f.nonverbatim
+        for tab in re.finditer(r"\\begin\{(" + TABULAR_ENVS + r")\}(.*?)\\end\{\1\}", text, re.S):
+            body = tab.group(2)
+            n_args = 2 if tab.group(1) in ("tabular*", "tabularx", "tabulary") else 1  # width, then column spec
+            spec = re.match(r"\s*(?:\[[^\]]*\])?" + r"\s*\{(?:[^{}]|\{[^{}]*\})*\}" * n_args, body)
+            start = spec.end() if spec else 0
+            for sep in list(re.finditer(r"\\\\(?:\s*\[[^\]]*\])?", body)) + [None]:
+                end = sep.start() if sep else len(body)
+                cell = re.split(r"(?<!\\)&", body[start:end])[0]
+                clean = re.sub(r"\\cite[a-zA-Z]*\*?(?:\s*\[[^\]]*\])*\s*\{[^}]*\}", " CITE ", ROW_NOISE.sub(" ", cell))
+                clean = re.sub(r"\\[A-Za-z]+\*?|[{}~]", " ", clean)
+                name = re.match(r"\s*([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)", clean)
+                if name and name.group(1) in known and "CITE" not in clean:
+                    pos = tab.start(2) + start + max(0, body[start:end].find(name.group(1)))
+                    rep.add(f, pos, WARN, "A4.6", f"Table row names '{name.group(1)}' without a citation: "
+                            f"cite it in the row ({name.group(1)}~\\cite{{...}})")
+                start = sep.end() if sep else len(body)
+
+
+METRICS = ["PSNR", "MS-SSIM", "SSIM", "LPIPS", "FID", "KID", "FVD", "CLIPScore", "CD", "EMD", "F-[Ss]core",
+           "mIoU", "IoU", "mAP", "AP", "AUC", "NDS", "BLEU", "ROUGE(?:-[12L])?", "METEOR", "CIDEr", "SPICE",
+           "BERTScore", "PPL", "EPE", "AbsRel", "RMSE", "MAE", "MSE", "ATE", "RPE", "NLL", "ECE"]
+METRIC_RE = re.compile(r"(?<![\w-])(" + "|".join(METRICS) + r")(?![\w-])")
+
+
+def check_metrics(files, rep, exp_spans):
+    """A4.9: every metric an Experiments table or figure reports is stated in the Experiments text before it."""
+    in_float, in_text = {}, {}
+    for i, f in enumerate(files):
+        spans = exp_spans.get(os.path.abspath(f.path), [])
+        floats = [(m.start(), m.end()) for m in
+                  re.finditer(r"\\begin\{(table|figure)(\*?)\}.*?\\end\{\1\2\}", f.nonverbatim, re.S)]
+        text = f.prose
+        for a, b in floats:
+            text = text[:a] + blank(text[a:b]) + text[b:]
+        for a, b in spans:
+            for fa, fb in floats:
+                if a <= fa < b:
+                    for m in METRIC_RE.finditer(f.keys_masked, fa, fb):
+                        in_float.setdefault(m.group(1), (i, fa, f))
+            for m in METRIC_RE.finditer(text, a, b):
+                in_text.setdefault(m.group(1), (i, m.start()))
+    for metric, (i, pos, f) in sorted(in_float.items(), key=lambda kv: kv[1][:2]):
+        stated = in_text.get(metric)
+        if stated is None:
+            rep.add(f, pos, WARN, "A4.9", f"'{metric}' is reported here but the Experiments text never states it: "
+                    "before the results, say what it measures, which direction is better, and cite its source")
+        elif stated > (i, pos):
+            rep.add(f, pos, WARN, "A4.9", f"'{metric}' is reported here before the Experiments text states it: "
+                    "define it before the first result")
 
 
 def check_references(files, missing_inputs, bibs, rep, min_refs):
@@ -765,7 +885,10 @@ def main(argv=None):
         for m in re.finditer(EM_DASH, f.whole):
             rep.add(f, m.start(), ERROR, "B3.7",
                     "Em dash: use a comma, a colon, parentheses, or a new sentence (in a table cell, use - or N/A)")
-    check_named_items(files, rep)
+    exp_spans = experiment_spans(files, root)
+    known = check_named_items(files, rep, exp_spans)
+    check_table_citations(files, root, rep, known)
+    check_metrics(files, rep, exp_spans)
     check_references(files, missing, bibs, rep, args.min_refs)
     check_figure_names(files, rep)
     check_structure(files, root, rep, args.min_figures)
