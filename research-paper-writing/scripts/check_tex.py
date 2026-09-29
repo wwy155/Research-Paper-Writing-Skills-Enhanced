@@ -3,7 +3,7 @@ r"""Check a LaTeX paper against the mechanical Writing Rules in SKILL.md.
 
 Usage:
   python3 check_tex.py main.tex [more.tex ...] [--bib refs.bib] [--log main.log]
-                       [--pdf main.pdf] [--review] [--max-words 25] [--min-refs 35]
+                       [--pdf main.pdf] [--review] [--max-words 25] [--min-refs 35] [--min-figures 3]
 
 Follows \input, \include, and \subfile, finds the .bib from \bibliography or
 \addbibresource, and prints one line per issue:
@@ -457,37 +457,50 @@ APPENDIX_NAME = re.compile(r"supp|appendix", re.I)
 REF_CMDS = r"\\(?:ref|eqref|pageref|autoref|nameref|[cC]ref)\{([^}]*)\}"
 
 
-def check_structure(files, root, rep):
-    """Appendix (Execution Rule 9), closest-work plan, and white-space hints (A1.6, A1.1)."""
+def split_main(files, root):
+    """Main-text parts and Appendix labels. Text after \\appendix, files included after it,
+    and files named like a supplement or appendix belong to the Appendix."""
     main = files[0]
-    appendix_paths = {os.path.abspath(f.path) for f in files if APPENDIX_NAME.search(os.path.basename(f.path))}
+    # Only included files are judged by name; the main file never is.
+    appendix_paths = {os.path.abspath(f.path) for f in files[1:] if APPENDIX_NAME.search(os.path.basename(f.path))}
     cut = re.search(r"\\appendix\b", main.clean)
     if cut:
         for m in re.finditer(r"\\(?:input|include|subfile)\{([^}]+)\}", main.clean[cut.end():]):
             p = resolve(root, m.group(1).strip(), ".tex")
             if p:
                 appendix_paths.add(os.path.abspath(p))
-    sibling = [n for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)]
+    main_texts, appendix_labels = [], set()
+    for f in files:
+        text = f.clean
+        if os.path.abspath(f.path) in appendix_paths:
+            appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text))
+            continue
+        k = re.search(r"\\appendix\b", text)
+        if k:
+            appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text[k.end():]))
+            text = text[:k.start()]
+        main_texts.append(text)
+    return appendix_paths, main_texts, appendix_labels
+
+
+def check_structure(files, root, rep, min_figures=3):
+    """Appendix (Execution Rule 9), figure count (A2.7), closest-work plan, and white-space hints (A1.6, A1.1)."""
+    appendix_paths, main_texts, appendix_labels = split_main(files, root)
+    sibling = [n for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
+               and n != os.path.basename(files[0].path)]
     if not (appendix_paths or sibling or any(re.search(r"\\appendix\b", f.clean) for f in files)):
         rep.add_plain("(paper)", WARN, "Rule 9", "No Appendix or Supplementary Material found: create it now, "
                       "following the template (Execution Rule 9)")
     else:
-        main_texts, appendix_labels = [], set()
-        for f in files:
-            text = f.clean
-            if os.path.abspath(f.path) in appendix_paths:
-                appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text))
-                continue
-            k = re.search(r"\\appendix\b", text)
-            if k:
-                appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text[k.end():]))
-                text = text[:k.start()]
-            main_texts.append(text)
         keys = {k.strip() for t in main_texts for g in re.findall(REF_CMDS, t) for k in g.split(",")}
         named = any(re.search(r"\b(?:[Aa]ppendix|[Ss]upplement\w*|[Ss]upp\.)", mask_args(t)) for t in main_texts)
         if not (keys & appendix_labels or named):
             rep.add_plain("(paper)", WARN, "Rule 9", "The main text never points to the Appendix or Supplementary "
                           "Material: reference its important parts (Execution Rule 9)")
+    n_fig = sum(len(re.findall(r"\\begin\{figure\*?\}", t)) for t in main_texts)
+    if n_fig < min_figures:
+        rep.add_plain("(paper)", WARN, "A2.7", f"The main text has {n_fig} figure(s): include at least {min_figures}, "
+                      "4 when space allows, each with a key message (A2.1)")
     has_experiments = any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files)
     if has_experiments and not any(re.search(r"%\s*Closest-work plan", f.raw, re.I) for f in files):
         rep.add_plain("(paper)", WARN, "Experiments", "No '% Closest-work plan:' block: list every figure and table "
@@ -591,6 +604,7 @@ def main(argv=None):
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
     ap.add_argument("--max-words", type=int, default=25, help="B2.1 sentence length limit (default 25)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
+    ap.add_argument("--min-figures", type=int, default=3, help="A2.7 figures in the main text (default 3)")
     args = ap.parse_args(argv)
     for p in args.tex + args.bib + [x for x in (args.log, args.pdf) if x]:
         if not os.path.isfile(p):
@@ -622,7 +636,7 @@ def main(argv=None):
     check_named_items(files, rep)
     check_references(files, missing, bibs, rep, args.min_refs)
     check_figure_names(files, rep)
-    check_structure(files, root, rep)
+    check_structure(files, root, rep, args.min_figures)
     check_figure_use(files, rep)
     if args.review:
         check_review(files, rep)

@@ -66,6 +66,7 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
 5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. If the barrier leaves white space (A1.6), move the source earlier, still after its first mention, or resize the float. Check the compiled PDF.
 6. Use one style scheme from `references/figure-table-styles.md` for every figure and table; read that file before creating or restyling one. If the user has not chosen a scheme, ask with the ask-user tool.
+7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, pipeline, qualitative comparison, analysis). Each must carry a key message (A2.1); never add one only to reach the count.
 
 #### A3. Math
 
