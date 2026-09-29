@@ -19,6 +19,7 @@ This repository currently provides one skill package:
   - `references/`: section-specific writing guides and templates
   - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only)
   - `scripts/paperstyle.py`: figure and table style schemes (matplotlib settings, fixed method colors, LaTeX table macros)
+  - `scripts/figure_forms.py`: one plot form for each common message (trade-off, scaling, robustness, per-category gain, error distribution, sensitivity), drawn with `paperstyle`
   - `agents/openai.yaml`: agent metadata
 
 Typical use cases:
@@ -28,7 +29,11 @@ Typical use cases:
 - Checking claim-evidence alignment
 - Running pre-submission self-review from a reviewer mindset
 
-## Figure and Table Styles
+## Figures and Tables
+
+Before drawing, the agent writes the message of a figure in one sentence and picks the form that shows it. For example, "better and cheaper" calls for a scatter with cost on a log axis, and "where the gain comes from" calls for sorted gain bars. The table of messages and forms, worked examples, and forms to avoid are in `research-paper-writing/references/figure-table-styles.md`. `scripts/figure_forms.py` draws each form (illustrative data below):
+
+![Plot forms for six common messages](docs/figure-forms.png)
 
 The skill defines four style schemes: `clean` (default), `soft`, `vivid`, and `mono` (black-and-white print). The agent uses one scheme for every figure and table in a paper and asks you to choose if you have not. Details: `research-paper-writing/references/figure-table-styles.md`.
 

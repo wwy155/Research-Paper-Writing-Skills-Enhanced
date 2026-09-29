@@ -1,6 +1,61 @@
-# Figure and Table Style Schemes
+# Figures and Tables: Form and Style
 
-Read this file before you create or restyle any plot, diagram, or table. Pick one scheme for the whole paper and use it everywhere. Every value below comes from `scripts/paperstyle.py`, the single source of truth; regenerate from it instead of copying hex codes by hand.
+Read this file before you create or restyle any plot, diagram, or table. First pick the form that shows the message, then style it with one scheme for the whole paper. Form comes before color: a plain chart of the right form beats a polished chart of the wrong one. Every style value below comes from `scripts/paperstyle.py`, the single source of truth; regenerate from it instead of copying hex codes by hand.
+
+## Pick the Form for the Message
+
+Decide what a figure must say before you decide what it looks like.
+
+1. Write the message as one sentence with a number, e.g., "Ours keeps 70% accuracy at noise level 0.5, while every baseline falls below 45%." It becomes the caption's bold takeaway (A2.4). If you cannot write it, do not make the figure (A2.1).
+2. Name the comparison inside the message: ours against which methods, and along which variable. The variable can be a cost, a data size, a difficulty level, a category, or an image region.
+3. Pick the form from the table below. Make that comparison the most visible thing in the figure. Put the compared items next to each other on one shared axis, highlight ours, and let nothing else compete for attention.
+4. Draw it at print size with real data or marked placeholders. Then test it: from the figure and its bold takeaway alone, can a reader confirm the message within five seconds? If not, change the form, not the colors.
+5. Put numbers that readers will cite or compare against in a table. Put trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix.
+6. When you reproduce a figure of the closest work (Core Workflow step 2 in `SKILL.md`), keep its form so readers can compare the two papers. If that form breaks a rule in this file, e.g., a dual axis, keep the analysis and fix the form.
+
+`scripts/figure_forms.py` draws the plot forms of the table with the chosen scheme: `tradeoff`, `curves`, `gain_bars`, `cdf`, and `sensitivity`. Copy it next to `paperstyle.py` and pass your own data. `python3 <this skill's directory>/scripts/figure_forms.py clean forms.png` renders its gallery, panels (a)-(f) in the table, with illustrative data; look at it before drawing your own.
+
+| What you want to say | Form that shows it | Avoid |
+|---|---|---|
+| Ours beats the baselines on standard benchmarks. | Table: methods in rows, metrics with ↑ or ↓ in columns, best and second marked. | A bar chart of numbers that are already in a table. |
+| Ours is better and cheaper (speed, memory, parameters, data). | Scatter: cost on a log x-axis, quality on y, one labeled point per method, ours alone in the best corner. Panel (a), `tradeoff`. | Two bar charts, one per measure; a dual-axis chart. |
+| The gain grows, or holds, with scale (data, model size, compute, input views). | Lines: scale on a log x-axis, one line per method. Mark where ours matches the best result of a baseline. Panel (b), `curves`. | A table with one column per size. |
+| Ours degrades least on harder inputs (noise, occlusion, sparsity, length). | Lines: difficulty on x, the metric on y, clean inputs at the left. Panel (c), `curves`. | Bars for each level; a table the reader must subtract. |
+| The gain comes from specific cases (categories, difficulty bins, datasets). | Bars of ours minus the best baseline, sorted, starting at zero, losses in grey. Panel (d), `gain_bars`. Or the standard split of the benchmark, e.g., AP on small, medium, and large objects. | A long per-class table in the main text. |
+| Ours fails less often, or less badly. | Cumulative error curve: the share of samples below each error. Panel (e), `cdf`. A box plot also works. | The mean alone, which hides the tail. |
+| Ours is insensitive to a hyperparameter. | A line over its range (log x when the range spans factors), the default marked, the best baseline as a dashed reference. Panel (f), `sensitivity`. | A table of ten values. |
+| Ours trains faster or more stably. | Training curves over iterations or wall-clock time, `curves`; the mean of several seeds with a shaded band (`ax.fill_between`). | One seed; only the final number. |
+| Each component matters. | Ablation table: one row per variant, one column for the change from the full model. Add a qualitative row when a component fixes a visible artifact. | Bars that differ by a fraction of a unit. |
+| Ours fixes a visible failure (artifacts, blur, wrong geometry). | Qualitative grid: inputs in rows, methods in table order and the ground truth in columns, zoom-in crops on the failure (Rule 10). | Full images too small to show the difference; only easy cases. |
+| What the model learns or attends to. | Maps overlaid on the input (attention, error, depth) with a sequential colormap (Rule 7). | Rainbow colormaps; an embedding plot (t-SNE) without an observation. |
+| How the method works. | Pipeline diagram (`references/method.md`, Rule 11). | A diagram of every layer. |
+| The key idea, at first glance. | Teaser (Part D of `references/introduction.md`). | A teaser that repeats the pipeline figure. |
+
+### Worked Examples
+
+1. Message: "Ours matches the best PSNR at 50× the speed."
+   - First idea: two bar charts, one for PSNR and one for FPS. The reader must pair bars across the panels to see the trade-off.
+   - Better: one scatter with FPS on a log x-axis and PSNR on y; ours sits alone in the upper right (panel (a)). Caption: "**Ours matches the best PSNR at 50× the speed.** PSNR and FPS on [dataset], measured on one [GPU]."
+2. Message: "Our lead grows as the input views get sparser."
+   - First idea: one more column in the main table for the sparse setting.
+   - Better: PSNR against the number of input views (3, 6, 9, 12, 24), one line per method. The gap visibly widens toward the left.
+3. Message: "Without module X, floaters come back around thin structures."
+   - First idea: only the ablation table, where a 0.3 dB drop reads as noise.
+   - Better: keep the table and add one qualitative row with zoom-ins on thin structures: the full model against the variant without X.
+4. Message: "Most of our gain is on small objects."
+   - First idea: bars of overall AP for all methods, which repeat Table 1.
+   - Better: the AP on small, medium, and large objects in the main table, or gain bars for each size (panel (d)).
+
+### Forms to Avoid
+
+- Pie and donut charts: angles are hard to compare. Use sorted bars or a table.
+- 3D bars, 3D pies, and shadows: perspective distorts the values.
+- Bars on a truncated axis: a bar's length encodes its value, so bars start at zero. For small differences between large values, plot the difference (panel (d)) or use a table.
+- Radar charts: the shape depends on the order and scale of the axes. Use a table or grouped bars.
+- Dual y-axes (Rule 6).
+- A number on every point: label only the points the message is about.
+- More than about six lines in one panel: grey out the lines that are not the point, or split them into panels with shared axes.
+- A figure that repeats a table: cut one of them (A2.1).
 
 ## Choose a Scheme
 

@@ -60,12 +60,12 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 
 #### A2. Figures and Floats
 
-1. Make a figure or table only to show an advantage of our method or a non-obvious finding, never for decoration. State its conclusion in the caption's bold takeaway and analyze it in the text: what it shows, why, and what follows. Each supports a different conclusion; merge or cut any that repeats another's message or has no conclusion.
+1. Make a figure or table only to show an advantage of our method or a non-obvious finding, never for decoration. Write its conclusion before drawing, and pick the form that shows it at a glance (A2.6). State the conclusion in the caption's bold takeaway and analyze it in the text: what it shows, why, and what follows. Each supports a different conclusion; merge or cut any that repeats another's message or has no conclusion.
 2. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name, color, and order in every figure and table, and always highlight ours.
 4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
 5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. If the barrier leaves white space (A1.6), move the source earlier, still after its first mention, or resize the float. Check the compiled PDF.
-6. Use one style scheme from `references/figure-table-styles.md` for every figure and table; read that file before creating or restyling one. If the user has not chosen a scheme, ask with the ask-user tool.
+6. Read `references/figure-table-styles.md` before creating or restyling a figure or table: pick the form for its message there, and use one style scheme for all of them. If the user has not chosen a scheme, ask with the ask-user tool.
 7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, pipeline, qualitative comparison, analysis). Each must carry a key message (A2.1); never add one only to reach the count.
 
 #### A3. Math
@@ -137,7 +137,7 @@ Load only the needed section file:
 - Preliminary (optional; when the paper relies on a technique uncommon in its field, or the task needs a formal definition): `references/preliminary.md`
 - Method: `references/method.md`
 - Experiments: `references/experiments.md`
-- Figures and tables (style schemes; read before creating or restyling any): `references/figure-table-styles.md`
+- Figures and tables (form and style; read before making any, A2.6): `references/figure-table-styles.md`
 - Conclusion: `references/conclusion.md`
 - Paper review (Paper Review): `references/paper-review.md`
 - Paragraph clarity check and reverse outlining: `references/paragraph-clarity.md`
@@ -189,3 +189,4 @@ After any edit, including a final polish, also return:
 6. A Writing Rules report with one line per group (A1-A4, B1-B4) giving the status of each rule in it, for example `A4: 1 fixed, 2 pass, 3 fixed, 4 pass, 5 pass, 6 fixed, 7 pass, 8 not checked (6 entries in the .bib)`. A status is pass, fixed, or not checked (with the reason); never mark a rule pass without checking it.
 7. For a final polish: a short change log with one example per type of change, and the `[TODO]` items that need the author.
 8. A setup line: the venue and template, the path of the Appendix or Supplementary file, and, when Experiments, figures, or tables were touched, the closest-work plan with the status of each item.
+9. For each figure or table you created or changed, one line with its message and the form chosen for it, e.g., `Fig. 4: ours degrades least as noise grows; lines over noise level`.

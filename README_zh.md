@@ -17,6 +17,7 @@
   - `references/`：按章节拆分的写作指南与模板
   - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）
   - `scripts/paperstyle.py`：图表美化方案（matplotlib 设置、固定的方法配色、LaTeX 表格宏）
+  - `scripts/figure_forms.py`：常见结论对应的画法（权衡、规模扩展、鲁棒性、分类别增益、误差分布、超参数敏感性），用 `paperstyle` 绘制
   - `agents/openai.yaml`：Agent 元信息
 
 常见使用场景：
@@ -25,6 +26,12 @@
 - 改善段落衔接与章节逻辑
 - 做 claim-evidence 对齐检查
 - 提交前从 reviewer 视角进行自审
+
+## 先想结论，再选图形
+
+画图之前，agent 先用一句话写下这张图要表达的结论，再选最能体现它的图形。例如“又好又省”用散点图（成本取对数轴），“提升来自哪里”用排序的增益条形图。结论与图形的对照表、改写示例和应避免的图形见 `research-paper-writing/references/figure-table-styles.md`。`scripts/figure_forms.py` 可直接画出每种图形（下图为示意数据）：
+
+![六种常见结论对应的图形](docs/figure-forms.png)
 
 ## 图表美化方案
 

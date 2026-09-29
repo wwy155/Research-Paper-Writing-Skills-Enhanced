@@ -22,7 +22,7 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
-Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Before making a figure or table, write its one-line conclusion; if you cannot, do not make it.
+Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Before making a figure or table, write its one-line conclusion; if you cannot, do not make it. Then pick the form that shows that conclusion from the table in `references/figure-table-styles.md`.
 
 Before writing Experiments or making any figure or table, write the closest-work plan (Core Workflow step 2 in `SKILL.md`):
 
