@@ -11,13 +11,14 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 
 ## Core Workflow
 
-1. Clarify the paper story before sentence-level edits.
-2. Use section-specific guidance in `references/`.
-3. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
-4. Run reverse outlining after writing each section.
-5. Check every major claim in Abstract/Introduction against experimental evidence.
-6. Run final-paper adversarial review with `references/paper-review.md`.
-7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
+1. First, before any other work, settle the target venue (Execution Rule 8). If it is not settled yet, your first action is to ask the user which venue to submit to, with the ask-user tool (`AskUserQuestion` in Claude Code).
+2. Clarify the paper story before sentence-level edits.
+3. Use section-specific guidance in `references/`.
+4. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
+5. Run reverse outlining after writing each section.
+6. Check every major claim in Abstract/Introduction against experimental evidence.
+7. Run final-paper adversarial review with `references/paper-review.md`.
+8. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
    - references: every entry exists, and its title, authors, and venue match the real paper (no hallucinated citations);
    - wording and format: every Writing Rule, reported rule by rule;
    - template compliance when the venue is known: page limit, anonymity, Appendix/Supplementary rules.
@@ -177,8 +178,8 @@ Use `references/paper-review.md` for the full checklist and workflow.
 5. If a claim cannot be supported by results, weaken or remove the claim.
 6. Before finalizing, append and answer a five-dimension self-review question list, then revise the paper based on unresolved items.
 7. Do not load all section references (Introduction/Abstract/Related Work/Preliminary/Method/Experiments/Conclusion) at once; load only the specific section guide needed for the current edit target. The Writing Rules in this file apply to every edit regardless.
-8. At the start, settle the target venue and its template:
-   - Determine the venue from the user's request or the LaTeX preamble (e.g., `\usepackage[review]{cvpr}`, `\usepackage{neurips_2025}`). If it is still unknown, do not guess: call the ask-user tool (`AskUserQuestion` in Claude Code) to ask which venue to use, offering 2-4 likely venues in the paper's field as options (e.g., CVPR / ICCV / ECCV for vision, NeurIPS / ICML / ICLR for ML, ACL / EMNLP / NAACL for NLP); without such a tool, ask in plain text and wait for the answer.
+8. First, before any other work, settle the target venue and its template:
+   - Determine the venue from the user's request or the LaTeX preamble (e.g., `\usepackage[review]{cvpr}`, `\usepackage{neurips_2025}`). If it is still unknown, do not guess: your first action is to call the ask-user tool (`AskUserQuestion` in Claude Code) to ask which venue to submit to, offering 2-4 likely venues in the paper's field as options (e.g., CVPR / ICCV / ECCV for vision, NeurIPS / ICML / ICLR for ML, ACL / EMNLP / NAACL for NLP); without such a tool, ask in plain text and wait for the answer.
    - If the project does not already contain the venue's template files, search the web for its latest official template (style files or author kit, from the venue's website or call for papers), download it into the project, and use it for the paper. If none is found or the download fails, ask the user to send the template URL or upload the template files directly.
    - Once the template is in place, the main text must end exactly at its page limit: neither short of it nor over it.
 9. Create the Appendix or Supplementary Material at the start, following the template: check which name it uses and whether it goes in the same file or a separate one. Move overly detailed or redundant content there, and reference its important parts from the main text.
