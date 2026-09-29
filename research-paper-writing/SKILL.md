@@ -63,6 +63,7 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 3. Give each method the same name, color, and order in every figure and table, and always highlight ours.
 4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
 5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. Check the compiled PDF.
+6. Use one style scheme from `references/figure-table-styles.md` for every figure and table; read that file before creating or restyling one. If the user has not chosen a scheme, ask with the ask-user tool.
 
 #### A3. Math
 
@@ -115,7 +116,7 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 ### Checking the Writing Rules
 
 1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex` (use `python` if `python3` is missing). It follows `\input` / `\include` and finds the `.bib`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply (e.g., "DynaSplat: our method, no citation"). Re-run until it reports 0 errors.
-2. The script cannot check A1.1, A1.2, A2.1-A2.3, A2.5, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
+2. The script cannot check A1.1, A1.2, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
 3. After compiling (Execution Rule 10), re-run it with `--log main.log --pdf main.pdf`, adding `--review` for the anonymous version, to check undefined references, overfull boxes, fonts, and anonymity. Then render the pages (`pdftoppm -r 60 -png main.pdf page`) and look at them for the page limit (A1.1), paragraph last lines (A1.2), and float positions (A2.5).
 4. If a check cannot run (no Python, TeX, or PDF tools), report its rules as "not checked" with the reason; never report them as passed.
 
@@ -150,6 +151,7 @@ Load only the needed section file:
 - Preliminary (optional; when the paper relies on a technique uncommon in its field, or the task needs a formal definition): `references/preliminary.md`
 - Method: `references/method.md`
 - Experiments: `references/experiments.md`
+- Figures and tables (style schemes; read before creating or restyling any): `references/figure-table-styles.md`
 - Conclusion: `references/conclusion.md`
 - Paper review (Paper Review): `references/paper-review.md`
 - Paragraph clarity source: `references/does-my-writing-flow-source.md`

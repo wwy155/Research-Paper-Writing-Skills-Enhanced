@@ -24,7 +24,7 @@ import sys
 
 ERROR, WARN = "ERROR", "WARN"
 
-NOT_CHECKED = ("A1.1, A1.2, A2.1-A2.3, A2.5, A3.1, B1, B2.2, B4.2, B4.4 "
+NOT_CHECKED = ("A1.1, A1.2, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 "
                "(and A1.3-A1.5 without --pdf/--log/--review)")
 
 MATH_ENVS = (r"equation|align|gather|multline|eqnarray|flalign|alignat|"

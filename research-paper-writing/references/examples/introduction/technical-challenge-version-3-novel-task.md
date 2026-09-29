@@ -6,7 +6,7 @@
 `Version 3: For novel tasks without direct methods, define the challenge directly and decompose it by requirement/challenge points.`
 
 ```latex
-% To achieve xx goal, several requirements/challenges must be satisfied.
+% To achieve xx goal, several requirements must be satisfied (or several challenges must be handled).
 %% Example: In this work, our goal is to build a model that captures such object intrinsics from a single image. This problem is challenging for three reasons.
 
 % Describe point 1
@@ -18,6 +18,3 @@
 % Describe point 3
 %% Example: Finally, the object intrinsics we aim to infer are probabilistic, not deterministic: no two roses in the natural world are identical, and we want to capture a distribution of their geometry, texture, and material to exploit the underlying multi-view information.
 ```
-
-See also:
-1. `references/examples/introduction/novel-task-challenge-decomposition.md`

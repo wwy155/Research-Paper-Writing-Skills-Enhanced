@@ -67,7 +67,7 @@ flowchart TB
 3. Do not use double rules or dense `\hline` stacks.
 4. Use `booktabs` style (`\toprule`, `\midrule`, `\bottomrule`) for clean structure.
 5. Use as few horizontal rules as possible; lines should separate groups, not every row.
-6. Highlight key numbers (best/second-best or target rows) with subtle color emphasis.
+6. Highlight best and second-best numbers and the row of ours with the macros of the chosen style scheme (`references/figure-table-styles.md`).
 
 ### Readability rules from review practice
 

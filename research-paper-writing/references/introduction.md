@@ -253,6 +253,8 @@ Local cite:
 
 ## Part C: Introduce Our Pipeline for Solving the Challenge
 
+Each version below points to one figure or table; Part D lists the options.
+
 Key questions before writing:
 
 ### For existing tasks
@@ -385,6 +387,68 @@ Local cite:
 
 1. `references/examples/introduction/pipeline-not-recommended-abstract-only.md`
 
+## Part D: Choose the Figure or Table of the Introduction
+
+Each pipeline version above points to one figure or table. Choose the one that shows the main claim at a glance, and follow the chosen style scheme (`references/figure-table-styles.md`).
+
+| Option | Use it when | What it shows |
+|---|---|---|
+| Basic-idea teaser | The idea is new and easy to draw | The key idea in one picture (Pipeline Versions 1-4) |
+| Results teaser | Prior methods fail visibly on a hard case | The strongest baseline and ours on that case, with the key numbers |
+| Trade-off plot | The gain is quality at a lower cost | Quality against cost (speed, memory, data, or parameters), with ours at the best corner |
+| Comparison table | No prior method has all the needed properties at once | Closest methods as rows, properties as columns, marked ✓ or ✗ |
+
+### Results Teaser
+
+Writing structure:
+
+1. Pick the hard case named by the technical challenge (Part B).
+2. Show the strongest baseline and ours on the same input, with zoom-ins on the failure.
+3. Put the key numbers (metric, speed) in the caption or on the images.
+
+Sentence skeleton:
+
+1. `As shown in Figure~\ref{fig:teaser}, [baseline] produces [failure] on [hard case], while [method] recovers [what].`
+
+For reference, the teaser of 3D Gaussian Splatting shows renderings of several methods next to their training time, FPS, and PSNR.
+
+### Trade-Off Plot
+
+Writing structure:
+
+1. Put cost on the x-axis (FPS, training time, memory, or parameters; log scale when it spans orders of magnitude) and quality on the y-axis, with units and ↑ or ↓.
+2. Plot ours and the strongest baselines, one point or curve per method; ours sits at the best corner.
+3. State the gap with numbers in the text.
+
+Sentence skeleton:
+
+1. `As shown in Figure~\ref{fig:teaser}, [method] reaches [quality] comparable to [baseline] while running [N]$\times$ faster.`
+
+For reference, Figure 1 of EfficientNet plots ImageNet accuracy against model size.
+
+### Comparison Table
+
+Writing structure:
+
+1. Choose 3-5 properties that the technical challenge requires, e.g., monocular input, dynamic scenes, and real-time rendering.
+2. List the closest prior methods as rows, each cited, and ours last.
+3. Mark each property ✓ or ✗. Check every mark against the cited paper; never guess it.
+4. Point to the table where you state the gap, and again where you state the contribution.
+
+Sentence skeleton:
+
+1. `As summarized in Table~\ref{tab:intro_comparison}, existing methods support either [property A] or [property B], but not both.`
+2. `[Method] is the first to support [property A] and [property B] at the same time.` Write "first" only if the table and the experiments back it.
+
+Rules:
+
+1. Place the table in the Introduction, after the paragraph that first points to it (A2.5), usually at the top of page 2.
+2. Keep it small, at most 6 rows and 5 columns, and do not repeat numbers from the Experiments tables.
+
+Local cite:
+
+1. `references/examples/introduction/teaser-and-comparison-table-templates.md`
+
 ## Example Bank
 
 1. `references/examples/introduction-examples.md`
@@ -400,6 +464,7 @@ Local cite:
 11. `references/examples/introduction/pipeline-version-3-new-module-on-existing-pipeline.md`
 12. `references/examples/introduction/pipeline-version-4-observation-driven.md`
 13. `references/examples/introduction/pipeline-not-recommended-abstract-only.md`
+14. `references/examples/introduction/teaser-and-comparison-table-templates.md`
 
 ## Quick Quality Checklist
 
@@ -409,3 +474,4 @@ Local cite:
 4. Are claims in Introduction aligned with experiment evidence?
 5. Is terminology stable across all sections?
 6. Does every claim that is not our own result cite a source?
+7. Does the figure or table of the Introduction (Part D) show the main claim, with every ✓ or ✗ checked against the cited paper?
