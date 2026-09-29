@@ -17,7 +17,7 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 4. Run reverse outlining after writing each section.
 5. Check every major claim in Abstract/Introduction against experimental evidence.
 6. Run final-paper adversarial review with `references/paper-review.md`.
-7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. For a whole paper, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
+7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
    - references: every entry exists, and its title, authors, and venue match the real paper (no hallucinated citations);
    - wording and format: every Writing Rule, reported rule by rule;
    - template compliance when the venue is known: page limit, anonymity, Appendix/Supplementary rules.
