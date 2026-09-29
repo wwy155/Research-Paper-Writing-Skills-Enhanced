@@ -22,6 +22,8 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
+Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Before making a figure or table, write its one-line conclusion; if you cannot, do not make it.
+
 Before writing Experiments or making any figure or table, write the closest-work plan (Core Workflow step 2 in `SKILL.md`):
 
 1. Name the 1-3 closest prior works: the methods ours is most directly compared with.
@@ -31,8 +33,8 @@ Before writing Experiments or making any figure or table, write the closest-work
 
    ```latex
    % Closest-work plan:
-   % [Paper A] Tab. 1 (main comparison on [dataset]) -> ours Tab. 1: done
-   % [Paper A] Fig. 6 (ablation of [module]) -> ours Fig. 5: TODO run [experiment]
+   % [Paper A] Tab. 1 (main comparison on [dataset]) -> ours Tab. 1: done; shows [conclusion]
+   % [Paper A] Fig. 6 (ablation of [module]) -> ours Fig. 5: TODO run [experiment]; shows [conclusion]
    % [Paper B] Tab. 3 (runtime) -> skipped: [reason]
    ```
 
@@ -93,7 +95,8 @@ flowchart TB
 6. One table, one message: do not mix unrelated results in a single table.
 7. If rows represent different attributes/ablations, encode that explicitly in row names or attribute columns.
 8. Start each caption with a bold one-line takeaway (Writing Rule A2.4 in `SKILL.md`), then give only the setting, protocol, and notation needed to read it; no long discussion.
-9. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
+9. Analyze every figure and table in the text: the observation with numbers, the reason ours behaves this way, and what follows. A figure or table that the text never discusses should be cut.
+10. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
 
 ### Minimal LaTeX checklist
 

@@ -60,7 +60,7 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 
 #### A2. Figures and Floats
 
-1. Each figure and table must support a different conclusion and show different content; merge or cut any that repeats another's message.
+1. Make a figure or table only to show an advantage of our method or a non-obvious finding, never for decoration. State its conclusion in the caption's bold takeaway and analyze it in the text: what it shows, why, and what follows. Each supports a different conclusion; merge or cut any that repeats another's message or has no conclusion.
 2. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name, color, and order in every figure and table, and always highlight ours.
 4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
@@ -110,7 +110,7 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 
 #### B4. Section-Specific Wording
 
-1. Opening: no clichés such as "With the rapid development of deep learning, ..."; start from the task and its concrete difficulty.
+1. Opening: no clichés such as "With the rapid development of deep learning, ..." or "The community has ..."; start from the task and its concrete difficulty.
 2. Contributions: parallel, concrete, and each checkable against an experiment.
 3. Results: every result sentence names metric, dataset, baseline, and magnitude.
 4. Related Work: specific and fair ("does not model X"), never dismissive.

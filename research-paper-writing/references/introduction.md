@@ -5,7 +5,7 @@
 Write a strong introduction in three steps:
 
 1. Think through the introduction logic.
-2. Apply a suitable template below.
+2. Pick one version in each of Parts A, B, C, and D below by its condition ("If the task is ...", "For novel tasks ..."), name your picks and the reason in your reply, and follow their sentence skeletons. Do not open with a sentence that no skeleton gives, such as "The community has ..." (B4.1).
 3. Revise the introduction repeatedly.
 
 In most cases, use a funnel structure: start from the broad task and its applications, narrow down through prior methods and the remaining technical challenge, and end at our solution and contributions.
@@ -147,7 +147,7 @@ Writing structure:
 
 Opening-paragraph skeleton:
 
-1. `[Task/application importance sentence].`
+1. `[xxx task] underlies applications such as [xxx], [xxx], and [xxx], which require [target property, e.g., accuracy and speed].`
 2. `Given input ..., previous methods usually ...`
 3. `Although they work in many cases, they fail at ... because ...`
 

@@ -92,7 +92,9 @@ PROSE_PATTERNS = [
      r"advancements?|advances|progress|growth|rise)|[Ii]n recent years|"
      r"[Rr]ecent years have (?:witnessed|seen)|(?:attracted|gained|drawn|"
      r"received|garnered) (?:increasing|growing|much|considerable|significant|"
-     r"widespread|tremendous|great) (?:attention|interest))"),
+     r"widespread|tremendous|great) (?:attention|interest)|"
+     r"[Tt]he (?:\w+ )?community (?:has|have|is|are|was|were)\b|"
+     r"(?:attention|interest) (?:from|of|in) the (?:\w+ )?community)"),
     (WARN, "B2.3", "Ambiguous This/It: name the noun ('This design ...')",
      SENT_START + r"(?:This|These|It)\s+(?:is|are|was|were|makes?|allows?|"
      r"enables?|leads?|shows?|means|motivates|results|helps|ensures|provides|"
@@ -500,6 +502,31 @@ def check_structure(files, root, rep):
                     "by moving or resizing floats, or by rewording")
 
 
+TOPIC_ONLY = re.compile(
+    r"^(?:(?:qualitative|quantitative|visual|more|additional|detailed)\s+)*"
+    r"(?:results?|comparisons?|evaluations?|analysis|analyses|visuali[sz]ations?|examples?|samples?|overview|"
+    r"pipeline|framework|architecture|illustration|ablations?(?:\s+stud(?:y|ies))?)"
+    r"(?:\s+(?:on|of|with|for|in|against)\b[^.]*)?\.?$", re.I)
+
+
+def check_figure_use(files, rep):
+    """A2.1: every figure and table is discussed in the text and states a conclusion."""
+    refs = {k.strip() for f in files for g in re.findall(REF_CMDS, f.nonverbatim) for k in g.split(",")}
+    for f in files:
+        for m in re.finditer(r"\\begin\{(figure|table)(\*?)\}(.*?)\\end\{\1\2\}", f.nonverbatim, re.S):
+            kind, body = m.group(1), m.group(3)
+            labels = {l.strip() for l in re.findall(r"\\label\{([^}]*)\}", body)}
+            if not labels:
+                rep.add(f, m.start(), WARN, "A2.1", f"This {kind} has no \\label, so the text cannot discuss it")
+            elif not labels & refs:
+                rep.add(f, m.start(), WARN, "A2.1", f"The {kind} '{sorted(labels)[0]}' is never referenced: "
+                        "analyze its conclusion in the text, or cut it")
+            for c in re.finditer(r"\\caption(?:\[[^\]]*\])?\{\s*(?:\\(?:small|footnotesize)\s*)?\\textbf\{([^{}]*)\}", body):
+                if TOPIC_ONLY.match(c.group(1).strip()):
+                    rep.add(f, m.start(3) + c.start(), WARN, "A2.1", "The bold takeaway names a topic, not a conclusion: "
+                            "state what the reader should conclude")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -596,6 +623,7 @@ def main(argv=None):
     check_references(files, missing, bibs, rep, args.min_refs)
     check_figure_names(files, rep)
     check_structure(files, root, rep)
+    check_figure_use(files, rep)
     if args.review:
         check_review(files, rep)
     if args.log:
