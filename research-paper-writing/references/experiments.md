@@ -22,7 +22,21 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
-To choose figures and tables, check the closest prior work: see what it analyzes, and run the same analyses. Try to reproduce as many of the closest methods' figures and tables as possible, under the same settings and with our method included.
+Before writing Experiments or making any figure or table, write the closest-work plan (Core Workflow step 2 in `SKILL.md`):
+
+1. Name the 1-3 closest prior works: the methods ours is most directly compared with.
+2. Open each paper, including its supplementary material, and list every figure and table. If you cannot open a paper, ask the user for its PDF or link.
+3. Reproduce each one under the same setting (dataset, split, metrics, protocol) with our method included. Skip one only for a stated reason, e.g., the analysis does not apply to our setting.
+4. Record the plan as a comment block at the start of the Experiments section; the checker warns when it is missing:
+
+   ```latex
+   % Closest-work plan:
+   % [Paper A] Tab. 1 (main comparison on [dataset]) -> ours Tab. 1: done
+   % [Paper A] Fig. 6 (ablation of [module]) -> ours Fig. 5: TODO run [experiment]
+   % [Paper B] Tab. 3 (runtime) -> skipped: [reason]
+   ```
+
+5. Create every planned figure and table now, with `[TODO]` cells where data is missing, and list the experiments the author must run.
 
 ```mermaid
 flowchart TB

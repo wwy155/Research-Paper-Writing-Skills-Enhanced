@@ -24,7 +24,7 @@ import sys
 
 ERROR, WARN = "ERROR", "WARN"
 
-NOT_CHECKED = ("A1.1, A1.2, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 "
+NOT_CHECKED = ("A1.1, A1.2, A1.6, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 "
                "(and A1.3-A1.5 without --pdf/--log/--review)")
 
 MATH_ENVS = (r"equation|align|gather|multline|eqnarray|flalign|alignat|"
@@ -451,9 +451,60 @@ def check_review(files, rep):
             rep.add(f, m.start(), WARN, "A1.3", "Review version: is this link identifying? Use an anonymous link")
 
 
+APPENDIX_NAME = re.compile(r"supp|appendix", re.I)
+REF_CMDS = r"\\(?:ref|eqref|pageref|autoref|nameref|[cC]ref)\{([^}]*)\}"
+
+
+def check_structure(files, root, rep):
+    """Appendix (Execution Rule 9), closest-work plan, and white-space hints (A1.6, A1.1)."""
+    main = files[0]
+    appendix_paths = {os.path.abspath(f.path) for f in files if APPENDIX_NAME.search(os.path.basename(f.path))}
+    cut = re.search(r"\\appendix\b", main.clean)
+    if cut:
+        for m in re.finditer(r"\\(?:input|include|subfile)\{([^}]+)\}", main.clean[cut.end():]):
+            p = resolve(root, m.group(1).strip(), ".tex")
+            if p:
+                appendix_paths.add(os.path.abspath(p))
+    sibling = [n for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)]
+    if not (appendix_paths or sibling or any(re.search(r"\\appendix\b", f.clean) for f in files)):
+        rep.add_plain("(paper)", WARN, "Rule 9", "No Appendix or Supplementary Material found: create it now, "
+                      "following the template (Execution Rule 9)")
+    else:
+        main_texts, appendix_labels = [], set()
+        for f in files:
+            text = f.clean
+            if os.path.abspath(f.path) in appendix_paths:
+                appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text))
+                continue
+            k = re.search(r"\\appendix\b", text)
+            if k:
+                appendix_labels.update(re.findall(r"\\label\{([^}]*)\}", text[k.end():]))
+                text = text[:k.start()]
+            main_texts.append(text)
+        keys = {k.strip() for t in main_texts for g in re.findall(REF_CMDS, t) for k in g.split(",")}
+        named = any(re.search(r"\b(?:[Aa]ppendix|[Ss]upplement\w*|[Ss]upp\.)", mask_args(t)) for t in main_texts)
+        if not (keys & appendix_labels or named):
+            rep.add_plain("(paper)", WARN, "Rule 9", "The main text never points to the Appendix or Supplementary "
+                          "Material: reference its important parts (Execution Rule 9)")
+    has_experiments = any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files)
+    if has_experiments and not any(re.search(r"%\s*Closest-work plan", f.raw, re.I) for f in files):
+        rep.add_plain("(paper)", WARN, "Experiments", "No '% Closest-work plan:' block: list every figure and table "
+                      "of the closest prior work and how ours reproduces it (references/experiments.md)")
+    for f in files:
+        for m in re.finditer(r"\\begin\{(?:figure|table)\*?\}\s*\[([^\]]*)\]", f.nonverbatim):
+            spec = m.group(1)
+            if "H" in spec or ("h" in spec and not re.search(r"[tbp]", spec)):
+                rep.add(f, m.start(), WARN, "A1.6", f"[{spec}] placement often leaves white space: use [t]")
+        for m in re.finditer(r"\\vspace\*?\{\s*-", f.nonverbatim):
+            rep.add(f, m.start(), WARN, "A1.1", "Negative \\vspace squeezes the template's spacing: fix white space "
+                    "by moving or resizing floats, or by rewording")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
+    for m in re.finditer(r"LaTeX Warning: `h' float specifier changed to `ht'[^\n]*", log):
+        rep.add_plain(path, WARN, "A1.6", "A float with [h] was moved: use [t] so it does not leave white space")
     for m in re.finditer(r"(?:LaTeX|Package \w+) Warning: (Reference|Citation) [`']([^']*)' "
                          r"on page (\d+) undefined", log):
         rep.add_plain(path, ERROR, "A1.5", f"{m.group(1)} '{m.group(2)}' undefined on page {m.group(3)}")
@@ -544,6 +595,7 @@ def main(argv=None):
     check_named_items(files, rep)
     check_references(files, missing, bibs, rep, args.min_refs)
     check_figure_names(files, rep)
+    check_structure(files, root, rep)
     if args.review:
         check_review(files, rep)
     if args.log:
