@@ -102,7 +102,7 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 4. Progress-then-gap opener: "While X has achieved remarkable progress, ..." -> name what fails and why.
 5. Stacked adverbs: "Notably, ... Importantly, ... Furthermore, ..." -> keep only real relations.
 6. Unsupported triplets: "efficient, scalable, and robust" -> keep only what the experiments show.
-7. Dashes: never use a dash as punctuation (`---`, `—`, or a spaced `--` or `-`) -> use a comma, a colon, parentheses, or a new sentence. Use `--` only for numeric ranges (A4.3); hyphens inside compound words are fine.
+7. Em dashes: never use an em dash (`---`, `—`) -> use a comma, a colon, parentheses, or a new sentence. Hyphens and en dashes (`-`, `--`) are fine.
 
 #### B4. Section-Specific Wording
 

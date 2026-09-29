@@ -105,11 +105,8 @@ PROSE_PATTERNS = [
      r"[\u201c\u201d\u2018\u2019]"),
     (ERROR, "A4.3", "Use -- for numeric ranges",
      r"(?<![\w.\-])\d+(?:\.\d+)?-\d+(?:\.\d+)?(?![\w.\-])"),
-    (ERROR, "A4.3", "Write -- for ranges instead of the Unicode dash",
-     r"(?<=\d)\s*\u2013\s*(?=\d)"),
-    (ERROR, "B3.7", "Dash used as punctuation: use a comma, a colon, parentheses, or a new sentence",
-     r"(?<!-)---(?!-)|[\u2014\u2015]|\\textemdash\b|(?<!\d)(?:\s+(?:--|\u2013|\\textendash\b)(?!-)|"
-     r"(?<!-)(?:--|\u2013)\s+)(?!\s*\d)|(?<=\w)\s+-\s+(?=\w)"),
+    (ERROR, "B3.7", "Em dash: use a comma, a colon, parentheses, or a new sentence",
+     r"-{3,}|[\u2014\u2015\u2e3a\u2e3b]|\\textemdash\b"),
 ]
 ADVERBS = (SENT_START + r"(?:Notably|Importantly|Furthermore|Moreover|"
            r"Additionally|Crucially|Interestingly|Remarkably|Significantly|"
