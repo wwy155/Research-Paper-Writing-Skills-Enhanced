@@ -368,6 +368,8 @@ def is_named(tok):
         return False
     if re.fullmatch(r"\d+D(?:-\d+D)*", tok) or re.fullmatch(r"[A-Z]{2,}s", tok):
         return False
+    if "-" in tok and all(re.fullmatch(r"[A-Z]?[a-z]+", part) for part in tok.split("-")):
+        return False  # title-case compound such as "Per-Scene" or "Real-Time"
     letters = tok.replace("-", "")
     inner_upper = any(c.isupper() for c in letters[1:])
     lower_or_digit = any(c.islower() or c.isdigit() for c in letters)
