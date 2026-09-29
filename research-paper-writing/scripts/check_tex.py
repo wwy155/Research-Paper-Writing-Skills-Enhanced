@@ -105,9 +105,8 @@ PROSE_PATTERNS = [
      r"[\u201c\u201d\u2018\u2019]"),
     (ERROR, "A4.3", "Use -- for numeric ranges",
      r"(?<![\w.\-])\d+(?:\.\d+)?-\d+(?:\.\d+)?(?![\w.\-])"),
-    (ERROR, "B3.7", "Em dash: use a comma, a colon, parentheses, or a new sentence",
-     r"-{3,}|[\u2014\u2015\u2e3a\u2e3b]|\\textemdash\b"),
 ]
+EM_DASH = r"-{3,}|[\u2014\u2015\u2e3a\u2e3b]|\\textemdash\b"
 ADVERBS = (SENT_START + r"(?:Notably|Importantly|Furthermore|Moreover|"
            r"Additionally|Crucially|Interestingly|Remarkably|Significantly|"
            r"Besides|In addition)\s*,")
@@ -170,6 +169,9 @@ class File:
         self.clean = document_body(strip_comments(self.raw))
         no_verb = mask(self.clean, r"\\begin\{(" + VERBATIM_ENVS + r")\}.*?\\end\{\1\}")
         no_verb = mask(no_verb, r"\\verb\*?([^a-zA-Z\s]).*?\1")
+        # Whole file (preamble too, e.g. \title), minus comments and verbatim.
+        whole = mask(strip_comments(self.raw), r"\\begin\{(" + VERBATIM_ENVS + r")\}.*?\\end\{\1\}")
+        self.whole = mask(whole, r"\\verb\*?([^a-zA-Z\s]).*?\1")
         self.nonverbatim = no_verb
         self.keys_masked = mask_args(no_verb)  # math kept, command arguments blanked
         spans = math_spans(no_verb)
@@ -534,6 +536,9 @@ def main(argv=None):
         for m in re.finditer(r"[\uff0c\u3002\uff1a\uff1b\uff01\uff1f\uff08\uff09\u3010\u3011\u300a\u300b\u3001]",
                              f.nonverbatim):
             rep.add(f, m.start(), ERROR, "A4.4", "Full-width punctuation: use ASCII , . : ; ( )")
+        for m in re.finditer(EM_DASH, f.whole):
+            rep.add(f, m.start(), ERROR, "B3.7",
+                    "Em dash: use a comma, a colon, parentheses, or a new sentence (in a table cell, use - or N/A)")
     check_named_items(files, rep)
     check_references(files, missing, bibs, rep, args.min_refs)
     check_figure_names(files, rep)
