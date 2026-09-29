@@ -81,9 +81,10 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 3. Write ``` ``quotes'' ``` instead of `"quotes"`, `--` for ranges, and `e.g.,` / `i.e.,` with a comma.
 4. Remove full-width punctuation (`，。：（）`) left by Chinese input methods.
 5. Bibliography: consistent venue names, published versions instead of arXiv, protected capitals (`{NeRF}`).
-6. Cite every named model, method, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. Every claim that is not our own result must cite a source, especially in the Introduction. Never invent a reference; mark an unknown source as `\cite{TODO}`.
+6. Cite every named model, method, baseline, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. In Experiments, cite each one again at its first mention there, even if it was cited earlier, and in each table row that names it. Every claim that is not our own result must cite a source, especially in the Introduction. Never invent a reference; mark an unknown source as `\cite{TODO}`.
 7. Do not end a long sentence with a long citation list; split it and cite each point where it is made.
 8. Aim for at least 35 references. Add only real papers whose title, authors, and venue you have checked; if there are fewer, list the gaps as `[TODO: cite ...]` for the author instead of padding the bibliography.
+9. In Experiments, before the first result, state every metric you report: what it measures, which direction is better, and its source (`LPIPS~\cite{lpips}`). Do this even if an earlier section already explained it.
 
 ### B. Wording
 

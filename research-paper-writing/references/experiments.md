@@ -70,6 +70,19 @@ flowchart TB
     S3 --> S4["Ablation Studies"]
 ```
 
+## Experimental Setup
+
+Write the setup before any result, even when earlier sections already covered parts of it: many readers jump straight to Experiments.
+
+1. Datasets and benchmarks: cite each again at its first mention in Experiments (Writing Rule A4.6 in `SKILL.md`), and give the split and resolution.
+2. Baselines: cite each again at its first mention here and in every table row that names it. Say how its results were obtained: official code, numbers from its paper, or retrained by us.
+3. Metrics (Writing Rule A4.9): for every metric in a table or figure, say what it measures and which direction is better, and cite its source when it has one. Restate them even if the Introduction or Method already did.
+4. Implementation details: hardware, training time, and key hyperparameters; move the rest to the Appendix.
+
+```latex
+\paragraph{Metrics.} We report PSNR, SSIM~\cite{wang2004ssim}, and LPIPS~\cite{zhang2018lpips}. PSNR measures pixel-wise fidelity in dB. SSIM measures structural similarity, and LPIPS measures perceptual distance with deep features. Higher PSNR and SSIM and lower LPIPS are better. We measure FPS at $800\times800$ on one RTX 4090 GPU.
+```
+
 ## Figure/Table Writing Rules
 
 `Good tables are part of experiment communication quality, not decoration.`
@@ -118,3 +131,5 @@ flowchart TB
 3. Is ablation tied to every key design claim?
 4. Are claims in Abstract/Introduction supported by reported numbers?
 5. Are limitations of evaluation scope explicitly stated?
+6. Is every metric defined, with its direction and source, before the first result?
+7. Is every baseline, dataset, and metric cited at its first mention in Experiments and in each table row that names it?
