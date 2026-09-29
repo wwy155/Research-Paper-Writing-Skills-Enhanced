@@ -57,6 +57,26 @@ Decide what a figure must say before you decide what it looks like.
 - More than about six lines in one panel: grey out the lines that are not the point, or split them into panels with shared axes.
 - A figure that repeats a table: cut one of them (A2.1).
 
+### Published Figures Worth Studying
+
+Each figure below picks a form that fits its message. Figure numbers can differ between the arXiv and proceedings versions (see CLIP), so check the version you cite.
+
+- Better and cheaper: EfficientNet (Tan and Le, ICML 2019), Fig. 1. ImageNet accuracy against the number of parameters; the EfficientNet curve beats the other ConvNets with far fewer parameters.
+- Scales with resources: Kaplan et al. (2020), Fig. 1. Test loss against compute, dataset size, and parameters, one panel each, with power-law fits.
+- Scales with data: BiT (Kolesnikov et al., ECCV 2020), Fig. 1. Accuracy of BiT-L against examples per class (1 to 100) on five datasets. Bars show the full-data results of the previous best and a baseline for reference.
+- Robust to harder inputs: PointNet (Qi et al., CVPR 2017), Fig. 6. Accuracy as points are deleted, outliers are inserted, and Gaussian noise grows, one panel each.
+- Where the gain comes from: CLIP (Radford et al., ICML 2021), Fig. 4 (Fig. 5 on arXiv). Sorted bars of the score difference between zero-shot CLIP and a supervised linear probe on 27 datasets; the losses stay visible.
+- Where each method leads: D2-Net (Dusmanu et al., CVPR 2019), Fig. 4. Mean matching accuracy on HPatches against the pixel threshold, a cumulative curve. D2-Net trails at strict thresholds and leads overall beyond about 6.5 pixels.
+- Insensitive to a setting: MAE (He et al., CVPR 2022), Fig. 5. Accuracy against the masking ratio for fine-tuning and linear probing; a high ratio (75%) works well for both.
+- Trains better: ResNet (He et al., CVPR 2016), Fig. 4. ImageNet training and validation error over iterations, plain networks beside ResNets of 18 and 34 layers.
+- Learns faster: CLIP, Fig. 2. Zero-shot ImageNet accuracy against the number of images processed, for three pre-training objectives. Its caption opens with the takeaway: "CLIP is much more efficient at zero-shot transfer than our image caption baseline."
+- A non-obvious finding: ResNet, Fig. 1. On CIFAR-10, the 56-layer plain network has higher training and test error than the 20-layer one. This finding motivates the whole method.
+- Fixes a visible failure: Mip-NeRF 360 (Barron et al., CVPR 2022), Fig. 7. Ground truth, ours, and three baselines side by side, with depth maps and cropped patches that highlight details.
+- What the model learns: DINO (Caron et al., ICCV 2021), Fig. 1. Self-attention maps of a ViT trained without labels; they segment the objects without supervision.
+- How it works: Transformer (Vaswani et al., NeurIPS 2017), Fig. 1. The encoder and decoder stacks in one block diagram.
+- The key idea: NeRF (Mildenhall et al., ECCV 2020), Fig. 1. Input images, then optimizing the radiance field, then rendering new views; the detailed pipeline waits until Fig. 2.
+- A results teaser that carries the trade-off: 3D Gaussian Splatting (Kerbl et al., SIGGRAPH 2023), Fig. 1. Renderings of four methods and the ground truth, each labeled with FPS, training time, and PSNR.
+
 ## Choose a Scheme
 
 1. If the user has named a scheme, use it.
