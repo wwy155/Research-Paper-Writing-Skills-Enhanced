@@ -92,7 +92,9 @@ PROSE_PATTERNS = [
      r"advancements?|advances|progress|growth|rise)|[Ii]n recent years|"
      r"[Rr]ecent years have (?:witnessed|seen)|(?:attracted|gained|drawn|"
      r"received|garnered) (?:increasing|growing|much|considerable|significant|"
-     r"widespread|tremendous|great) (?:attention|interest))"),
+     r"widespread|tremendous|great) (?:attention|interest)|"
+     r"[Tt]he (?:\w+ )?community (?:has|have|is|are|was|were)\b|"
+     r"(?:attention|interest) (?:from|of|in) the (?:\w+ )?community)"),
     (WARN, "B2.3", "Ambiguous This/It: name the noun ('This design ...')",
      SENT_START + r"(?:This|These|It)\s+(?:is|are|was|were|makes?|allows?|"
      r"enables?|leads?|shows?|means|motivates|results|helps|ensures|provides|"

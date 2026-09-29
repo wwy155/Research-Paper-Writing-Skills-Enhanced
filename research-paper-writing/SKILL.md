@@ -110,7 +110,7 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 
 #### B4. Section-Specific Wording
 
-1. Opening: no clichés such as "With the rapid development of deep learning, ..."; start from the task and its concrete difficulty.
+1. Opening: no clichés such as "With the rapid development of deep learning, ..." or "The community has ..."; start from the task and its concrete difficulty.
 2. Contributions: parallel, concrete, and each checkable against an experiment.
 3. Results: every result sentence names metric, dataset, baseline, and magnitude.
 4. Related Work: specific and fair ("does not model X"), never dismissive.
