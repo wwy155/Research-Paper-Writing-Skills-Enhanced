@@ -1,5 +1,7 @@
 # Pipeline Version 4 (Observation-Driven Contribution)
 
+> Quoted from a published paper: reuse the logic, not the wording. "encodes not only the feature of each vertex but also the relationship among neighboring vertices" breaks Writing Rule B3.2 in `SKILL.md`; write "encodes the feature of each vertex and the relationship among neighboring vertices".
+
 
 `Version 4: Contribution comes from one important observation. Introduce key innovation first, then intuitive observation as motivation, then method details, then benefits.`
 

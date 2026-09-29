@@ -2,6 +2,8 @@
 
 Note: This file stores the source content extracted from the PDF, with light formatting cleanup for Markdown readability.
 
+For papers, the Writing Rules in `SKILL.md` take precedence over this general advice: use a transition word only when it names a real relation (cause, contrast, consequence), and never stack additive adverbs such as "Furthermore, ... Moreover, ..." (B3.5).
+
 ## Original Content
 
 ### Does My Writing Flow?

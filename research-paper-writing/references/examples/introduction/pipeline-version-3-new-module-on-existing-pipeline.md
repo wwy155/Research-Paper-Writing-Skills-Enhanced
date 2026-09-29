@@ -1,5 +1,7 @@
 # Pipeline Version 3 (New Module on Existing Pipeline)
 
+> Quoted from a published paper: reuse the logic, not the wording. "encodes not only the feature of each vertex but also the relationship among neighboring vertices" breaks Writing Rule B3.2 in `SKILL.md`; write "encodes the feature of each vertex and the relationship among neighboring vertices".
+
 
 `Version 3: Build on a prior pipeline and introduce one new module, with a teaser figure for the basic idea.`
 

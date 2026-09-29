@@ -1,5 +1,7 @@
 # Introduction Novel-Task Challenge Decomposition
 
+> Quoted from a published paper: reuse the logic, not the wording. The trailing participle ", making the inference problem highly under-constrained" breaks Writing Rule B3.1 in `SKILL.md`; write it as its own sentence ("The inference problem is therefore highly under-constrained.").
+
 
 `For novel tasks without direct methods, decompose the challenge into clear requirement/challenge points.`
 

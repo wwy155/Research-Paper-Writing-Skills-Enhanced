@@ -1,5 +1,7 @@
 # Technical Challenge Version 2 (Existing Task, Insight Backed by Traditional Methods)
 
+> Quoted from published papers: reuse the logic, not the wording. The trailing participle ", yielding suboptimal reconstruction quality" breaks Writing Rule B3.1 in `SKILL.md`; state the consequence as its own sentence.
+
 
 `Version 2: For existing tasks, if our technical insight was used in traditional methods, discuss that line to provide conceptual backing.`
 

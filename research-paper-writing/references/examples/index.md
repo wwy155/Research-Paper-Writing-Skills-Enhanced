@@ -17,5 +17,5 @@ Use this folder for concrete writing patterns and locally organized cite targets
 
 1. Pick one template from a section guide.
 2. Open the matching examples file.
-3. Reuse the sentence logic, not exact wording.
+3. Reuse the sentence logic, never the exact wording. The examples are quoted from published papers, and a few break the Writing Rules in `SKILL.md` (a note under the title says which); the Writing Rules win.
 4. Keep citation links in your notes for traceability.
