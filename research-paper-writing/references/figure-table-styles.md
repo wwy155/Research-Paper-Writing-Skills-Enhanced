@@ -6,12 +6,13 @@ Read this file before you create or restyle any plot, diagram, or table. First p
 
 Decide what a figure must say before you decide what it looks like.
 
-1. Write the message as one sentence with a number, e.g., "Ours keeps 70% accuracy at noise level 0.5, while every baseline falls below 45%." It becomes the caption's bold takeaway (A2.4). If you cannot write it, do not make the figure (A2.1).
+1. Write the message as one sentence with a number, e.g., "Ours keeps 70% accuracy at noise level 0.5, while every baseline falls below 45%." It becomes the caption's bold takeaway, so keep it within 15 words (A2.4). If you cannot write it, do not make the figure (A2.1).
 2. Name the comparison inside the message: ours against which methods, and along which variable. The variable can be a cost, a data size, a difficulty level, a category, or an image region.
 3. Pick the form from the table below. Make that comparison the most visible thing in the figure. Put the compared items next to each other on one shared axis, highlight ours, and let nothing else compete for attention.
-4. Draw it at print size with real data or marked placeholders. Then test it: from the figure and its bold takeaway alone, can a reader confirm the message within five seconds? If not, change the form, not the colors.
-5. Put numbers that readers will cite or compare against in a table. Put trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix.
-6. When you reproduce a figure of the closest work (Core Workflow step 2 in `SKILL.md`), keep its form so readers can compare the two papers. If that form breaks a rule in this file, e.g., a dual axis, keep the analysis and fix the form.
+4. Add the figure to the figure plan (below) before drawing it. If its form already appears in two main-text figures, follow Vary the Forms.
+5. Draw it at print size with real data or marked placeholders. Then test it: from the figure and its bold takeaway alone, can a reader confirm the message within five seconds? If not, change the form, not the colors.
+6. Put numbers that readers will cite or compare against in a table. Put trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix.
+7. When you reproduce a figure of the closest work (Core Workflow step 2 in `SKILL.md`), keep its form so readers can compare the two papers. If that form breaks a rule in this file, e.g., a dual axis, keep the analysis and fix the form.
 
 `scripts/figure_forms.py` draws the plot forms of the table with the chosen scheme: `tradeoff`, `curves`, `gain_bars`, `cdf`, and `sensitivity`. Copy it next to `paperstyle.py` and pass your own data. `python3 <this skill's directory>/scripts/figure_forms.py clean forms.png` renders its gallery, panels (a)-(f) in the table, with illustrative data; look at it before drawing your own.
 
@@ -30,6 +31,31 @@ Decide what a figure must say before you decide what it looks like.
 | What the model learns or attends to. | Maps overlaid on the input (attention, error, depth) with a sequential colormap (Rule 7). | Rainbow colormaps; an embedding plot (t-SNE) without an observation. |
 | How the method works. | Pipeline diagram (`references/method.md`, Rule 11). | A diagram of every layer. |
 | The key idea, at first glance. | Teaser (Part D of `references/introduction.md`). | A teaser that repeats the pipeline figure. |
+
+### The Figure Plan
+
+Keep one line per figure at the top of the main `.tex` file, under the scheme comment. Write the line before drawing the figure, and update it when its message or form changes. The checker reads this block: it warns about main-text figures without a line and about a form used more than twice.
+
+```latex
+% Figure and table scheme: clean
+% Figure plan (label: message -> form):
+% fig:teaser: ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
+% fig:pipeline: how the method works -> pipeline diagram
+% fig:qualitative: ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
+% fig:views: our lead grows as the input views get sparser -> lines over the number of views
+% fig:per_class: the gain comes from thin categories -> sorted gain bars
+```
+
+Name the form with one of these words, so the checker can count it: teaser, diagram, qualitative grid, scatter, lines, bars, cumulative curve, map, or table. Synonyms also work: pipeline, curves, histogram, box plot. A figure whose panels use different forms names each, e.g., `lines over noise; sorted gain bars`.
+
+### Vary the Forms
+
+Readers skim the figures before the text. When several figures look alike, the paper reads like one result repeated.
+
+1. In the main text, use one form for at most two figures, e.g., two line plots, two bar charts, or two qualitative grids.
+2. When a third message needs the same form, merge it with a related figure. Use panels (a) and (b) with shared axes and one legend. Otherwise, move the weakest one to the Appendix, or use a table when exact numbers matter.
+3. Aim for a mix, e.g., a teaser, a pipeline diagram, a qualitative grid, and one or two analysis plots of different forms.
+4. The Appendix has no such limit: per-scene grids and extra curves belong there.
 
 ### Worked Examples
 
@@ -76,6 +102,26 @@ Each figure below picks a form that fits its message. Figure numbers can differ 
 - How it works: Transformer (Vaswani et al., NeurIPS 2017), Fig. 1. The encoder and decoder stacks in one block diagram.
 - The key idea: NeRF (Mildenhall et al., ECCV 2020), Fig. 1. Input images, then optimizing the radiance field, then rendering new views; the detailed pipeline waits until Fig. 2.
 - A results teaser that carries the trade-off: 3D Gaussian Splatting (Kerbl et al., SIGGRAPH 2023), Fig. 1. Renderings of four methods and the ground truth, each labeled with FPS, training time, and PSNR.
+
+## Write the Caption
+
+A caption says what to conclude and how to read the figure; the text explains why.
+
+1. Bold takeaway first: one sentence of at most 15 words, the message from the figure plan.
+2. Then add only what is needed to read the figure without the main text. That is the dataset or setting, the metric and its direction, what the colors, markers, insets, or panels mean, and any new notation. Use one to three short sentences.
+3. Keep the caption within 50 words in total, or 80 for a teaser or pipeline figure, which may name its steps (a), (b), (c).
+4. Leave out analysis, reasons, and anything the text already says; they go in the paragraph that discusses the figure (A2.1).
+5. Tables follow the same limits, with the caption above the table (A2.4).
+
+The checker counts the words; a citation, a reference, or an inline formula counts as one word.
+
+```latex
+% Too long (62 words): the takeaway names a topic, and the rest is analysis.
+\caption{\textbf{Qualitative comparison on the D-NeRF dataset.} We compare our method with 4D-GS, Deformable 3DGS, and D-NeRF on four scenes. As can be seen, our method produces sharper details and fewer artifacts than the baselines, especially around thin structures such as fingers and hair. This is because our deformation field models motion at a finer scale, which demonstrates the effectiveness of our design.}
+
+% Better (28 words): the conclusion first, then only what is needed to read the figure.
+\caption{\textbf{Ours keeps thin structures that the baselines blur.} Novel views on the D-NeRF dataset~\cite{dnerf}; methods in the order of Table~\ref{tab:main}. Insets zoom into the boxed regions.}
+```
 
 ## Choose a Scheme
 

@@ -31,7 +31,7 @@ Typical use cases:
 
 ## Figures and Tables
 
-Before drawing, the agent writes the message of a figure in one sentence and picks the form that shows it. For example, "better and cheaper" calls for a scatter with cost on a log axis, and "where the gain comes from" calls for sorted gain bars. The table of messages and forms, worked examples, and forms to avoid are in `research-paper-writing/references/figure-table-styles.md`. `scripts/figure_forms.py` draws each form (illustrative data below):
+Before drawing, the agent writes the message of a figure in one sentence and picks the form that shows it. For example, "better and cheaper" calls for a scatter with cost on a log axis. "Where the gain comes from" calls for sorted gain bars. The table of messages and forms, worked examples, and forms to avoid are in `research-paper-writing/references/figure-table-styles.md`. The agent records each figure as one line of a figure plan (`label: message -> form`). It uses one form for at most two main-text figures. It keeps captions short: a bold takeaway of at most 15 words, and at most 50 words in total (80 for a teaser or pipeline figure). The checker enforces the plan, the form count, and the caption lengths. `scripts/figure_forms.py` draws each form (illustrative data below):
 
 ![Plot forms for six common messages](docs/figure-forms.png)
 

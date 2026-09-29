@@ -162,6 +162,33 @@ def mask_args(text):
                   + blank(m.group(4)) + m.group(5), text)
 
 
+def brace_end(text, i):
+    """Index just past the {...} group that opens at text[i]; None if it never closes."""
+    depth, j = 0, i
+    while j < len(text):
+        c = text[j]
+        if c == "\\":
+            j += 2
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    return None
+
+
+def latex_words(tex):
+    """Words as printed: a citation, a reference, or an inline formula counts as one word."""
+    t = re.sub(r"\\(?:cite[a-zA-Z]*|ref|eqref|autoref|[cC]ref)\*?(?:\s*\[[^\]]*\])*\s*\{[^}]*\}", " X ", tex)
+    t = re.sub(r"\\(?:label|TODO|todo)\{[^{}]*\}", " ", t)  # author notes are not printed text
+    t = re.sub(r"(?<!\\)\$(?:\\.|[^$\\])+?\$", " X ", t)
+    t = re.sub(r"\\[A-Za-z]+\*?", " ", t)
+    return re.findall(r"[A-Za-z0-9]+(?:[.'\-][A-Za-z0-9]+)*", t)
+
+
 class File:
     def __init__(self, path):
         self.path = path
@@ -338,29 +365,57 @@ def check_math(f, rep):
                         "Punctuate the display equation as part of the sentence (end with , or .)")
 
 
-def check_floats(f, rep):
+TAKEAWAY_WORDS, CAPTION_WORDS, DIAGRAM_CAPTION_WORDS = 15, 50, 80
+DIAGRAM_LABEL = re.compile(r"teaser|pipeline|overview|framework|architecture|arch\b|method", re.I)
+SUBFLOATS = r"\\begin\{(subfigure|subtable)\}.*?\\end\{\1\}"
+
+
+def check_caption(f, rep, pos, arg, limit):
+    """A2.4: a bold takeaway of one short sentence, and a short caption."""
+    b = re.match(r"\s*(?:\\(?:small|footnotesize|scriptsize|normalsize)\s*)?\\textbf\{", arg)
+    if not b:
+        rep.add(f, pos, ERROR, "A2.4", "Start the caption with a bold one-sentence takeaway (\\caption{\\textbf{...} ...})")
+    else:
+        end = brace_end(arg, b.end() - 1) or len(arg)
+        bold = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", ""), arg[b.end():end - 1])
+        n = len(latex_words(bold))
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+(?=[A-Z\\])", bold) if latex_words(s)]
+        if len(sentences) > 1:
+            rep.add(f, pos, WARN, "A2.4", f"The bold takeaway has {len(sentences)} sentences: keep one")
+        elif n > TAKEAWAY_WORDS:
+            rep.add(f, pos, WARN, "A2.4", f"The bold takeaway has {n} words (> {TAKEAWAY_WORDS}): shorten it")
+    n = len(latex_words(arg))
+    if n > limit:
+        rep.add(f, pos, WARN, "A2.4", f"Caption has {n} words (> {limit}): keep only what is needed to read "
+                "the figure (setting, metric, notation) and move the analysis to the text")
+
+
+def check_floats(f, rep, plan=None):
     for m in re.finditer(r"\\begin\{(table|figure)(\*?)\}(.*?)\\end\{\1\2\}", f.nonverbatim, re.S):
-        env, body, off = m.group(1), m.group(3), m.start(3)
+        env, full, off = m.group(1), m.group(3), m.start(3)
+        body = mask(full, SUBFLOATS)  # captions of subfigures are not the float's caption
+        labels = re.findall(r"\\label\{([^}]*)\}", full)
+        kinds = set().union(*[plan[l.strip()][2] for l in labels if plan and l.strip() in plan])
+        diagram = env == "figure" and (kinds & {"teaser", "diagram"} or any(DIAGRAM_LABEL.search(l) for l in labels))
         caps = list(re.finditer(r"\\caption(?:\[[^\]]*\])?\{", body))
         for c in caps:
-            if not re.match(r"\s*(?:\\(?:small|footnotesize|scriptsize|normalsize)\s*)?\\textbf\{",
-                            body[c.end():]):
-                rep.add(f, off + c.start(), ERROR, "A2.4",
-                        "Start the caption with a bold one-line takeaway (\\caption{\\textbf{...} ...})")
+            end = brace_end(body, c.end() - 1) or len(body)
+            check_caption(f, rep, off + c.start(), body[c.end():end - 1],
+                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS)
         if env == "table":
-            tab = re.search(r"\\begin\{(?:" + TABULAR_ENVS + r")\}", body)
+            tab = re.search(r"\\begin\{(?:" + TABULAR_ENVS + r")\}", full)
             if caps and tab and caps[0].start() > tab.start():
                 rep.add(f, off + caps[0].start(), ERROR, "A2.4", "Put the table caption above the table")
-            for t in re.finditer(r"\\begin\{(?:" + TABULAR_ENVS + r")\}((?:\s*\{[^{}]*\}){1,2})", body):
+            for t in re.finditer(r"\\begin\{(?:" + TABULAR_ENVS + r")\}((?:\s*\{[^{}]*\}){1,2})", full):
                 if "|" in t.group(1):
                     rep.add(f, off + t.start(), ERROR, "Tables",
                             "No vertical rules in the column spec (see references/experiments.md)")
-            hl = list(re.finditer(r"\\(?:hline|cline)\b", body))
+            hl = list(re.finditer(r"\\(?:hline|cline)\b", full))
             if hl:
                 rep.add(f, off + hl[0].start(), ERROR, "Tables",
                         f"{len(hl)} x \\hline/\\cline: use \\toprule, \\midrule, \\cmidrule, \\bottomrule")
         else:
-            inc = list(re.finditer(r"\\includegraphics|\\begin\{tikzpicture\}", body))
+            inc = list(re.finditer(r"\\includegraphics|\\begin\{tikzpicture\}", full))
             if caps and inc and caps[-1].start() < inc[-1].start():
                 rep.add(f, off + caps[-1].start(), ERROR, "A2.4", "Put the figure caption below the figure")
 
@@ -540,6 +595,82 @@ def check_figure_use(files, rep):
                             "state what the reader should conclude")
 
 
+PLAN_START = re.compile(r"^[ \t]*%[ \t]*Figure plan\b", re.I | re.M)
+PLAN_LINE = re.compile(r"^\s*%\s*(\S+?):\s+(.*?)\s*(?:->|\u2192)\s*(.+?)\s*$")
+# Form names the figure plan may use. Earlier kinds win; teaser, diagram, and
+# qualitative grid describe the whole figure, the others can share a figure (panels).
+FORM_KINDS = [
+    ("teaser", r"\bteasers?\b", True),
+    ("diagram", r"\b(?:diagrams?|pipelines?|overviews?|architectures?|frameworks?|flowcharts?|schematics?)\b", True),
+    ("qualitative grid", r"\b(?:qualitative|visual comparisons?|renderings?|image grids?|zoom-ins?|insets?|crops?)\b", True),
+    ("distribution plot", r"\b(?:cumulative(?:\s+[\w-]+){0,2}\s+curves?|cumulative|cdfs?|histograms?|"
+                          r"box\s*plots?|violin\s*plots?)\b", False),
+    ("map", r"\b(?:heat\s*maps?|maps?)\b", False),
+    ("scatter plot", r"\bscatter(?:\s*plots?)?\b", False),
+    ("bar chart", r"(?<!error\s)\b(?:bar\s+charts?|bars?)\b", False),
+    ("line plot", r"\b(?:line\s+plots?|lines?|curves?)\b", False),
+    ("table", r"\btables?\b", False),
+]
+
+
+def form_kinds(form):
+    text, kinds = form.lower(), set()
+    for kind, pat, whole in FORM_KINDS:
+        if re.search(pat, text):
+            kinds.add(kind)
+            if whole:
+                break
+            text = re.sub(pat, " ", text)
+    return kinds
+
+
+def read_plan(files):
+    """The '% Figure plan' block as {label: (message, form, kinds)}; None if there is none."""
+    for f in files:
+        m = PLAN_START.search(f.raw)
+        if not m:
+            continue
+        plan = {}
+        for line in f.raw[m.end():].split("\n")[1:]:
+            if not line.lstrip().startswith("%"):
+                break
+            p = PLAN_LINE.match(line)
+            if p:
+                plan[p.group(1)] = (p.group(2), p.group(3), form_kinds(p.group(3)))
+        return plan
+    return None
+
+
+def check_figure_plan(files, root, rep, plan):
+    """A2.1: every main-text figure is in the figure plan. A2.7: at most 2 figures per form."""
+    figs = []
+    for t in split_main(files, root)[1]:
+        for m in re.finditer(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", t, re.S):
+            labels = [l.strip() for l in re.findall(r"\\label\{([^}]*)\}", m.group(1))]
+            if labels:
+                figs.append(labels)
+    if not figs:
+        return
+    if plan is None:
+        rep.add_plain("(paper)", WARN, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure, "
+                      "'% label: message -> form' (references/figure-table-styles.md)")
+        return
+    missing = [labels[-1] for labels in figs if not any(l in plan for l in labels)]
+    if missing:
+        rep.add_plain("(paper)", WARN, "A2.1", f"The figure plan has no line for {', '.join(missing)}: "
+                      "add '% label: message -> form'")
+    by_kind = {}
+    for labels in figs:
+        entry = next((plan[l] for l in labels if l in plan), None)
+        for kind in (entry[2] if entry else set()) - {"table"}:
+            by_kind.setdefault(kind, []).append(labels[-1])
+    for kind, labs in sorted(by_kind.items()):
+        if len(labs) > 2:
+            rep.add_plain("(paper)", WARN, "A2.7", f"{len(labs)} main-text figures are {kind}s ({', '.join(labs)}): "
+                          "use one form for at most 2; merge related ones into one multi-panel figure, "
+                          "or move one to the Appendix")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -622,11 +753,12 @@ def main(argv=None):
                         bibs.append(b)
 
     rep = Report()
+    plan = read_plan(files)
     for f in files:
         check_citations(f, rep)
         check_prose(f, rep, args.max_words)
         check_math(f, rep)
-        check_floats(f, rep)
+        check_floats(f, rep, plan)
         for m in re.finditer(r"[\uff0c\u3002\uff1a\uff1b\uff01\uff1f\uff08\uff09\u3010\u3011\u300a\u300b\u3001]",
                              f.nonverbatim):
             rep.add(f, m.start(), ERROR, "A4.4", "Full-width punctuation: use ASCII , . : ; ( )")
@@ -638,6 +770,7 @@ def main(argv=None):
     check_figure_names(files, rep)
     check_structure(files, root, rep, args.min_figures)
     check_figure_use(files, rep)
+    check_figure_plan(files, root, rep, plan)
     if args.review:
         check_review(files, rep)
     if args.log:
