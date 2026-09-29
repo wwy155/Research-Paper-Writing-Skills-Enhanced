@@ -3,7 +3,7 @@ r"""Check a LaTeX paper against the mechanical Writing Rules in SKILL.md.
 
 Usage:
   python3 check_tex.py main.tex [more.tex ...] [--bib refs.bib] [--log main.log]
-                       [--pdf main.pdf] [--review] [--max-words 30] [--min-refs 35]
+                       [--pdf main.pdf] [--review] [--max-words 25] [--min-refs 35]
 
 Follows \input, \include, and \subfile, finds the .bib from \bibliography or
 \addbibresource, and prints one line per issue:
@@ -55,6 +55,9 @@ NAME_EXCLUDE = {
     "LaTeX", "TeX", "BibTeX", "arXiv", "GitHub", "iPhone", "iPad", "YouTube",
     "kNN", "k-NN", "mAP", "mIoU", "IoU", "GHz", "MHz", "kHz", "GiB", "MiB",
     "FLOPs", "GFLOPs", "TFLOPs", "OpenReview"}
+GENERIC_NOUNS = (r"dataset|datasets|benchmark|benchmarks|model|models|method|methods|network|"
+                 r"networks|framework|representation|loss|metric|algorithm|architecture|"
+                 r"pipeline|encoder|decoder|backbone|library|toolkit|engine|renderer|split|splits")
 NAME_SUFFIXES = re.compile(
     r"-(?:based|like|style|only|free|aware|guided|driven|conditioned|"
     r"specific|level|wise|type)$")
@@ -73,7 +76,7 @@ PROSE_PATTERNS = [
      r"\bnot\s+(?:merely|only|just|simply)\b[^.;:]{0,150}?\bbut\b"),
     (ERROR, "B3.3", "Summary closer: delete it, or turn it into a transition",
      SENT_START + r"(?:Overall|In summary|To summarize|To sum up|In conclusion|"
-     r"Taken together|Collectively|All in all)\s*,"),
+     r"Taken together|Collectively|All in all)\s*,(?![^.:]{0,40}\bcontributions?\b)"),
     (ERROR, "B3.3", "Generic summary claim: state the concrete result instead",
      r"\b(?:[Tt]hese|[Tt]he|[Oo]ur|[Ss]uch)\s+(?:results|experiments|findings|evaluations|"
      r"comparisons)\s+(?:clearly\s+)?(?:demonstrates?|shows?|validates?|"
@@ -102,6 +105,11 @@ PROSE_PATTERNS = [
      r"[\u201c\u201d\u2018\u2019]"),
     (ERROR, "A4.3", "Use -- for numeric ranges",
      r"(?<![\w.\-])\d+(?:\.\d+)?-\d+(?:\.\d+)?(?![\w.\-])"),
+    (ERROR, "A4.3", "Write -- for ranges instead of the Unicode dash",
+     r"(?<=\d)\s*\u2013\s*(?=\d)"),
+    (ERROR, "B3.7", "Dash used as punctuation: use a comma, a colon, parentheses, or a new sentence",
+     r"(?<!-)---(?!-)|[\u2014\u2015]|\\textemdash\b|(?<!\d)(?:\s+(?:--|\u2013|\\textendash\b)(?!-)|"
+     r"(?<!-)(?:--|\u2013)\s+)(?!\s*\d)|(?<=\w)\s+-\s+(?=\w)"),
 ]
 ADVERBS = (SENT_START + r"(?:Notably|Importantly|Furthermore|Moreover|"
            r"Additionally|Crucially|Interestingly|Remarkably|Significantly|"
@@ -298,7 +306,8 @@ def check_prose(f, rep, max_words):
         words = re.findall(r"[A-Za-z0-9]+(?:['\-][A-Za-z0-9]+)*", text)
         if not words:
             continue
-        start = a + len(sent) - len(sent.lstrip())
+        first = re.search(r"(?<![\\A-Za-z])[A-Za-z0-9]", sent)
+        start = a + (first.start() if first else 0)
         if len(words) > max_words:
             rep.add(f, start, WARN, "B2.1",
                     f"Sentence has {len(words)} words (> {max_words}): split it")
@@ -379,8 +388,8 @@ def check_named_items(files, rep):
             if not is_named(tok) or tok in seen:
                 continue
             seen.add(tok)
-            after = text[m.end():m.end() + 40]
-            if not re.match(r"\s*~?\s*\\cite[a-zA-Z]*", after):
+            after = text[m.end():m.end() + 60]
+            if not re.match(r"(?:\s+(?:" + GENERIC_NOUNS + r"))?\s*\)?\s*~?\s*\\cite[a-zA-Z]*", after):
                 rep.add(f, m.start(), WARN, "A4.6",
                         f"'{tok}' has no citation at its first mention: cite it, or justify (ours / generic)")
 
@@ -501,7 +510,7 @@ def main(argv=None):
     ap.add_argument("--log", help="LaTeX .log file from the latest compile")
     ap.add_argument("--pdf", help="compiled PDF")
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
-    ap.add_argument("--max-words", type=int, default=30, help="B2.1 sentence length limit (default 30)")
+    ap.add_argument("--max-words", type=int, default=25, help="B2.1 sentence length limit (default 25)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
     args = ap.parse_args(argv)
     for p in args.tex + args.bib + [x for x in (args.log, args.pdf) if x]:
