@@ -18,6 +18,7 @@ This repository currently provides one skill package:
   - `SKILL.md`: core workflow, usage rules, and the writing and typesetting rules applied to every edit
   - `references/`: section-specific writing guides and templates
   - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only)
+  - `scripts/paperstyle.py`: figure and table style schemes (matplotlib settings, fixed method colors, LaTeX table macros)
   - `agents/openai.yaml`: agent metadata
 
 Typical use cases:
@@ -26,6 +27,12 @@ Typical use cases:
 - Improving paragraph flow and section logic
 - Checking claim-evidence alignment
 - Running pre-submission self-review from a reviewer mindset
+
+## Figure and Table Styles
+
+The skill defines four style schemes: `clean` (default), `soft`, `vivid`, and `mono` (black-and-white print). The agent uses one scheme for every figure and table in a paper and asks you to choose if you have not. Details: `research-paper-writing/references/figure-table-styles.md`.
+
+![Preview of the four figure and table style schemes](docs/figure-table-styles.png)
 
 ## Installation
 

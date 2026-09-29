@@ -16,6 +16,7 @@
   - `SKILL.md`：核心流程、使用规则，以及每次修改都要遵守的写作与排版规则
   - `references/`：按章节拆分的写作指南与模板
   - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）
+  - `scripts/paperstyle.py`：图表美化方案（matplotlib 设置、固定的方法配色、LaTeX 表格宏）
   - `agents/openai.yaml`：Agent 元信息
 
 常见使用场景：
@@ -24,6 +25,12 @@
 - 改善段落衔接与章节逻辑
 - 做 claim-evidence 对齐检查
 - 提交前从 reviewer 视角进行自审
+
+## 图表美化方案
+
+Skill 规定了四套方案：`clean`（默认）、`soft`、`vivid` 和 `mono`（适合黑白打印）。同一篇论文的所有图表只用一套方案；你没选时，agent 会用 ask 工具问你。详见 `research-paper-writing/references/figure-table-styles.md`。
+
+![四套图表美化方案预览](docs/figure-table-styles.png)
 
 ## 安装方式
 
