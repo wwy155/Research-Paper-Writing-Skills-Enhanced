@@ -1,5 +1,7 @@
 # Module Design Example 
 
+> Quoted from the Instant-NGP paper: reuse the logic, not the wording. It breaks two Writing Rules in `SKILL.md`: "not only has trainable weight parameters \(\Phi\), but also trainable encoding parameters \(\theta\)" (B3.2; write "has trainable weight parameters \(\Phi\) and trainable encoding parameters \(\theta\)"), and "i.e." without a comma (A4.3; write "i.e.,").
+
 This example uses `%` comments as annotations.
 Each `% ...` annotation explains the paragraph(s) immediately below it.
 

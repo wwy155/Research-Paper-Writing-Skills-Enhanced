@@ -1,5 +1,7 @@
 # Abstract Template B Examples (Challenge -> Insight -> Contribution)
 
+> Quoted from published papers: reuse the logic, not the wording. Example 1 of the Task line opens with a cliche ("In recent years, ... have undergone significant advancement"), which Writing Rules B3.4 and B4.1 in `SKILL.md` ban; open with the task and its concrete difficulty, as Example 2 does.
+
 ```latex
 \section{Abstract}
 % Task

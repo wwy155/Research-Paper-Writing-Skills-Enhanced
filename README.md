@@ -15,8 +15,9 @@
 This repository currently provides one skill package:
 
 - `research-paper-writing/`
-  - `SKILL.md`: core workflow and usage rules
+  - `SKILL.md`: core workflow, usage rules, and the writing and typesetting rules applied to every edit
   - `references/`: section-specific writing guides and templates
+  - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only)
   - `agents/openai.yaml`: agent metadata
 
 Typical use cases:
@@ -29,6 +30,8 @@ Typical use cases:
 ## Installation
 
 Assume you are in the repository root.
+
+These commands copy the skill, so an installed copy does not change when you update this repository. After updating, delete the installed folder and copy it again, or install it once with `ln -s "$PWD/research-paper-writing" <skills-dir>/` instead of `cp -R`.
 
 ### 1) Codex
 

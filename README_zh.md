@@ -13,8 +13,9 @@
 当前仓库提供 1 个技能包：
 
 - `research-paper-writing/`
-  - `SKILL.md`：核心流程与使用规则
+  - `SKILL.md`：核心流程、使用规则，以及每次修改都要遵守的写作与排版规则
   - `references/`：按章节拆分的写作指南与模板
+  - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）
   - `agents/openai.yaml`：Agent 元信息
 
 常见使用场景：
@@ -27,6 +28,8 @@
 ## 安装方式
 
 以下命令默认在仓库根目录执行。
+
+这些命令是复制安装，更新本仓库后已安装的副本不会跟着变。更新后请删除已安装的目录再复制一次，或者一开始就用 `ln -s "$PWD/research-paper-writing" <skills 目录>/` 代替 `cp -R`。
 
 ### 1) Codex
 

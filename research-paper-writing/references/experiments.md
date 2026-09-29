@@ -78,9 +78,8 @@ flowchart TB
 5. Group multi-dataset or multi-setting results using `\multicolumn` + `\cmidrule`, not vertical separators.
 6. One table, one message: do not mix unrelated results in a single table.
 7. If rows represent different attributes/ablations, encode that explicitly in row names or attribute columns.
-8. Keep caption focused on setting/protocol/notation, not long discussion.
-9. If there is little detail to explain, use one concise sentence to summarize the main result.
-10. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
+8. Start each caption with a bold one-line takeaway (Writing Rule A2.4 in `SKILL.md`), then give only the setting, protocol, and notation needed to read it; no long discussion.
+9. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
 
 ### Minimal LaTeX checklist
 
