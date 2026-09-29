@@ -243,18 +243,19 @@ def preview(scheme, path):
         y = 30 + 2.2 * np.log2(x) - (0 if m == "Ours" else 0.9 + 0.55 * i)
         ax.plot(x, y, label=m, **st[m])
     ax.set_xscale("log", base=2)
+    ax.set_xticks(x, [str(v) for v in x])  # plain labels, not powers of two
+    ax.minorticks_off()
     ax.set_xlabel("Training time (min)")
     ax.set_ylabel("PSNR (dB)")
     ax.legend(ncol=3, loc="lower left", bbox_to_anchor=(-0.02, 1.0), handlelength=1.6,
               columnspacing=0.6, handletextpad=0.4, borderaxespad=0.2)
     ax = axes[1]
-    vals = [35.1, 34.1, 33.2, 32.6, 31.9, 30.4][:len(methods)]
+    vals = [120, 82, 41, 95, 12, 3][:len(methods)]  # bars start at zero: a measure with a true zero
     bars = ax.bar(range(len(methods)), vals, color=[st[m]["color"] for m in methods])
     if s.get("ours_hatch"):
         bars[0].set_hatch(s["ours_hatch"])
     ax.set_xticks(range(len(methods)), [m.replace("Method ", "") for m in methods])
-    ax.set_ylim(28, 36)
-    ax.set_ylabel("PSNR (dB)")
+    ax.set_ylabel(r"Speed (FPS) $\uparrow$")
     ax = axes[2]
     ax.axis("off")
     rows = [("Method", "PSNR", "SSIM", "FPS"), ("Method A", "34.1", "0.975", "82"),
