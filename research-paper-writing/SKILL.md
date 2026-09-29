@@ -11,14 +11,15 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 
 ## Core Workflow
 
-1. First, before any other work, settle the target venue (Execution Rule 8). If it is not settled yet, your first action is to ask the user which venue to submit to, with the ask-user tool (`AskUserQuestion` in Claude Code).
-2. Clarify the paper story before sentence-level edits.
-3. Use section-specific guidance in `references/`.
-4. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
-5. Run reverse outlining after writing each section.
-6. Check every major claim in Abstract/Introduction against experimental evidence.
-7. Run final-paper adversarial review with `references/paper-review.md`.
-8. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
+1. First, before any other work, settle the target venue (Execution Rule 8). If it is not settled yet, your first action is to ask the user which venue to submit to, with the ask-user tool (`AskUserQuestion` in Claude Code). Then create the Appendix or Supplementary file if it does not exist yet (Execution Rule 9).
+2. Before writing Experiments or making any figure or table, write the closest-work plan (`references/experiments.md`, "Experiment Planning"): every figure and table of the closest prior work, reproduced with ours or skipped for a stated reason.
+3. Clarify the paper story before sentence-level edits.
+4. Use section-specific guidance in `references/`.
+5. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
+6. Run reverse outlining after writing each section (`references/paragraph-clarity.md`).
+7. Check every major claim in Abstract/Introduction against experimental evidence.
+8. Run final-paper adversarial review with `references/paper-review.md`.
+9. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
    - references: every entry exists, and its title, authors, and venue match the real paper (no hallucinated citations);
    - wording and format: every Writing Rule, reported rule by rule;
    - template compliance when the venue is known: page limit, anonymity, Appendix/Supplementary rules.
@@ -55,6 +56,7 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 3. Review version: no author names, acknowledgments, identifying links, or author PDF metadata; cite your own work in the third person.
 4. Embed all fonts and avoid Type 3 fonts (check with `pdffonts`; in Matplotlib set `pdf.fonttype` to 42).
 5. Leave no `??` or `[?]` in the paper or the supplement.
+6. Leave no white space in the main text: no gaps around floats, no half-empty columns, and no page holding only a small float. Fix it by moving, resizing, or combining floats, by moving content to or from the Appendix, or by rewording; never by shrinking spacing (A1.1).
 
 #### A2. Figures and Floats
 
@@ -62,7 +64,7 @@ Apply these rules whenever you write or edit text, in any section. Table layout 
 2. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name, color, and order in every figure and table, and always highlight ours.
 4. Start each caption with a bold one-line takeaway, then add what is needed to read the figure without the main text. Figure captions go below, table captions above.
-5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. Check the compiled PDF.
+5. Except for the teaser, a figure, table, or algorithm must appear after the text that mainly introduces it and inside the same (sub)section. Put its source right after that paragraph; `flafter` keeps it from appearing earlier, and `\FloatBarrier` (`placeins`) before the next (sub)section keeps it from drifting out. If the barrier leaves white space (A1.6), move the source earlier, still after its first mention, or resize the float. Check the compiled PDF.
 6. Use one style scheme from `references/figure-table-styles.md` for every figure and table; read that file before creating or restyling one. If the user has not chosen a scheme, ask with the ask-user tool.
 
 #### A3. Math
@@ -116,30 +118,13 @@ Instruction-tuned LLMs use present participial clauses at 2-5 times the human ra
 ### Checking the Writing Rules
 
 1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex` (use `python` if `python3` is missing). It follows `\input` / `\include` and finds the `.bib`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply (e.g., "DynaSplat: our method, no citation"). Re-run until it reports 0 errors.
-2. The script cannot check A1.1, A1.2, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
-3. After compiling (Execution Rule 10), re-run it with `--log main.log --pdf main.pdf`, adding `--review` for the anonymous version, to check undefined references, overfull boxes, fonts, and anonymity. Then render the pages (`pdftoppm -r 60 -png main.pdf page`) and look at them for the page limit (A1.1), paragraph last lines (A1.2), and float positions (A2.5).
+2. The script cannot check A1.1, A1.2, A1.6, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
+3. After compiling (Execution Rule 10), re-run it with `--log main.log --pdf main.pdf`, adding `--review` for the anonymous version, to check undefined references, overfull boxes, fonts, and anonymity. Then render the pages (`pdftoppm -r 60 -png main.pdf page`) and look at them for the page limit (A1.1), paragraph last lines (A1.2), white space (A1.6), and float positions (A2.5).
 4. If a check cannot run (no Python, TeX, or PDF tools), report its rules as "not checked" with the reason; never report them as passed.
 
 ## Paragraph Clarity Check (Important)
 
-Use this quick test whenever the user asks whether a paragraph "flows" or is clear.
-
-1. Read as an external reader:
-   - Does this paragraph have one explicit message?
-   - Does the first sentence state what this paragraph will do?
-   - Are all key nouns/terms readable without hidden context?
-   - Does each sentence connect to the previous one with a clear relation (cause, contrast, consequence, refinement, example)?
-2. Run reverse outlining for the current section:
-   - Write down thesis/main claim.
-   - Write down each paragraph topic sentence.
-   - Write down the evidence/explanation points under each paragraph.
-   - Check mapping: topic sentence -> thesis, and evidence -> topic sentence.
-   - Revise or remove any paragraph that cannot be mapped cleanly.
-3. If flow is still weak, add temporary section headers during revision and make each sentence's relation to the previous one explicit (cause, contrast, consequence). Use a transition word only when it names that relation, and never stack additive adverbs (B3.5). Remove unnecessary headers before finalizing.
-
-Source reference for this check:
-
-- `references/does-my-writing-flow-source.md`
+When the user asks whether a paragraph flows or is clear, and after writing each section (Core Workflow step 6), run the check and the reverse outlining in `references/paragraph-clarity.md`.
 
 ## Section Guides
 
@@ -154,6 +139,7 @@ Load only the needed section file:
 - Figures and tables (style schemes; read before creating or restyling any): `references/figure-table-styles.md`
 - Conclusion: `references/conclusion.md`
 - Paper review (Paper Review): `references/paper-review.md`
+- Paragraph clarity check and reverse outlining: `references/paragraph-clarity.md`
 - Paragraph clarity source: `references/does-my-writing-flow-source.md`
 - Example bank index: `references/examples/index.md`
 
@@ -201,3 +187,4 @@ After any edit, including a final polish, also return:
 5. The checker's final summary line, and a one-line justification for each remaining `WARN`.
 6. A Writing Rules report with one line per group (A1-A4, B1-B4) giving the status of each rule in it, for example `A4: 1 fixed, 2 pass, 3 fixed, 4 pass, 5 pass, 6 fixed, 7 pass, 8 not checked (6 entries in the .bib)`. A status is pass, fixed, or not checked (with the reason); never mark a rule pass without checking it.
 7. For a final polish: a short change log with one example per type of change, and the `[TODO]` items that need the author.
+8. A setup line: the venue and template, the path of the Appendix or Supplementary file, and, when Experiments, figures, or tables were touched, the closest-work plan with the status of each item.
