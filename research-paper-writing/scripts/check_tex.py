@@ -705,7 +705,13 @@ def check_structure(files, root, rep, min_figures=3):
         rep.add_plain("(paper)", ERROR, "A2.7", f"The main text has {n_fig} figure(s): add at least {min_figures - n_fig} "
                       f"(e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message in the "
                       "figure plan. Draw diagrams now; use a [TODO] placeholder where results are missing")
-    check_closest_plan(files, rep)
+    extra = []
+    for name in sibling:  # a separate Supplementary document, e.g. supp.tex next to main.tex
+        try:
+            extra.append(File(os.path.join(root, name)))
+        except OSError:
+            pass
+    check_closest_plan(files, rep, extra)
     for f in files:
         for m in re.finditer(r"\\begin\{(?:figure|table)\*?\}\s*\[([^\]]*)\]", f.nonverbatim):
             spec = m.group(1)
@@ -717,19 +723,38 @@ def check_structure(files, root, rep, min_figures=3):
 
 
 PLAN_HEAD = re.compile(r"^[ \t]*%[ \t]*Closest-work plan\b", re.I | re.M)
-PLAN_PAPER = re.compile(r"^\s*%\s*(?P<paper>[^:%]+?)\s*(?:\([^)]*\))?\s*:\s*(?P<nf>\d+)\s+figures?\s*,"
-                        r"\s*(?P<nt>\d+)\s+tables?\b", re.I)
-PLAN_ITEM = re.compile(r"^\s*%\s*(?P<paper>.+?)\s+(?P<kind>Fig(?:ure)?|Tab(?:le)?)\.?\s*(?P<num>\d+)\b"
-                       r"(?P<desc>.*?)->\s*(?P<target>.*?)\s*$", re.I)
-PLAN_TARGET = re.compile(r"(?P<label>\S+?):\s+(?P<status>done|TODO)\b(?P<rest>.*)$", re.I)
+PLAN_PAPER = re.compile(r"^\s*%\s*\[?(?P<paper>[^\]:%()\n]+?)\]?\s*(?:\([^)]*\))?\s*:\s*(?P<nf>\d+)\s+fig\w*\b[^%\n]*?"
+                        r"(?P<nt>\d+)\s+tab\w*\b", re.I)
+PLAN_ITEM = re.compile(r"^\s*%\s*\[?(?P<paper>[^\]\n]+?)\]?\s+(?P<refs>(?:Supp\w*\.?\s*)?(?:Fig|Tab)\w*\.?\s*\d.*?)"
+                       r"->\s*(?P<target>.*?)\s*$", re.I)
+PLAN_REF = re.compile(r"(?P<supp>Supp\w*\.?\s*)?(?P<kind>Fig|Tab)\w*\.?\s*(?P<nums>\d+(?:\s*(?:-|--|\u2013|,|and|&)\s*\d+)*)",
+                      re.I)
+PLAN_LABEL = re.compile(r"(?<![\w\\])[A-Za-z][\w-]*:[\w.:-]*\w")
 NO_DATA = re.compile(r"\b(?:no|missing|lack\w*|without|unavailable|not\s+(?:yet\s+)?(?:available|run|provided|given|done))\b"
                      r".*\b(?:data|results?|numbers?|experiments?|images?|renderings?|code|checkpoints?)\b", re.I)
 FLOAT_ENVS = r"figure|table|algorithm|wrapfigure|wraptable|SCfigure"
+EMPTY_REASON = r"n/?a|none|not (?:applicable|relevant|needed|necessary|important)|irrelevant|out of scope"
 
 
-def check_closest_plan(files, rep):
-    """Experiments Planning: the closest-work plan lists every figure and table of each closest paper,
-    and every reproduced one exists in our paper (with [TODO] placeholders if its data is missing)."""
+def plan_numbers(nums):
+    """'2-4' -> 2, 3, 4; '5, 6' and '5 and 6' -> 5, 6."""
+    out = set()
+    for part in re.split(r"\s*(?:,|and|&)\s*", nums):
+        span = re.split(r"\s*(?:--|-|\u2013)\s*", part)
+        if all(s.isdigit() for s in span) and span:
+            lo, hi = int(span[0]), int(span[-1])
+            out.update(range(lo, hi + 1) if hi >= lo and hi - lo < 50 else [lo])
+    return out
+
+
+def paper_key(name):
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def check_closest_plan(files, rep, extra=()):
+    """Experiments Planning: the closest-work plan covers every figure and table of each closest paper,
+    every reproduction exists in our paper (with [TODO] placeholders if its data is missing), and
+    every skip has a reason."""
     if not any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files):
         return
     src = next((f for f in files if PLAN_HEAD.search(f.raw)), None)
@@ -739,60 +764,64 @@ def check_closest_plan(files, rep):
                       "(references/experiments.md, Experiment Planning)")
         return
     head_pos = PLAN_HEAD.search(src.raw).start()
-    lines, pos = [], src.raw.index("\n", head_pos) + 1 if "\n" in src.raw[head_pos:] else len(src.raw)
+    pos = src.raw.find("\n", head_pos) + 1 or len(src.raw)
+    lines = []
     for line in src.raw[pos:].split("\n"):
         if not line.lstrip().startswith("%"):
             break
         lines.append((pos, line))
         pos += len(line) + 1
-    float_labels = {l.strip() for f in files
+    docs = list(files) + [g for g in extra if os.path.abspath(g.path) not in {os.path.abspath(f.path) for f in files}]
+    float_labels = {l.strip() for f in docs
                     for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")\*?\}(.*?)\\end\{\1\*?\}", f.nonverbatim, re.S)
                     for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))}
-    papers, items, names = {}, {}, {}
+    papers, covered, names = {}, {}, {}
     for at, line in lines:
         head, item = PLAN_PAPER.match(line), PLAN_ITEM.match(line)
-        where = (src, at)
-        if item:
-            paper, kind, num = item.group("paper").strip(), item.group("kind")[0].upper(), int(item.group("num"))
-            items.setdefault(paper.lower(), set()).add((kind, num))
-            names.setdefault(paper.lower(), (paper, at))
-            what, target = f"{paper} {'Fig.' if kind == 'F' else 'Tab.'} {num}", item.group("target")
-            skip = re.match(r"skipped\b\s*:?\s*(.*)$", target, re.I)
+        if item and "->" in line:
+            paper = item.group("paper").strip()
+            key = paper_key(paper)
+            names.setdefault(key, (paper, at))
+            refs = [(r.group("kind")[0].upper(), n) for r in PLAN_REF.finditer(item.group("refs")) if not r.group("supp")
+                    for n in plan_numbers(r.group("nums"))]
+            covered.setdefault(key, set()).update(refs)
+            what = f"{paper} {item.group('refs').split('(')[0].strip()}"
+            target = item.group("target")
+            skip = re.match(r"(?:\w+\s+)?skipped\b[^:]*:?\s*(.*)$", target, re.I)
             if skip:
-                reason = skip.group(1).strip()
-                if len(reason.split()) < 3:
-                    rep.add(*where, ERROR, "Experiments", f"{what} is skipped without a reason: state why the "
+                reason = skip.group(1).strip().rstrip(".")
+                if len(reason.split()) < 2 or re.fullmatch(EMPTY_REASON, reason, re.I):
+                    rep.add(src, at, ERROR, "Experiments", f"{what} is skipped without a reason: state why the "
                             "analysis does not apply to our setting, or reproduce it")
                 elif NO_DATA.search(reason):
-                    rep.add(*where, ERROR, "Experiments", f"{what}: missing data is not a reason to skip. Create "
+                    rep.add(src, at, ERROR, "Experiments", f"{what}: missing data is not a reason to skip. Create "
                             "the figure or table now with [TODO] placeholders and list the experiment to run")
                 continue
-            tgt = PLAN_TARGET.match(target)
-            if not tgt:
-                rep.add(*where, ERROR, "Experiments", f"{what}: write '-> <label>: done|TODO ...; shows "
-                        "<conclusion>' or '-> skipped: <reason>'")
-            elif tgt.group("label") not in float_labels:
-                rep.add(*where, ERROR, "Experiments", f"{what} -> {tgt.group('label')}: no figure or table has "
-                        "this label. Create it now, with [TODO] cells or a placeholder where data is missing")
-            elif not re.search(r"\bshows\b", tgt.group("rest"), re.I):
-                rep.add(*where, WARN, "Experiments", f"{what}: add the conclusion it supports ('; shows ...')")
+            labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
+            if not labels:
+                rep.add(src, at, ERROR, "Experiments", f"{what}: name the label of our figure or table "
+                        "('-> tab:main: done') or write '-> skipped: <reason>'")
+            for label in labels:
+                if label not in float_labels:
+                    rep.add(src, at, ERROR, "Experiments", f"{what} -> {label}: no figure or table has this label. "
+                            "Create it now, with [TODO] cells or a placeholder where data is missing")
         elif head:
-            papers[head.group("paper").strip().lower()] = (head.group("paper").strip(), int(head.group("nf")),
-                                                           int(head.group("nt")))
-    where = (src, head_pos)
+            paper = head.group("paper").strip()
+            papers[paper_key(paper)] = (paper, int(head.group("nf")), int(head.group("nt")), at)
     if not papers:
-        rep.add(*where, ERROR, "Experiments", "The plan names no closest paper: add '% <paper> (<authors, venue>): "
-                "N figures, M tables', then one line for each of its figures and tables")
-    for key, (name, nf, nt) in papers.items():
-        listed = items.get(key, set())
+        rep.add(src, head_pos, ERROR, "Experiments", "The plan gives no figure and table counts: add "
+                "'% <paper> (<authors, venue>): N figures, M tables' for each closest paper, then cover each "
+                "of its figures and tables")
+    for key, (name, nf, nt, at) in papers.items():
+        listed = covered.get(key, set())
         missing = [f"Fig. {k}" for k in range(1, nf + 1) if ("F", k) not in listed]
         missing += [f"Tab. {k}" for k in range(1, nt + 1) if ("T", k) not in listed]
         if missing:
-            rep.add(*where, ERROR, "Experiments", f"{name}: {', '.join(missing)} not in the plan. Reproduce each "
+            rep.add(src, at, ERROR, "Experiments", f"{name}: {', '.join(missing)} not in the plan. Reproduce each "
                     "one, or skip it with a reason")
     for key, (name, at) in names.items():
         if key not in papers:
-            rep.add(src, at, ERROR, "Experiments", f"Plan items for '{name}' have no header line: add "
+            rep.add(src, at, ERROR, "Experiments", f"'{name}' has no count line: add "
                     f"'% {name} (<authors, venue>): N figures, M tables'")
 
 
