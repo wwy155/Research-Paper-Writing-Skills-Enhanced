@@ -24,21 +24,30 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Before making a figure or table, write its one-line conclusion; if you cannot, do not make it. Then pick the form that shows that conclusion from the table in `references/figure-table-styles.md`.
 
-Before writing Experiments or making any figure or table, write the closest-work plan (Core Workflow step 2 in `SKILL.md`):
+Whenever the paper has an Experiments section, write the closest-work plan before writing Experiments or making any figure or table (Core Workflow step 2 in `SKILL.md`). The checker verifies it and reports every gap as an ERROR.
 
 1. Name the 1-3 closest prior works: the methods ours is most directly compared with.
-2. Open each paper, including its supplementary material, and list every figure and table. If you cannot open a paper, ask the user for its PDF or link.
-3. Reproduce each one under the same setting (dataset, split, metrics, protocol) with our method included. Skip one only for a stated reason, e.g., the analysis does not apply to our setting.
-4. Record the plan as a comment block at the start of the Experiments section; the checker warns when it is missing:
+2. Open each paper, including its supplementary material, and count its figures and tables. Use the alphaXiv tools, the web, or PDFs from the user; if you cannot open a paper, ask the user for its PDF or link.
+3. Give every figure and table of each paper one line. Reproduce it under the same setting (dataset, split, metrics, protocol) with ours included, in the main text or the Appendix. Skip one only when the analysis does not apply to our setting, e.g., their own pipeline figure, and write why.
+4. Missing data is never a reason to skip: create the figure or table now, with `[TODO]` cells or a placeholder box that states the planned message, and list the experiment the author must run.
+5. Record the plan as a comment block at the start of the Experiments section. Each reproduced item names the label of our figure or table, which must exist:
 
    ```latex
    % Closest-work plan:
-   % [Paper A] Tab. 1 (main comparison on [dataset]) -> ours Tab. 1: done; shows [conclusion]
-   % [Paper A] Fig. 6 (ablation of [module]) -> ours Fig. 5: TODO run [experiment]; shows [conclusion]
-   % [Paper B] Tab. 3 (runtime) -> skipped: [reason]
+   % PaperA (Author et al., CVPR 2024): 5 figures, 3 tables
+   % PaperA Fig. 1 (teaser: quality vs. speed) -> fig:teaser: done; shows ours is faster at equal quality
+   % PaperA Fig. 2 (their pipeline) -> skipped: it shows their architecture, which ours replaces
+   % PaperA Fig. 3 (qualitative comparison) -> fig:qualitative: TODO render the four scenes; shows ours keeps thin structures
+   % PaperA Fig. 4 (PSNR vs. number of views) -> fig:views: TODO run 3/6/9 views; shows our lead grows with fewer views
+   % PaperA Fig. 5 (failure cases) -> fig:failures: TODO pick two scenes; shows where ours still fails
+   % PaperA Tab. 1 (main comparison) -> tab:main: done; shows ours has the best PSNR
+   % PaperA Tab. 2 (ablation) -> tab:ablation: TODO run w/o deformation; shows each module matters
+   % PaperA Tab. 3 (training time and memory) -> tab:cost: TODO measure on one GPU; shows ours trains fastest
    ```
 
-5. Create every planned figure and table now, with `[TODO]` cells where data is missing, and list the experiments the author must run.
+   The checker reports an ERROR when the block is missing, when a figure or table of a named paper has no line, when a planned label does not exist in our paper, and when a skip has no reason or blames missing data.
+
+6. List the experiments the author must run in your reply, one per `TODO` item.
 
 ```mermaid
 flowchart TB

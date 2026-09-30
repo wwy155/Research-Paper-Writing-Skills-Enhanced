@@ -565,10 +565,10 @@ def check_metrics(files, rep, exp_spans):
     for metric, (i, pos, f) in sorted(in_float.items(), key=lambda kv: kv[1][:2]):
         stated = in_text.get(metric)
         if stated is None:
-            rep.add(f, pos, WARN, "A4.9", f"'{metric}' is reported here but the Experiments text never states it: "
+            rep.add(f, pos, ERROR, "A4.9", f"'{metric}' is reported here but the Experiments text never states it: "
                     "before the results, say what it measures, which direction is better, and cite its source")
         elif stated > (i, pos):
-            rep.add(f, pos, WARN, "A4.9", f"'{metric}' is reported here before the Experiments text states it: "
+            rep.add(f, pos, ERROR, "A4.9", f"'{metric}' is reported here before the Experiments text states it: "
                     "define it before the first result")
 
 
@@ -658,28 +658,54 @@ def split_main(files, root):
     return appendix_paths, main_texts, appendix_labels
 
 
+def appendix_content(files, root, appendix_paths, sibling):
+    """Words of prose and number of floats in the Appendix, wherever it lives."""
+    parts, included = [], {os.path.abspath(f.path) for f in files}
+    for f in files:
+        if os.path.abspath(f.path) in appendix_paths:
+            parts.append((f.prose, f.nonverbatim))
+        else:
+            k = re.search(r"\\appendix\b", f.clean)
+            if k:
+                parts.append((f.prose[k.end():], f.nonverbatim[k.end():]))
+    for name in sibling:
+        path = os.path.join(root, name)
+        if os.path.abspath(path) not in included:
+            try:
+                g = File(path)
+            except OSError:
+                continue
+            parts.append((g.prose, g.nonverbatim))
+    words = sum(len(re.findall(r"[A-Za-z]{2,}", re.sub(r"\\[A-Za-z]+\*?", " ", prose))) for prose, _ in parts)
+    floats = sum(len(re.findall(r"\\begin\{(?:figure|table)\*?\}", body)) for _, body in parts)
+    return words, floats
+
+
 def check_structure(files, root, rep, min_figures=3):
     """Appendix (Execution Rule 9), figure count (A2.7), closest-work plan, and white-space hints (A1.6, A1.1)."""
     appendix_paths, main_texts, appendix_labels = split_main(files, root)
     sibling = [n for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
                and n != os.path.basename(files[0].path)]
     if not (appendix_paths or sibling or any(re.search(r"\\appendix\b", f.clean) for f in files)):
-        rep.add_plain("(paper)", WARN, "Rule 9", "No Appendix or Supplementary Material found: create it now, "
+        rep.add_plain("(paper)", ERROR, "Rule 9", "No Appendix or Supplementary Material found: create it now, "
                       "following the template (Execution Rule 9)")
     else:
         keys = {k.strip() for t in main_texts for g in re.findall(REF_CMDS, t) for k in g.split(",")}
         named = any(re.search(r"\b(?:[Aa]ppendix|[Ss]upplement\w*|[Ss]upp\.)", mask_args(t)) for t in main_texts)
         if not (keys & appendix_labels or named):
-            rep.add_plain("(paper)", WARN, "Rule 9", "The main text never points to the Appendix or Supplementary "
+            rep.add_plain("(paper)", ERROR, "Rule 9", "The main text never points to the Appendix or Supplementary "
                           "Material: reference its important parts (Execution Rule 9)")
+        words, floats = appendix_content(files, root, appendix_paths, sibling)
+        if words < 150 and not floats:
+            rep.add_plain("(paper)", WARN, "Rule 9", f"The Appendix has only {words} words: move the detailed content "
+                          "there (implementation details, per-scene results, more qualitative results, proofs, "
+                          "reproduced closest-work analyses) and reference it from the main text")
     n_fig = sum(len(re.findall(r"\\begin\{figure\*?\}", t)) for t in main_texts)
     if n_fig < min_figures:
-        rep.add_plain("(paper)", WARN, "A2.7", f"The main text has {n_fig} figure(s): include at least {min_figures}, "
-                      "4 when space allows, each with a key message (A2.1)")
-    has_experiments = any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files)
-    if has_experiments and not any(re.search(r"%\s*Closest-work plan", f.raw, re.I) for f in files):
-        rep.add_plain("(paper)", WARN, "Experiments", "No '% Closest-work plan:' block: list every figure and table "
-                      "of the closest prior work and how ours reproduces it (references/experiments.md)")
+        rep.add_plain("(paper)", ERROR, "A2.7", f"The main text has {n_fig} figure(s): add at least {min_figures - n_fig} "
+                      f"(e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message in the "
+                      "figure plan. Draw diagrams now; use a [TODO] placeholder where results are missing")
+    check_closest_plan(files, rep)
     for f in files:
         for m in re.finditer(r"\\begin\{(?:figure|table)\*?\}\s*\[([^\]]*)\]", f.nonverbatim):
             spec = m.group(1)
@@ -688,6 +714,86 @@ def check_structure(files, root, rep, min_figures=3):
         for m in re.finditer(r"\\vspace\*?\{\s*-", f.nonverbatim):
             rep.add(f, m.start(), WARN, "A1.1", "Negative \\vspace squeezes the template's spacing: fix white space "
                     "by moving or resizing floats, or by rewording")
+
+
+PLAN_HEAD = re.compile(r"^[ \t]*%[ \t]*Closest-work plan\b", re.I | re.M)
+PLAN_PAPER = re.compile(r"^\s*%\s*(?P<paper>[^:%]+?)\s*(?:\([^)]*\))?\s*:\s*(?P<nf>\d+)\s+figures?\s*,"
+                        r"\s*(?P<nt>\d+)\s+tables?\b", re.I)
+PLAN_ITEM = re.compile(r"^\s*%\s*(?P<paper>.+?)\s+(?P<kind>Fig(?:ure)?|Tab(?:le)?)\.?\s*(?P<num>\d+)\b"
+                       r"(?P<desc>.*?)->\s*(?P<target>.*?)\s*$", re.I)
+PLAN_TARGET = re.compile(r"(?P<label>\S+?):\s+(?P<status>done|TODO)\b(?P<rest>.*)$", re.I)
+NO_DATA = re.compile(r"\b(?:no|missing|lack\w*|without|unavailable|not\s+(?:yet\s+)?(?:available|run|provided|given|done))\b"
+                     r".*\b(?:data|results?|numbers?|experiments?|images?|renderings?|code|checkpoints?)\b", re.I)
+FLOAT_ENVS = r"figure|table|algorithm|wrapfigure|wraptable|SCfigure"
+
+
+def check_closest_plan(files, rep):
+    """Experiments Planning: the closest-work plan lists every figure and table of each closest paper,
+    and every reproduced one exists in our paper (with [TODO] placeholders if its data is missing)."""
+    if not any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files):
+        return
+    src = next((f for f in files if PLAN_HEAD.search(f.raw)), None)
+    if src is None:
+        rep.add_plain("(paper)", ERROR, "Experiments", "No '% Closest-work plan:' block: name the 1-3 closest papers "
+                      "with their figure and table counts, and reproduce or skip each figure and table "
+                      "(references/experiments.md, Experiment Planning)")
+        return
+    head_pos = PLAN_HEAD.search(src.raw).start()
+    lines, pos = [], src.raw.index("\n", head_pos) + 1 if "\n" in src.raw[head_pos:] else len(src.raw)
+    for line in src.raw[pos:].split("\n"):
+        if not line.lstrip().startswith("%"):
+            break
+        lines.append((pos, line))
+        pos += len(line) + 1
+    float_labels = {l.strip() for f in files
+                    for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")\*?\}(.*?)\\end\{\1\*?\}", f.nonverbatim, re.S)
+                    for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))}
+    papers, items, names = {}, {}, {}
+    for at, line in lines:
+        head, item = PLAN_PAPER.match(line), PLAN_ITEM.match(line)
+        where = (src, at)
+        if item:
+            paper, kind, num = item.group("paper").strip(), item.group("kind")[0].upper(), int(item.group("num"))
+            items.setdefault(paper.lower(), set()).add((kind, num))
+            names.setdefault(paper.lower(), (paper, at))
+            what, target = f"{paper} {'Fig.' if kind == 'F' else 'Tab.'} {num}", item.group("target")
+            skip = re.match(r"skipped\b\s*:?\s*(.*)$", target, re.I)
+            if skip:
+                reason = skip.group(1).strip()
+                if len(reason.split()) < 3:
+                    rep.add(*where, ERROR, "Experiments", f"{what} is skipped without a reason: state why the "
+                            "analysis does not apply to our setting, or reproduce it")
+                elif NO_DATA.search(reason):
+                    rep.add(*where, ERROR, "Experiments", f"{what}: missing data is not a reason to skip. Create "
+                            "the figure or table now with [TODO] placeholders and list the experiment to run")
+                continue
+            tgt = PLAN_TARGET.match(target)
+            if not tgt:
+                rep.add(*where, ERROR, "Experiments", f"{what}: write '-> <label>: done|TODO ...; shows "
+                        "<conclusion>' or '-> skipped: <reason>'")
+            elif tgt.group("label") not in float_labels:
+                rep.add(*where, ERROR, "Experiments", f"{what} -> {tgt.group('label')}: no figure or table has "
+                        "this label. Create it now, with [TODO] cells or a placeholder where data is missing")
+            elif not re.search(r"\bshows\b", tgt.group("rest"), re.I):
+                rep.add(*where, WARN, "Experiments", f"{what}: add the conclusion it supports ('; shows ...')")
+        elif head:
+            papers[head.group("paper").strip().lower()] = (head.group("paper").strip(), int(head.group("nf")),
+                                                           int(head.group("nt")))
+    where = (src, head_pos)
+    if not papers:
+        rep.add(*where, ERROR, "Experiments", "The plan names no closest paper: add '% <paper> (<authors, venue>): "
+                "N figures, M tables', then one line for each of its figures and tables")
+    for key, (name, nf, nt) in papers.items():
+        listed = items.get(key, set())
+        missing = [f"Fig. {k}" for k in range(1, nf + 1) if ("F", k) not in listed]
+        missing += [f"Tab. {k}" for k in range(1, nt + 1) if ("T", k) not in listed]
+        if missing:
+            rep.add(*where, ERROR, "Experiments", f"{name}: {', '.join(missing)} not in the plan. Reproduce each "
+                    "one, or skip it with a reason")
+    for key, (name, at) in names.items():
+        if key not in papers:
+            rep.add(src, at, ERROR, "Experiments", f"Plan items for '{name}' have no header line: add "
+                    f"'% {name} (<authors, venue>): N figures, M tables'")
 
 
 TOPIC_ONLY = re.compile(
@@ -772,12 +878,12 @@ def check_figure_plan(files, root, rep, plan):
     if not figs:
         return
     if plan is None:
-        rep.add_plain("(paper)", WARN, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure, "
+        rep.add_plain("(paper)", ERROR, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure, "
                       "'% label: message -> form' (references/figure-table-styles.md)")
         return
     missing = [labels[-1] for labels in figs if not any(l in plan for l in labels)]
     if missing:
-        rep.add_plain("(paper)", WARN, "A2.1", f"The figure plan has no line for {', '.join(missing)}: "
+        rep.add_plain("(paper)", ERROR, "A2.1", f"The figure plan has no line for {', '.join(missing)}: "
                       "add '% label: message -> form'")
     by_kind = {}
     for labels in figs:
