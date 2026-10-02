@@ -751,11 +751,15 @@ def paper_key(name):
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
+def has_experiments(files):
+    return any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files)
+
+
 def check_closest_plan(files, rep, extra=()):
     """Experiments Planning: the closest-work plan covers every figure and table of each closest paper,
     every reproduction exists in our paper (with [TODO] placeholders if its data is missing), and
     every skip has a reason."""
-    if not any(re.search(r"\\section\*?\{[^}]*(?:Experiment|Evaluation|Results)", f.clean) for f in files):
+    if not has_experiments(files):
         return
     src = next((f for f in files if PLAN_HEAD.search(f.raw)), None)
     if src is None:
@@ -981,6 +985,65 @@ def check_pdf(path, review, rep):
             rep.add_plain(path, ERROR, "A1.3", f"Review version: PDF metadata names an author ({m.group(1).strip()})")
 
 
+VENUE_COMMENT = re.compile(r"^[ \t]*%[ \t]*Venue[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
+# Template packages and classes that name the venue (fullmatch, case-insensitive).
+VENUE_TEMPLATES = [
+    (r"cvpr", "CVPR"), (r"iccv", "ICCV"), (r"eccv\w*", "ECCV"), (r"wacv", "WACV"),
+    (r"neurips_\d{4}|nips_?\d{4}", "NeurIPS"), (r"iclr\d{4}_conference", "ICLR"), (r"icml\d{4}", "ICML"),
+    (r"acl|acl_natbib|acl\d{4}|naaclhlt\d{4}|emnlp\d{4}", "ACL, EMNLP, or NAACL"), (r"aaai\d{2}", "AAAI"),
+    (r"ijcai\d{2}", "IJCAI"), (r"colm\d{4}_conference", "COLM"), (r"tmlr", "TMLR"), (r"jmlr2e", "JMLR"),
+    (r"corl_\d{4}", "CoRL"), (r"acmart", "an ACM venue"), (r"IEEEtran", "an IEEE venue"),
+    (r"llncs", "a Springer LNCS venue"), (r"elsarticle", "an Elsevier journal")]
+
+
+def check_venue(files, rep):
+    """Execution Rule 8: the venue is recorded, or its template is loaded. Returns its name or None."""
+    for f in files:
+        m = VENUE_COMMENT.search(f.raw)
+        if m:
+            return m.group(1)
+    code = strip_comments(files[0].raw)
+    for cmd in re.finditer(r"\\(?:documentclass|usepackage)\s*(?:\[[^\]]*\])?\s*\{([^}]*)\}", code):
+        for name in (n.strip() for n in cmd.group(1).split(",")):
+            for pat, venue in VENUE_TEMPLATES:
+                if re.fullmatch(pat, name, re.I):
+                    return f"{venue}, from {name}"
+    rep.add_plain("(paper)", ERROR, "Rule 8", "Venue not recorded: if the user has not named it, ask (ask-user tool); "
+                  "then record it as '% Venue: <name> <year>' at the top of the main .tex file and use its template")
+    return None
+
+
+def required_block(rep, venue, has_exp, min_figures):
+    """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
+    groups = [
+        ("Venue and template", lambda rule, msg: rule == "Rule 8"),
+        ("Appendix or Supplementary Material", lambda rule, msg: rule == "Rule 9"),
+        ("Closest-work plan", lambda rule, msg: rule == "Experiments"),
+        (f"At least {min_figures} main-text figures, all in the figure plan",
+         lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
+        ("Metrics stated before the results", lambda rule, msg: rule == "A4.9")]
+    items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
+    lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
+    for k, (name, match) in enumerate(groups, 1):
+        hits = [i for i in items if match(i[3], i[4])]
+        errors = [i for i in hits if i[2] == ERROR]
+        if k in (3, 5) and not has_exp:
+            status = "n/a (no Experiments section yet)"
+        elif errors:
+            head = errors[0][4].split(": ")[0]
+            if k == 3 and not head.startswith("No '%"):
+                head = f"{len(errors)} gap(s) in the plan"
+            elif len(errors) > 1:
+                head += f" (+{len(errors) - 1} more)"
+            status = f"FAIL: {head}"
+        elif hits:
+            status = f"WARN: {hits[0][4].split(': ')[0]}"
+        else:
+            status = "PASS" + (f" ({venue})" if k == 1 and venue else "")
+        lines.append(f"  {k}. {name}: {status}")
+    return "\n".join(lines)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("tex", nargs="+", help="main .tex file (and any extra .tex files)")
@@ -1029,6 +1092,7 @@ def main(argv=None):
     check_structure(files, root, rep, args.min_figures)
     check_figure_use(files, rep)
     check_figure_plan(files, root, rep, plan)
+    venue = check_venue(files, rep)
     if args.review:
         check_review(files, rep)
     if args.log:
@@ -1042,6 +1106,7 @@ def main(argv=None):
         print(f"{loc}: {level} [{rule}] {msg}" + (f" | {snip}" if snip else ""))
     checked = ", ".join(os.path.relpath(f.path) for f in files)
     print(f"\nChecked: {checked}" + (f" (+ {', '.join(os.path.relpath(b) for b in bibs)})" if bibs else ""))
+    print(required_block(rep, venue, has_experiments(files), args.min_figures))
     print(f"== {rep.count(ERROR)} errors, {rep.count(WARN)} warnings ==")
     print("Fix every ERROR. Fix every WARN, or justify it in your reply.")
     print(f"Not checked by this script, so reread the changed text for: {NOT_CHECKED}.")

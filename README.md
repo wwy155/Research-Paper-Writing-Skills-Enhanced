@@ -17,7 +17,7 @@ This repository currently provides one skill package:
 - `research-paper-writing/`
   - `SKILL.md`: core workflow, usage rules, and the writing and typesetting rules applied to every edit
   - `references/`: section-specific writing guides and templates
-  - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only)
+  - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only). It ends with a pass/fail list of the parts every paper must have (venue and template, Appendix, closest-work reproductions, at least 3 figures, metrics before results), which the agent copies into its reply
   - `scripts/paperstyle.py`: figure and table style schemes (matplotlib settings, fixed method colors, LaTeX table macros)
   - `scripts/figure_forms.py`: one plot form for each common message (trade-off, scaling, robustness, per-category gain, error distribution, sensitivity), drawn with `paperstyle`
   - `agents/openai.yaml`: agent metadata

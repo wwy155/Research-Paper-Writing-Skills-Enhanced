@@ -15,7 +15,7 @@
 - `research-paper-writing/`
   - `SKILL.md`：核心流程、使用规则，以及每次修改都要遵守的写作与排版规则
   - `references/`：按章节拆分的写作指南与模板
-  - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）
+  - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）。输出末尾列出每篇论文必须具备的几项及其是否通过（会议与模板、附录、复现最相关工作的图表、至少 3 张图、结果前先说明指标），Agent 需要把这份清单贴在回复里
   - `scripts/paperstyle.py`：图表美化方案（matplotlib 设置、固定的方法配色、LaTeX 表格宏）
   - `scripts/figure_forms.py`：常见结论对应的画法（权衡、规模扩展、鲁棒性、分类别增益、误差分布、超参数敏感性），用 `paperstyle` 绘制
   - `agents/openai.yaml`：Agent 元信息

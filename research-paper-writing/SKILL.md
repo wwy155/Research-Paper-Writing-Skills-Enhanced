@@ -11,9 +11,9 @@ Prioritize first-impression quality (figures/tables/layout), logical flow, and e
 
 ## Required in Every Paper
 
-These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR. Missing data never excuses a gap: add the figure or table with `[TODO]` placeholders and list the experiment for the author.
+These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: add the figure or table with `[TODO]` placeholders and list the experiment for the author.
 
-1. The venue is settled and its template is in use (Execution Rule 8).
+1. The venue is settled, recorded, and its template is in use (Execution Rule 8).
 2. The Appendix or Supplementary file exists from the start, holds the detailed content, and the main text references it (Execution Rule 9).
 3. The closest-work plan gives every figure and table of each closest paper a line, and each one is reproduced in our paper or skipped with a reason (Core Workflow step 2).
 4. The main text has at least 3 figures, each with its message and form in the figure plan (A2.1, A2.7).
@@ -157,7 +157,7 @@ Load only the needed section file:
 6. Before finalizing, answer the self-review questions of `references/paper-review.md` in five dimensions (contribution, writing clarity, experimental strength, evaluation completeness, method design soundness), then revise the paper for every unresolved item.
 7. Load only the section guide for the current edit target, not all of them at once. The Writing Rules in this file apply to every edit regardless.
 8. First, before any other work, settle the target venue and its template:
-   - Determine the venue from the user's request or the LaTeX preamble (e.g., `\usepackage[review]{cvpr}`, `\usepackage{neurips_2025}`). If it is still unknown, do not guess: your first action is to call the ask-user tool (`AskUserQuestion` in Claude Code) to ask which venue to submit to, offering 2-4 likely venues in the paper's field as options (e.g., CVPR / ICCV / ECCV for vision, NeurIPS / ICML / ICLR for ML, ACL / EMNLP / NAACL for NLP); without such a tool, ask in plain text and wait for the answer.
+   - Determine the venue from the user's request or the LaTeX preamble (e.g., `\usepackage[review]{cvpr}`, `\usepackage{neurips_2025}`). Unless the template package names it, record it at the top of the main `.tex` file, e.g., `% Venue: CVPR 2027`. If it is still unknown, do not guess: your first action is to call the ask-user tool (`AskUserQuestion` in Claude Code) to ask which venue to submit to, offering 2-4 likely venues in the paper's field as options (e.g., CVPR / ICCV / ECCV for vision, NeurIPS / ICML / ICLR for ML, ACL / EMNLP / NAACL for NLP); without such a tool, ask in plain text and wait for the answer.
    - If the project does not already contain the venue's template files, search the web for its latest official template (style files or author kit, from the venue's website or call for papers), download it into the project, and use it for the paper. If none is found or the download fails, ask the user to send the template URL or upload the template files directly.
    - Once the template is in place, the main text must end exactly at its page limit: neither short of it nor over it.
 9. Create the Appendix or Supplementary Material at the start, following the template: check which name it uses and whether it goes in the same file or a separate one. Move overly detailed or redundant content there (implementation details, per-scene results, more qualitative results, proofs, reproduced closest-work analyses that do not fit), and reference its important parts from the main text.
@@ -174,7 +174,7 @@ When asked to rewrite or draft sections, return:
 
 After any edit, including a final polish, also return:
 
-5. The checker's final summary line, and a one-line justification for each remaining `WARN`.
+5. The checker's "Required in Every Paper" list, copied as printed, its final summary line, and a one-line justification for each remaining `WARN`.
 6. A Writing Rules report with one line per group (A1-A4, B1-B4) giving the status of each rule in it, for example `A4: 1 fixed, 2 pass, 3 fixed, 4 pass, 5 pass, 6 fixed, 7 pass, 8 not checked (6 entries in the .bib)`. A status is pass, fixed, or not checked (with the reason); never mark a rule pass without checking it.
 7. For a final polish: a short change log with one example per type of change, and the `[TODO]` items that need the author.
 8. A setup line: the venue and template, the path of the Appendix or Supplementary file, and, when Experiments, figures, or tables were touched, the closest-work plan with the status of each item.
