@@ -74,6 +74,12 @@ PROSE_PATTERNS = [
     (ERROR, "B3.2",
      "Negate-then-correct: state the positive claim directly ('A and B')",
      r"\bnot\s+(?:merely|only|just|simply)\b[^.;:]{0,150}?\bbut\b"),
+    (ERROR, "B3.2", "'It is A, not B': state what it is, and drop the contrast",
+     r"\b(?:[Ii]t|[Tt]his|[Tt]hat|[Tt]hese|[Tt]hey|[Tt]he (?:key|goal|aim|point|idea|result|difference|problem|"
+     r"challenge|bottleneck|issue|question)|[Oo]ur (?:method|model|approach|framework|goal|aim|key idea|contribution|"
+     r"insight|design|module))\s+(?:is|are|was|were|lies|remains)\s+[^.;:!?]{1,80}?,\s+not\s+(?!only\b)"),
+    (ERROR, "B3.2", "Negate-then-correct ('is not A but B'): state B directly",
+     r"\b(?:is|are|was|were)\s+not\s+(?!only\b)[^.;:!?,]{1,80}?,?\s+but\s+(?!also\b)"),
     (ERROR, "B3.3", "Summary closer: delete it, or turn it into a transition",
      SENT_START + r"(?:Overall|In summary|To summarize|To sum up|In conclusion|"
      r"Taken together|Collectively|All in all)\s*,(?![^.:]{0,40}\bcontributions?\b)"),
@@ -365,29 +371,83 @@ def check_math(f, rep):
                         "Punctuate the display equation as part of the sentence (end with , or .)")
 
 
-TAKEAWAY_WORDS, CAPTION_WORDS, DIAGRAM_CAPTION_WORDS = 15, 50, 80
+CAPTION_WORDS, DIAGRAM_CAPTION_WORDS = 50, 80
 DIAGRAM_LABEL = re.compile(r"teaser|pipeline|overview|framework|architecture|arch\b|method", re.I)
 SUBFLOATS = r"\\begin\{(subfigure|subtable)\}.*?\\end\{\1\}"
+# A caption first says what is shown: usually a noun phrase ("Qualitative comparison on ...").
+DESCRIPTION_START = re.compile(
+    r"^(?:\(?[a-z]\)\s*)?(?:Qualitative|Quantitative|Visual|Comparisons?|Results?|Overview|Ablations?|Effects?|Impact|"
+    r"Influence|Analys[ie]s|Visuali[sz]ations?|Illustrations?|Examples?|Samples?|Training|Per-\w+|Breakdown|"
+    r"Distributions?|Evaluations?|Sensitivity|Robustness|Generali[sz]ation|Efficiency|Statistics|Architecture|"
+    r"Pipeline|Framework|Teaser|Failure|Novel|Renderings?|Reconstructions?|Predictions?|Attention|Errors?|Accuracy|"
+    r"Runtime|Speed|Memory|Performance|Numbers?|Scaling|User|Human|"
+    r"We\s+(?:compare|show|visuali[sz]e|plot|report|evaluate|ablate|illustrate|study|present|test|measure|list))\b")
+# Words that make a sentence a claim. CLAIM decides whether the first sentence concludes;
+# CLAIM_ANY (broader) decides whether the caption has a conclusion at all.
+CLAIM = re.compile(r"\b(?:outperform\w*|beats?|surpass\w*|superior|better|worse|best|worst|highest|lowest|fastest|"
+                   r"slowest|sharpest|most|least|only|exceeds?|dominates?|wins?|keeps?|preserves?|recovers?|matches|"
+                   r"achieves?|improves?|reduces?|degrades?|fails?|blurs?|grows?|helps?|costs?|comes? from|scales?)\b",
+                   re.I)
+CLAIM_ANY = re.compile(CLAIM.pattern + r"|\b(?:faster|slower|sharper|higher|lower|larger|smaller|fewer|more|less|"
+                       r"gains?|drops?|stays?|remains?|than|while|whereas|consistent\w*|los(?:e|es|s|t)|prefer\w*|ahead|behind|"
+                       r"trails?|leads?|robust|stable|insensitive|within)\b", re.I)
+SUBFIGURE_SENTENCE = re.compile(r"^(?:\(?[a-z]\)|(?:Left|Right|Top|Bottom|Middle|Center|Rows?|Columns?|From (?:left|top)"
+                                r"\w*(?: to \w+)?)\b)", re.I)
+FILLER = re.compile(
+    r"\b(?:best|second|third|top)(?:[- ]best)?\b[^.;]{0,60}?\b(?:bold\w*|underlin\w*|highlight\w*|colou?r\w*|shad\w+|"
+    r"in (?:red|blue|green|orange|yellow|gr[ae]y))"
+    r"|\b(?:bold\w*|underlin\w*|shad\w+|highlight\w*)\b[^.;]{0,40}?\b(?:best|second|ours|our (?:method|row|results?))\b"
+    r"|\b(?:ours|our (?:method|row|results?))\b[^.;]{0,30}?\b(?:shad\w+|highlight\w*|bold\w*|colou?r\w*|in gr[ae]y)"
+    r"|\b(?:plotted|drawn|generated|created|made|produced)\s+(?:with|using|by|in)\s+(?:matplotlib|seaborn|plotly|tikz|"
+    r"pgfplots|python|excel|inkscape|illustrator|draw\.io)\b"
+    r"|(?:\\uparrow|\\downarrow|\u2191|\u2193)[^.;]{0,40}?\b(?:means|denotes|indicates|higher|lower)\b"
+    r"|\b(?:higher|lower) (?:is|means) better\b", re.I)
+SIGNIFICANCE = re.compile(r"\bp\s*(?:<|>|=|\\leq?|\\geq?|\\le\b|\\ge\b)|\bp-values?\b|\bt-tests?\b|\bWilcoxon\b|"
+                          r"\bMann-Whitney\b|\bconfidence intervals?\b|\b9[059]\s*\\?%\s*CI\b|\bbootstrap\w*|"
+                          r"\bstatistical(?:ly)?\s+significan\w*|\bsignificance\b|\bBonferroni\b|\bHolm\b", re.I)
 
 
-def check_caption(f, rep, pos, arg, limit):
-    """A2.4: a bold takeaway of one short sentence, and a short caption."""
-    b = re.match(r"\s*(?:\\(?:small|footnotesize|scriptsize|normalsize)\s*)?\\textbf\{", arg)
-    if not b:
-        rep.add(f, pos, ERROR, "A2.4", "Start the caption with a bold one-sentence takeaway (\\caption{\\textbf{...} ...})")
-    else:
-        end = brace_end(arg, b.end() - 1) or len(arg)
-        bold = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", ""), arg[b.end():end - 1])
-        n = len(latex_words(bold))
-        sentences = [s for s in re.split(r"(?<=[.!?])\s+(?=[A-Z\\])", bold) if latex_words(s)]
-        if len(sentences) > 1:
-            rep.add(f, pos, WARN, "A2.4", f"The bold takeaway has {len(sentences)} sentences: keep one")
-        elif n > TAKEAWAY_WORDS:
-            rep.add(f, pos, WARN, "A2.4", f"The bold takeaway has {n} words (> {TAKEAWAY_WORDS}): shorten it")
+def caption_sentences(arg):
+    """Sentences of a caption, as printed text."""
+    text = re.sub(r"\\(?:cite[a-zA-Z]*|ref|eqref|autoref|[cC]ref)\*?(?:\s*\[[^\]]*\])*\s*\{[^}]*\}", "X", arg)
+    text = re.sub(r"\\(?:label|TODO|todo)\{[^{}]*\}", " ", text)
+    text = re.sub(r"\\(?:textbf|emph|textit|underline|text)\{", "", text)
+    text = re.sub(r"\\(?:small|footnotesize|scriptsize|normalsize)\b|[{}]", " ", text)
+    text = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", ""), text)
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9(\[\\])", text) if latex_words(s)]
+
+
+def states_conclusion(sentence):
+    return not DESCRIPTION_START.match(sentence) and bool(CLAIM.search(sentence))
+
+
+def check_caption(f, rep, pos, arg, limit, results=True):
+    """A2.4: what it shows first, then (a)/(b), then at most 2 short sentences of conclusion; no filler."""
+    sentences = caption_sentences(arg)
+    if not sentences:
+        rep.add(f, pos, ERROR, "A2.4", "Empty caption: say what it shows, then the conclusion in 1-2 sentences")
+        return
+    if states_conclusion(sentences[0]):
+        rep.add(f, pos, WARN, "A2.4", "The caption opens with a conclusion: first say what it shows ('Qualitative "
+                "comparison on ...'), then (a)/(b), then the conclusion in at most 2 sentences")
+    rest = [s for s in sentences[1:] if not SUBFIGURE_SENTENCE.match(s)]
+    if len(rest) > 3:
+        rep.add(f, pos, WARN, "A2.4", f"Caption has {len(rest)} sentences after the first: keep what it shows, "
+                "(a)/(b), and at most 2 short sentences of conclusion")
+    elif results and not states_conclusion(sentences[0]) and not any(CLAIM_ANY.search(s) for s in rest):
+        rep.add(f, pos, WARN, "A2.4", "The caption has no conclusion: after saying what it shows, add it in 1-2 "
+                "short sentences")
+    m = FILLER.search(arg)
+    if m:
+        rep.add(f, pos, WARN, "A2.4", f"Formatting filler in the caption ('{m.group(0)[:40]}'): readers know the "
+                "conventions; say what it shows and what to conclude")
+    if SIGNIFICANCE.search(arg):
+        rep.add(f, pos, WARN, "B4.5", "Significance details in a caption: move them to the Appendix and keep one "
+                "sentence in the text")
     n = len(latex_words(arg))
     if n > limit:
-        rep.add(f, pos, WARN, "A2.4", f"Caption has {n} words (> {limit}): keep only what is needed to read "
-                "the figure (setting, metric, notation) and move the analysis to the text")
+        rep.add(f, pos, WARN, "A2.4", f"Caption has {n} words (> {limit}): keep what it shows, (a)/(b), and a short "
+                "conclusion; move the analysis to the text")
 
 
 def check_floats(f, rep, plan=None):
@@ -401,7 +461,14 @@ def check_floats(f, rep, plan=None):
         for c in caps:
             end = brace_end(body, c.end() - 1) or len(body)
             check_caption(f, rep, off + c.start(), body[c.end():end - 1],
-                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS)
+                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS, results=not diagram)
+        for sub in re.finditer(SUBFLOATS, full, re.S):
+            for c in re.finditer(r"\\caption(?:\[[^\]]*\])?\{", sub.group(0)):
+                end = brace_end(sub.group(0), c.end() - 1) or len(sub.group(0))
+                text = " ".join(caption_sentences(sub.group(0)[c.end():end - 1]))
+                if states_conclusion(text):
+                    rep.add(f, off + sub.start() + c.start(), WARN, "A2.4", "A subfigure caption states a conclusion: "
+                            "name what it shows ('Input', 'Ours'), and put the conclusion in the main caption")
         if env == "table":
             tab = re.search(r"\\begin\{(?:" + TABULAR_ENVS + r")\}", full)
             if caps and tab and caps[0].start() > tab.start():
@@ -543,6 +610,11 @@ METRICS = ["PSNR", "MS-SSIM", "SSIM", "LPIPS", "FID", "KID", "FVD", "CLIPScore",
            "mIoU", "IoU", "mAP", "AP", "AUC", "NDS", "BLEU", "ROUGE(?:-[12L])?", "METEOR", "CIDEr", "SPICE",
            "BERTScore", "PPL", "EPE", "AbsRel", "RMSE", "MAE", "MSE", "ATE", "RPE", "NLL", "ECE"]
 METRIC_RE = re.compile(r"(?<![\w-])(" + "|".join(METRICS) + r")(?![\w-])")
+# Metrics with a source paper to cite (A4.9).
+SOURCED_METRICS = {"SSIM", "MS-SSIM", "LPIPS", "FID", "KID", "FVD", "BLEU", "ROUGE", "ROUGE-1", "ROUGE-2", "ROUGE-L",
+                   "METEOR", "CIDEr", "SPICE", "BERTScore", "CLIPScore", "NDS"}
+DIRECTION = re.compile(r"\b(?:higher|lower|larger|smaller|better|worse|increas\w*|decreas\w*|maximi[sz]\w*|"
+                       r"minimi[sz]\w*)\b|\\uparrow|\\downarrow|\u2191|\u2193", re.I)
 
 
 def check_metrics(files, rep, exp_spans):
@@ -561,13 +633,27 @@ def check_metrics(files, rep, exp_spans):
                     for m in METRIC_RE.finditer(f.keys_masked, fa, fb):
                         in_float.setdefault(m.group(1), (i, fa, f))
             for m in METRIC_RE.finditer(text, a, b):
-                in_text.setdefault(m.group(1), (i, m.start()))
+                if m.group(1) not in in_text:
+                    para_a = max(text.rfind("\n\n", a, m.start()), a)
+                    para_b = text.find("\n\n", m.end(), b)
+                    para = f.nonverbatim[para_a:para_b if para_b >= 0 else b]
+                    in_text[m.group(1)] = (i, m.start(), f, bool(CITED_AFTER.match(text, m.end())),
+                                           bool(DIRECTION.search(para)))
     for metric, (i, pos, f) in sorted(in_float.items(), key=lambda kv: kv[1][:2]):
         stated = in_text.get(metric)
+        if stated is not None and stated[:2] < (i, pos):
+            _, spos, sf, cited, direction = stated
+            if metric in SOURCED_METRICS and not cited:
+                rep.add(sf, spos, ERROR, "A4.9", f"Cite the source of '{metric}' where Experiments first explains it "
+                        f"('{metric}~\\cite{{...}}')")
+            if not direction:
+                rep.add(sf, spos, WARN, "A4.9", f"Say which direction is better for '{metric}' where you explain it "
+                        "(higher or lower)")
+            continue
         if stated is None:
             rep.add(f, pos, ERROR, "A4.9", f"'{metric}' is reported here but the Experiments text never states it: "
                     "before the results, say what it measures, which direction is better, and cite its source")
-        elif stated > (i, pos):
+        else:
             rep.add(f, pos, ERROR, "A4.9", f"'{metric}' is reported here before the Experiments text states it: "
                     "define it before the first result")
 
@@ -682,22 +768,22 @@ def appendix_content(files, root, appendix_paths, sibling):
 
 
 def check_structure(files, root, rep, min_figures=3):
-    """Appendix (Execution Rule 9), figure count (A2.7), closest-work plan, and white-space hints (A1.6, A1.1)."""
+    """Appendix (Execution Rule 2), figure count (A2.7), closest-work plan, and white-space hints (A1.6, A1.1)."""
     appendix_paths, main_texts, appendix_labels = split_main(files, root)
     sibling = [n for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
                and n != os.path.basename(files[0].path)]
     if not (appendix_paths or sibling or any(re.search(r"\\appendix\b", f.clean) for f in files)):
-        rep.add_plain("(paper)", ERROR, "Rule 9", "No Appendix or Supplementary Material found: create it now, "
-                      "following the template (Execution Rule 9)")
+        rep.add_plain("(paper)", ERROR, "Appendix", "No Appendix or Supplementary Material found: create it now, "
+                      "following the template (Execution Rule 2)")
     else:
         keys = {k.strip() for t in main_texts for g in re.findall(REF_CMDS, t) for k in g.split(",")}
         named = any(re.search(r"\b(?:[Aa]ppendix|[Ss]upplement\w*|[Ss]upp\.)", mask_args(t)) for t in main_texts)
         if not (keys & appendix_labels or named):
-            rep.add_plain("(paper)", ERROR, "Rule 9", "The main text never points to the Appendix or Supplementary "
-                          "Material: reference its important parts (Execution Rule 9)")
+            rep.add_plain("(paper)", ERROR, "Appendix", "The main text never points to the Appendix or Supplementary "
+                          "Material: reference its important parts (Execution Rule 2)")
         words, floats = appendix_content(files, root, appendix_paths, sibling)
         if words < 150 and not floats:
-            rep.add_plain("(paper)", WARN, "Rule 9", f"The Appendix has only {words} words: move the detailed content "
+            rep.add_plain("(paper)", WARN, "Appendix", f"The Appendix has only {words} word(s): move the detailed content "
                           "there (implementation details, per-scene results, more qualitative results, proofs, "
                           "reproduced closest-work analyses) and reference it from the main text")
     n_fig = sum(len(re.findall(r"\\begin\{figure\*?\}", t)) for t in main_texts)
@@ -829,15 +915,8 @@ def check_closest_plan(files, rep, extra=()):
                     f"'% {name} (<authors, venue>): N figures, M tables'")
 
 
-TOPIC_ONLY = re.compile(
-    r"^(?:(?:qualitative|quantitative|visual|more|additional|detailed)\s+)*"
-    r"(?:results?|comparisons?|evaluations?|analysis|analyses|visuali[sz]ations?|examples?|samples?|overview|"
-    r"pipeline|framework|architecture|illustration|ablations?(?:\s+stud(?:y|ies))?)"
-    r"(?:\s+(?:on|of|with|for|in|against)\b[^.]*)?\.?$", re.I)
-
-
 def check_figure_use(files, rep):
-    """A2.1: every figure and table is discussed in the text and states a conclusion."""
+    """A2.1: every figure and table is discussed in the text."""
     refs = {k.strip() for f in files for g in re.findall(REF_CMDS, f.nonverbatim) for k in g.split(",")}
     for f in files:
         for m in re.finditer(r"\\begin\{(figure|table)(\*?)\}(.*?)\\end\{\1\2\}", f.nonverbatim, re.S):
@@ -848,10 +927,6 @@ def check_figure_use(files, rep):
             elif not labels & refs:
                 rep.add(f, m.start(), WARN, "A2.1", f"The {kind} '{sorted(labels)[0]}' is never referenced: "
                         "analyze its conclusion in the text, or cut it")
-            for c in re.finditer(r"\\caption(?:\[[^\]]*\])?\{\s*(?:\\(?:small|footnotesize)\s*)?\\textbf\{([^{}]*)\}", body):
-                if TOPIC_ONLY.match(c.group(1).strip()):
-                    rep.add(f, m.start(3) + c.start(), WARN, "A2.1", "The bold takeaway names a topic, not a conclusion: "
-                            "state what the reader should conclude")
 
 
 PLAN_START = re.compile(r"^[ \t]*%[ \t]*Figure plan\b", re.I | re.M)
@@ -900,24 +975,36 @@ def read_plan(files):
     return None
 
 
+TABLE_TYPE = re.compile(r"\b(?:SOTA|state[- ]of[- ]the[- ]art|main comparison|plug-?in|add-?on|ablation|efficiency|"
+                        r"cost|runtime|breakdown|per-(?:class|category|scene|dataset)|generali[sz]ation|cross-dataset|"
+                        r"robustness|property|capabilit\w*|sensitivity|hyperparameter|user study|preference|"
+                        r"statistics)\b", re.I)
+
+
 def check_figure_plan(files, root, rep, plan):
-    """A2.1: every main-text figure is in the figure plan. A2.7: at most 2 figures per form."""
-    figs = []
+    """A2.1: every main-text figure and table is in the figure plan. A2.7: at most 2 figures per form.
+    A2.8: each table names its type."""
+    figs, tables = [], []
     for t in split_main(files, root)[1]:
-        for m in re.finditer(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", t, re.S):
-            labels = [l.strip() for l in re.findall(r"\\label\{([^}]*)\}", m.group(1))]
+        for m in re.finditer(r"\\begin\{(figure|table)\*?\}(.*?)\\end\{\1\*?\}", t, re.S):
+            labels = [l.strip() for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))]
             if labels:
-                figs.append(labels)
-    if not figs:
+                (figs if m.group(1) == "figure" else tables).append(labels)
+    if not figs and not tables:
         return
     if plan is None:
-        rep.add_plain("(paper)", ERROR, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure, "
-                      "'% label: message -> form' (references/figure-table-styles.md)")
+        rep.add_plain("(paper)", ERROR, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure "
+                      "and table, '% label: message -> form' (references/figure-table-styles.md)")
         return
-    missing = [labels[-1] for labels in figs if not any(l in plan for l in labels)]
+    missing = [labels[-1] for labels in figs + tables if not any(l in plan for l in labels)]
     if missing:
         rep.add_plain("(paper)", ERROR, "A2.1", f"The figure plan has no line for {', '.join(missing)}: "
                       "add '% label: message -> form'")
+    for labels in tables:
+        entry = next((plan[l] for l in labels if l in plan), None)
+        if entry and not TABLE_TYPE.search(entry[1]):
+            rep.add_plain("(paper)", WARN, "A2.8", f"The plan line of {labels[-1]} names no table type: pick one from "
+                          "references/table-types.md (SOTA comparison, plug-in, ablation, efficiency, ...)")
     by_kind = {}
     for labels in figs:
         entry = next((plan[l] for l in labels if l in plan), None)
@@ -928,6 +1015,192 @@ def check_figure_plan(files, root, rep, plan):
             rep.add_plain("(paper)", WARN, "A2.7", f"{len(labs)} main-text figures are {kind}s ({', '.join(labs)}): "
                           "use one form for at most 2; merge related ones into one multi-panel figure, "
                           "or move one to the Appendix")
+
+
+def main_parts(files, root):
+    """(file, start, end) spans of the main text (before the Appendix) in each file."""
+    appendix_paths = split_main(files, root)[0]
+    out = []
+    for f in files:
+        if os.path.abspath(f.path) in appendix_paths:
+            continue
+        cut = re.search(r"\\appendix\b", f.clean)
+        out.append((f, 0, cut.start() if cut else len(f.clean)))
+    return out
+
+
+def check_significance(files, root, rep):
+    """B4.5: significance gets one sentence in the main text; the details go to the Appendix."""
+    total, first = 0, None
+    for f, a, b in main_parts(files, root):
+        floats = [(m.start(), m.end()) for m in re.finditer(r"\\begin\{(table|figure)(\*?)\}.*?\\end\{\1\2\}",
+                                                            f.nonverbatim[:b], re.S)]
+        for fa, fb in floats:
+            for m in re.finditer(r"\\begin\{(" + TABULAR_ENVS + r")\}.*?\\end\{\1\}", f.nonverbatim[fa:fb], re.S):
+                hit = SIGNIFICANCE.search(m.group(0))
+                if hit:
+                    rep.add(f, fa + m.start() + hit.start(), WARN, "B4.5", "Significance columns or marks in a "
+                            "main-text table: report the mean (and at most +- std), and put the tests in the Appendix")
+        prose = f.prose
+        for fa, fb in floats:  # captions and tables are checked on their own
+            prose = prose[:fa] + blank(prose[fa:fb]) + prose[fb:]
+        for para in re.finditer(r"(?:(?!\n[ \t]*\n).)+", prose[a:b], re.S):
+            hits = list(SIGNIFICANCE.finditer(para.group(0)))
+            total += len(hits)
+            if hits and first is None:
+                first = (f, a + para.start())
+            if len(hits) >= 2:
+                rep.add(f, a + para.start() + hits[0].start(), WARN, "B4.5", "This paragraph discusses significance "
+                        "at length: one sentence is enough (std over runs, or 'tests in Appendix X'), the rest goes "
+                        "to the Appendix")
+    if total >= 4 and first:
+        rep.add(*first, WARN, "B4.5", f"The main text mentions significance {total} times: keep one sentence and move "
+                "the details to the Appendix")
+
+
+RUN_IN_HEAD = re.compile(r"^\s*(?:\\noindent\s*)?\\(?:paragraph\*?|subparagraph\*?|textbf)\s*\{")
+RUN_IN_EXEMPT = re.compile(r"Related|Background|Prior|Preliminar", re.I)
+
+
+def check_run_in_heads(files, root, rep):
+    """B4.6: bold run-in headings sparingly; not on every paragraph (Related Work topics are exempt)."""
+    for f, a, b in main_parts(files, root):
+        text = re.sub(r"(\\paragraph\*?\{[^}]*\})[ \t]*\n[ \t]*\n", lambda m: m.group(1) + " " * (len(m.group(0)) -
+                      len(m.group(1))), f.nonverbatim[:b])
+        sections = [(m.start(), m.group(1)) for m in re.finditer(r"\\section\*?\{([^}]*)\}", text)]
+        for k, (s, title) in enumerate(sections):
+            if s < a or RUN_IN_EXEMPT.search(title):
+                continue
+            e = sections[k + 1][0] if k + 1 < len(sections) else len(text)
+            body = mask(text[s:e], r"\\begin\{(" + FLOAT_ENVS + r"|" + MATH_ENVS + r")(\*?)\}.*?\\end\{\1\2\}")
+            paras = [re.sub(r"^(?:\s*\\(?:(?:sub)*section\*?\{[^}]*\}|label\{[^}]*\}))+", "", p)
+                     for p in re.split(r"\n[ \t]*\n", body)]
+            paras = [p for p in paras if len(re.findall(r"[A-Za-z]{2,}", re.sub(r"\\[A-Za-z]+\*?(?:\{[^}]*\})?",
+                                                                                 " ", p))) >= 8]
+            heads = [p for p in paras if RUN_IN_HEAD.match(p)]
+            if len(heads) >= 3 and len(heads) >= 0.6 * len(paras):
+                rep.add(f, s, WARN, "B4.6", f"{len(heads)} of {len(paras)} paragraphs in '{title}' open with a bold "
+                        "heading: keep them only where the reader needs to find a part again")
+
+
+SOTA_LINE = re.compile(r"^[ \t]*%[ \t]*Latest SOTA\b[^:\n]*:\s*(?P<entry>[^\n]*?)\s*(?:->|\u2192)\s*(?P<target>[^\n]*?)"
+                       r"\s*$", re.I | re.M)
+
+
+def float_bodies(docs):
+    """{label: float body} for every figure, table, and algorithm."""
+    out = {}
+    for f in docs:
+        for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")\*?\}(.*?)\\end\{\1\*?\}", f.nonverbatim, re.S):
+            for l in re.findall(r"\\label\{([^}]*)\}", m.group(2)):
+                out[l.strip()] = m.group(2)
+    return out
+
+
+def check_latest_sota(files, rep, exp_spans, extra=()):
+    """Experiments: the main comparison includes the latest state of the art, and the text discusses it."""
+    if not has_experiments(files):
+        return
+    lines = [(f, m) for f in files for m in SOTA_LINE.finditer(f.raw)]
+    if not lines:
+        rep.add_plain("(paper)", ERROR, "SOTA", "No '% Latest SOTA:' line: search for the strongest method on your "
+                      "main benchmark from the past 12 months (top venues, arXiv), compare with it in the main table, "
+                      "and discuss it (references/experiments.md)")
+        return
+    bodies = float_bodies(list(files) + list(extra))
+    exp_text = " ".join(f.prose[a:b] for f in files for a, b in exp_spans.get(os.path.abspath(f.path), ()))
+    for f, m in lines:
+        name = re.split(r"\s*\(", m.group("entry"))[0].strip().strip("[]")
+        target = m.group("target")
+        skip = re.match(r"not comparable\b[^:]*:?\s*(.*)$", target, re.I)
+        if not name:
+            rep.add(f, m.start(), ERROR, "SOTA", "Name the method: '% Latest SOTA: <method> (<venue year>) -> "
+                    "tab:main: done'")
+            continue
+        if skip:
+            reason = skip.group(1).strip()
+            if len(reason.split()) < 3 or NO_DATA.search(reason) or re.search(r"\bcode\b", reason, re.I):
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{name}' is not compared, and the reason does not hold: if "
+                        "it has results on your benchmark, use its reported numbers and mark them")
+            continue
+        labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
+        if not labels:
+            rep.add(f, m.start(), ERROR, "SOTA", f"Name the table that compares with '{name}' ('-> tab:main: done')")
+        token = re.compile(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])")
+        for label in labels:
+            if label not in bodies:
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' does not exist: add the comparison with '{name}'")
+            elif not token.search(bodies[label]):
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it, with [TODO] cells "
+                        "if its numbers are missing")
+        if not token.search(exp_text):
+            rep.add(f, m.start(), ERROR, "SOTA", f"The Experiments text never discusses '{name}': say how ours "
+                    "compares with it and why")
+
+
+IMAGE_EXTS = (".pdf", ".png", ".jpg", ".jpeg", ".eps")
+
+
+def figure_files(docs, root):
+    """Every image file the paper includes: [(file, position, name, path or None)]."""
+    dirs = [root]
+    for f in docs:
+        for m in re.finditer(r"\\graphicspath\s*\{((?:\s*\{[^}]*\})+)\s*\}", strip_comments(f.raw)):
+            dirs += [os.path.join(root, d) for d in re.findall(r"\{([^}]*)\}", m.group(1))]
+    out = []
+    for f in docs:
+        for m in re.finditer(r"\\includegraphics\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}", f.nonverbatim):
+            name = m.group(1).strip()
+            if name.startswith("example-image"):
+                continue
+            path = None
+            for d in dirs:
+                for cand in [name] + [name + e for e in IMAGE_EXTS]:
+                    p = os.path.join(d, cand)
+                    if os.path.isfile(p):
+                        path = p
+                        break
+                if path:
+                    break
+            out.append((f, m.start(), name, path))
+    return out
+
+
+def check_figure_qa(files, root, rep, extra=()):
+    """A2.9: every included image was checked with figure_qa.py after its last change, with no errors left."""
+    import hashlib
+    import json
+    seen = set()
+    for f, pos, name, path in figure_files(list(files) + list(extra), root):
+        if path is None:
+            rep.add(f, pos, ERROR, "A1.5", f"Image '{name}' not found: LaTeX stops here. Create it, or a placeholder")
+            continue
+        key = os.path.abspath(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        rel = os.path.relpath(path, root)
+        try:
+            with open(path, "rb") as fh:
+                digest = hashlib.sha1(fh.read()).hexdigest()
+            with open(os.path.join(os.path.dirname(path), ".figure-qa", "record.json"), encoding="utf-8") as fh:
+                entry = json.load(fh).get(os.path.basename(path))
+        except (OSError, ValueError):
+            entry = None
+        if not entry or entry.get("sha1") != digest:
+            rep.add(f, pos, ERROR, "A2.9", f"'{rel}' was not checked after its last change: run python3 <this skill's "
+                    "directory>/scripts/figure_qa.py on the script that draws it (or on the file), fix what it "
+                    "reports, and look at its preview")
+            continue
+        issues = entry.get("issues", [])
+        errors = [msg for level, msg in issues if level == ERROR]
+        warns = [msg for level, msg in issues if level == WARN]
+        if errors:
+            rep.add(f, pos, ERROR, "A2.9", f"'{rel}': {errors[0]}" + (f" (+{len(errors) - 1} more)" if len(errors) > 1
+                                                                       else ""))
+        if warns:
+            rep.add(f, pos, WARN, "A2.9", f"'{rel}': {warns[0]}" + (f" (+{len(warns) - 1} more)" if len(warns) > 1
+                                                                    else ""))
 
 
 def check_log(path, rep):
@@ -997,7 +1270,7 @@ VENUE_TEMPLATES = [
 
 
 def check_venue(files, rep):
-    """Execution Rule 8: the venue is recorded, or its template is loaded. Returns its name or None."""
+    """Execution Rule 1: the venue is recorded, or its template is loaded. Returns its name or None."""
     for f in files:
         m = VENUE_COMMENT.search(f.raw)
         if m:
@@ -1008,7 +1281,7 @@ def check_venue(files, rep):
             for pat, venue in VENUE_TEMPLATES:
                 if re.fullmatch(pat, name, re.I):
                     return f"{venue}, from {name}"
-    rep.add_plain("(paper)", ERROR, "Rule 8", "Venue not recorded: if the user has not named it, ask (ask-user tool); "
+    rep.add_plain("(paper)", ERROR, "Venue", "Venue not recorded: if the user has not named it, ask (ask-user tool); "
                   "then record it as '% Venue: <name> <year>' at the top of the main .tex file and use its template")
     return None
 
@@ -1016,18 +1289,20 @@ def check_venue(files, rep):
 def required_block(rep, venue, has_exp, min_figures):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
     groups = [
-        ("Venue and template", lambda rule, msg: rule == "Rule 8"),
-        ("Appendix or Supplementary Material", lambda rule, msg: rule == "Rule 9"),
+        ("Venue and template", lambda rule, msg: rule == "Venue"),
+        ("Appendix or Supplementary Material", lambda rule, msg: rule == "Appendix"),
         ("Closest-work plan", lambda rule, msg: rule == "Experiments"),
-        (f"At least {min_figures} main-text figures, all in the figure plan",
+        ("Latest SOTA compared and discussed", lambda rule, msg: rule == "SOTA"),
+        (f"At least {min_figures} main-text figures; every figure and table in the plan",
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
-        ("Metrics stated before the results", lambda rule, msg: rule == "A4.9")]
+        ("Every image checked with figure_qa.py", lambda rule, msg: rule == "A2.9"),
+        ("Metrics explained and cited before the results", lambda rule, msg: rule == "A4.9")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
     for k, (name, match) in enumerate(groups, 1):
         hits = [i for i in items if match(i[3], i[4])]
         errors = [i for i in hits if i[2] == ERROR]
-        if k in (3, 5) and not has_exp:
+        if k in (3, 4, 7) and not has_exp:
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
@@ -1092,6 +1367,12 @@ def main(argv=None):
     check_structure(files, root, rep, args.min_figures)
     check_figure_use(files, rep)
     check_figure_plan(files, root, rep, plan)
+    check_significance(files, root, rep)
+    check_run_in_heads(files, root, rep)
+    supp = [File(os.path.join(root, n)) for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
+            and os.path.abspath(os.path.join(root, n)) not in {os.path.abspath(f.path) for f in files}]
+    check_latest_sota(files, rep, exp_spans, supp)
+    check_figure_qa(files, root, rep, supp)
     venue = check_venue(files, rep)
     if args.review:
         check_review(files, rep)

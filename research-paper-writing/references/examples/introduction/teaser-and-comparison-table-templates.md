@@ -12,7 +12,7 @@ The code blocks below are templates, not quotations: fill the brackets with your
 As summarized in Table~\ref{tab:intro_comparison}, existing methods support either [property A] or [property B], but not both.
 
 \begin{table}[t]
-  \caption{\textbf{Only [method] supports [property A], [property B], and [property C] together.} [Define each property in a short phrase.]}
+  \caption{Properties of [task] methods: [property A] ([short definition]), [property B] ([short definition]), and [property C] ([short definition]). Only [method] supports all three.}
   \label{tab:intro_comparison}
   \centering
   \begin{tabular}{lccc}
@@ -51,7 +51,7 @@ fig.savefig("figures/teaser_tradeoff.pdf")
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/teaser_tradeoff}
-  \caption{\textbf{[Method] matches the quality of [baseline] at [N]$\times$ its speed.} PSNR and rendering speed on [dataset], measured on [GPU].}
+  \caption{PSNR versus rendering speed on [dataset], measured on [GPU]. [Method] matches the quality of [baseline] at [N]$\times$ its speed.}
   \label{fig:teaser}
 \end{figure}
 
@@ -64,7 +64,7 @@ As shown in Figure~\ref{fig:teaser}, [method] reaches [quality] comparable to [b
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/teaser_results}
-  \caption{\textbf{[Baseline] [fails how] on [hard case]; [method] recovers [what].} [Input] from [dataset]; zoom-ins show [region].}
+  \caption{[Method] and [baseline] on [hard case] from [dataset]; zoom-ins show [region]. [Baseline] [fails how], while [method] recovers [what].}
   \label{fig:teaser}
 \end{figure*}
 

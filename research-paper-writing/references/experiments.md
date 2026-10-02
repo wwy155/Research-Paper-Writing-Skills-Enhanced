@@ -48,6 +48,20 @@ Whenever the paper has an Experiments section, write the closest-work plan befor
 
 6. List the experiments the author must run in your reply, one per `TODO` item.
 
+Then find the latest state of the art, which is often newer than the closest work:
+
+1. Search the main benchmark for the strongest methods of the past 12 months: recent proceedings of the top venues in the field, arXiv, and benchmark leaderboards. Read their reported numbers under your protocol.
+2. Add the strongest one to the main comparison table, with its own row and citation. If its code is not released, use the numbers from its paper and mark them (`references/table-types.md`, rule 3).
+3. Discuss it in the text: how ours compares and why. If ours does not beat it, say so, and state where ours is better, e.g., speed or memory.
+4. Record it in the closest-work plan block; the checker verifies each line:
+
+   ```latex
+   % Latest SOTA: MethodY (Author et al., CVPR 2026) -> tab:main: done; discussed in Sec. 4.2
+   % Latest SOTA: MethodZ (Author et al., ICCV 2025) -> not comparable: it needs multi-view input, while ours is monocular
+   ```
+
+   Missing code or missing numbers is not a reason to leave a method out.
+
 ```mermaid
 flowchart TB
     A["Key Paper Claims"] --> B["What Contributions Are Claimed?"]
@@ -84,14 +98,17 @@ Write the setup before any result, even when earlier sections already covered pa
 
 1. Datasets and benchmarks: cite each again at its first mention in Experiments (Writing Rule A4.6 in `SKILL.md`), and give the split and resolution.
 2. Baselines: cite each again at its first mention here and in every table row that names it. Say how its results were obtained: official code, numbers from its paper, or retrained by us.
-3. Metrics (Writing Rule A4.9): for every metric in a table or figure, say what it measures and which direction is better, and cite its source when it has one. Restate them even if the Introduction or Method already did.
+3. Metrics (Writing Rule A4.9): explain every metric in a table or figure anywhere at the start of Experiments, before the first result. Say in one short sentence what it measures and which direction is better. Cite its source paper when it has one (SSIM, LPIPS, FID, BLEU, ...), and restate it even if the Introduction or Method already did.
 4. Implementation details: hardware, training time, and key hyperparameters; move the rest to the Appendix.
+5. Statistical significance (Writing Rule B4.5): one sentence at most, such as the standard deviation over seeds, or a pointer to the tests in the Appendix (`references/table-types.md`, Statistical Significance).
 
 ```latex
 \paragraph{Metrics.} We report PSNR, SSIM~\cite{wang2004ssim}, and LPIPS~\cite{zhang2018lpips}. PSNR measures pixel-wise fidelity in dB. SSIM measures structural similarity, and LPIPS measures perceptual distance with deep features. Higher PSNR and SSIM and lower LPIPS are better. We measure FPS at $800\times800$ on one RTX 4090 GPU.
 ```
 
 ## Figure/Table Writing Rules
+
+Pick each table's type (SOTA comparison, plug-in, ablation, efficiency, and others) from `references/table-types.md`, and each figure's form from `references/figure-table-styles.md`.
 
 `Good tables are part of experiment communication quality, not decoration.`
 
@@ -115,7 +132,7 @@ Write the setup before any result, even when earlier sections already covered pa
 5. Group multi-dataset or multi-setting results using `\multicolumn` + `\cmidrule`, not vertical separators.
 6. One table, one message: do not mix unrelated results in a single table.
 7. If rows represent different attributes/ablations, encode that explicitly in row names or attribute columns.
-8. Start each caption with a bold one-sentence takeaway of at most 15 words (Writing Rule A2.4 in `SKILL.md`). Then give only the setting, protocol, and notation needed to read it, within 50 words in total; no discussion (`references/figure-table-styles.md`, Write the Caption).
+8. Captions (Writing Rule A2.4 in `SKILL.md`): first what the table or figure shows, then (a)/(b) for its parts, then the conclusion in at most 2 short sentences. Keep it within 50 words, with no formatting notes such as "best in bold" (`references/figure-table-styles.md`, Write the Caption).
 9. Analyze every figure and table in the text: the observation with numbers, the reason ours behaves this way, and what follows. A figure or table that the text never discusses should be cut.
 10. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
 
@@ -141,3 +158,5 @@ Write the setup before any result, even when earlier sections already covered pa
 5. Are limitations of evaluation scope explicitly stated?
 6. Is every metric defined, with its direction and source, before the first result?
 7. Is every baseline, dataset, and metric cited at its first mention in Experiments and in each table row that names it?
+8. Does the main table include the latest state of the art, and does the text discuss it?
+9. Is statistical significance one sentence in the main text, with the details in the Appendix?

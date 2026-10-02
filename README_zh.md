@@ -18,6 +18,7 @@
   - `scripts/check_tex.py`：Agent 每次修改后运行的规则检查脚本（Python 3，仅用标准库）。输出末尾列出每篇论文必须具备的几项及其是否通过（会议与模板、附录、复现最相关工作的图表、至少 3 张图、结果前先说明指标），Agent 需要把这份清单贴在回复里
   - `scripts/paperstyle.py`：图表美化方案（matplotlib 设置、固定的方法配色、LaTeX 表格宏）
   - `scripts/figure_forms.py`：常见结论对应的画法（权衡、规模扩展、鲁棒性、分类别增益、误差分布、超参数敏感性），用 `paperstyle` 绘制
+  - `scripts/figure_qa.py`：画完每张图后检查（图例是否遮挡数据、内容是否重叠或超出范围、文字和标记是否过大过小、坐标范围和页边是否留白过多、子图标题是否直接写结论），并生成预览图供查看
   - `agents/openai.yaml`：Agent 元信息
 
 常见使用场景：
@@ -29,7 +30,7 @@
 
 ## 先想结论，再选图形
 
-画图之前，agent 先用一句话写下这张图要表达的结论，再选最能体现它的图形。例如“又好又省”用散点图（成本取对数轴），“提升来自哪里”用排序的增益条形图。结论与图形的对照表、改写示例和应避免的图形见 `research-paper-writing/references/figure-table-styles.md`。每张图在图表规划（figure plan）里记一行 `label: 结论 -> 图形`；正文中同一种图形最多用两次；图注要短：加粗结论不超过 15 词，全文不超过 50 词（teaser 或 pipeline 图不超过 80 词）。检查脚本会检查图表规划、图形重复次数和图注长度。`scripts/figure_forms.py` 可直接画出每种图形（下图为示意数据）：
+画图之前，agent 先用一句话写下这张图要表达的结论，再选最能体现它的图形。例如“又好又省”用散点图（成本取对数轴），“提升来自哪里”用排序的增益条形图。结论与图形的对照表、改写示例和应避免的图形见 `research-paper-writing/references/figure-table-styles.md`。每张图和每个表在图表规划（figure plan）里记一行 `label: 结论 -> 图形`；正文中同一种图形最多用两次。图注先写展示的是什么，有子图时写 (a)、(b) 各是什么，最后用不超过两句话写结论，全文不超过 50 词（teaser 或 pipeline 图不超过 80 词）。表格按 `research-paper-writing/references/table-types.md` 选择类型：SOTA 对比、插件式对比、消融、效率等。画完图后由 `scripts/figure_qa.py` 逐张检查，检查脚本会拒绝自上次修改后未经检查的图。`scripts/figure_forms.py` 可直接画出每种图形（下图为示意数据）：
 
 ![六种常见结论对应的图形](docs/figure-forms.png)
 

@@ -127,7 +127,12 @@ Local cite:
 1. The first sentence of each paragraph should make readers immediately understand what this paragraph is about.
 2. One paragraph should clearly deliver one message.
 
-### 3) Sentence-level check
+### 3) Formatting check
+
+1. Use bold run-in headings (`\paragraph{...}` or `\textbf{...}` opening a paragraph) sparingly: only where the reader needs to find a part again. Never give every paragraph one; subsection titles and clear first sentences already guide the reader (Writing Rule B4.6 in `SKILL.md`).
+2. Never write "It is A, not B" or "X is not A but B": state what it is (Writing Rule B3.2).
+
+### 4) Sentence-level check
 
 1. Carefully check whether the **motivation** of each sentence is explicit. Keep one thing clear to readers at all times: **why this sentence content is needed**.
 2. Carefully check sentence-to-sentence flow.
