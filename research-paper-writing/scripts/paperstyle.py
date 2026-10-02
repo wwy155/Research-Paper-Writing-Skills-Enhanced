@@ -19,6 +19,7 @@ From the command line:
     python3 paperstyle.py preview clean preview.png        # needs matplotlib
 
 Only the standard library is needed, except for use() and preview.
+After saving, check every figure with figure_qa.py (references/figure-table-styles.md, Check Every Figure).
 """
 import sys
 

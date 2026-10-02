@@ -17,9 +17,10 @@ This repository currently provides one skill package:
 - `research-paper-writing/`
   - `SKILL.md`: core workflow, usage rules, and the writing and typesetting rules applied to every edit
   - `references/`: section-specific writing guides and templates
-  - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only)
+  - `scripts/check_tex.py`: rule checker the agent runs after every edit (Python 3, standard library only). It ends with a pass/fail list of the parts every paper must have (venue and template, Appendix, closest-work reproductions, at least 3 figures, metrics before results), which the agent copies into its reply
   - `scripts/paperstyle.py`: figure and table style schemes (matplotlib settings, fixed method colors, LaTeX table macros)
   - `scripts/figure_forms.py`: one plot form for each common message (trade-off, scaling, robustness, per-category gain, error distribution, sensitivity), drawn with `paperstyle`
+  - `scripts/figure_qa.py`: checks every figure after drawing (legend over data, overlapping or cut-off content, text and markers too small or too large, empty axis ranges and margins, titles that state a conclusion) and writes a preview to look at
   - `agents/openai.yaml`: agent metadata
 
 Typical use cases:
@@ -31,7 +32,7 @@ Typical use cases:
 
 ## Figures and Tables
 
-Before drawing, the agent writes the message of a figure in one sentence and picks the form that shows it. For example, "better and cheaper" calls for a scatter with cost on a log axis. "Where the gain comes from" calls for sorted gain bars. The table of messages and forms, worked examples, and forms to avoid are in `research-paper-writing/references/figure-table-styles.md`. The agent records each figure as one line of a figure plan (`label: message -> form`). It uses one form for at most two main-text figures. It keeps captions short: a bold takeaway of at most 15 words, and at most 50 words in total (80 for a teaser or pipeline figure). The checker enforces the plan, the form count, and the caption lengths. `scripts/figure_forms.py` draws each form (illustrative data below):
+Before drawing, the agent writes the message of a figure in one sentence and picks the form that shows it. For example, "better and cheaper" calls for a scatter with cost on a log axis. "Where the gain comes from" calls for sorted gain bars. The table of messages and forms, worked examples, and forms to avoid are in `research-paper-writing/references/figure-table-styles.md`. The agent records each figure and table as one line of a figure plan (`label: message -> form`), and uses one form for at most two main-text figures. Captions first say what the figure shows, then what each part shows, then the conclusion in at most two sentences, within 50 words (80 for a teaser or pipeline figure). Tables follow `research-paper-writing/references/table-types.md`: SOTA comparison, plug-in, ablation, efficiency, and more. After drawing, `scripts/figure_qa.py` checks every figure, and the checker rejects any image not checked since its last change. `scripts/figure_forms.py` draws each form (illustrative data below):
 
 ![Plot forms for six common messages](docs/figure-forms.png)
 

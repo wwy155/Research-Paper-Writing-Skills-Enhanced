@@ -14,7 +14,8 @@ to your figure code and call the matching function with your own data:
                 r"Speed (FPS) $\uparrow$", r"PSNR (dB) $\uparrow$")
     fig.savefig("figures/tradeoff.pdf")
 
-The functions draw no legend, so one legend can serve all panels of a figure.
+The functions draw no legend, so one legend can serve all panels of a figure. Titles name
+what a panel shows; the conclusion goes in the caption. Check the saved figure with figure_qa.py.
 From the command line, draw every form with illustrative data:
 
     python3 figure_forms.py clean figure-forms.png   # needs matplotlib
@@ -103,7 +104,7 @@ def cdf(ax, st, samples, xlabel, logx=True, points=60):
         ax.plot(grid, share, label=m, markevery=max(1, points // 6), **st[m])
     if logx:
         _log_x(ax)
-    ax.set_ylim(0, 102)
+    ax.set_ylim(-4, 104)  # room for the markers at 0% and 100%
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Samples below this error (%)")
 
@@ -132,9 +133,9 @@ def sensitivity(ax, style, x, y, default, xlabel, ylabel, reference=None,
     ax.set_ylabel(ylabel)
 
 
-def _title(ax, message, form):
-    """The message in bold; the form it calls for below it, in grey."""
-    ax.set_title(message, loc="left", fontweight="bold", pad=16)
+def _title(ax, content, form):
+    """What the panel shows in bold, as a paper's panel title would say; the message and form below it, in grey."""
+    ax.set_title(content, loc="left", fontweight="bold", pad=16)
     ax.annotate(form, (0, 1), xycoords="axes fraction", textcoords="offset points",
                 xytext=(0, 5), color=paperstyle.INK_2, style="italic")
 
@@ -156,7 +157,7 @@ def gallery(scheme, path):
              r"Speed (FPS, log scale) $\uparrow$", r"PSNR (dB) $\uparrow$",
              nudge={"Method C": (-18, 7)})
     a.set_xlim(0.8, 400)
-    _title(a, "(a) Only ours is both fast and accurate",
+    _title(a, "(a) PSNR vs. rendering speed",
            "Better and cheaper: scatter, cost on a log axis")
 
     frac = [1, 3, 10, 30, 100]
@@ -166,20 +167,20 @@ def gallery(scheme, path):
     b.axhline(77, color=LOSS, linestyle=":", linewidth=1.0, zorder=1)
     b.annotate("Method A at 100%", (1, 77), textcoords="offset points", xytext=(0, 3))
     b.set_xticks(frac, [str(v) for v in frac])
-    _title(b, "(b) Ours at 10% data beats baselines at 100%",
+    _title(b, "(b) Accuracy vs. training data",
            "Scales with data: lines, size on a log axis")
 
     noise = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
     curves(c, st, noise, {OURS: [85, 84, 82, 79, 75, 70], "Method A": [84, 80, 72, 62, 52, 43],
                           "Method B": [82, 77, 69, 60, 51, 42], "Method C": [80, 73, 63, 53, 44, 36]},
            r"Input noise level $\sigma$", r"Accuracy (%) $\uparrow$")
-    _title(c, "(c) Ours degrades least as noise grows",
+    _title(c, "(c) Accuracy vs. input noise",
            "Robust to harder inputs: lines over difficulty")
 
     gain_bars(d, {"pole": 6.8, "fence": 5.1, "bicycle": 4.6, "traffic sign": 3.9,
                   "person": 1.5, "car": 0.6, "road": 0.1, "sky": -0.4},
               "IoU gain over the best baseline (points)", s["ours"])
-    _title(d, "(d) The gain comes from thin structures",
+    _title(d, "(d) IoU gain per category",
            "Where the gain comes from: sorted gain bars")
 
     rng = np.random.default_rng(0)
@@ -187,7 +188,7 @@ def gallery(scheme, path):
               ((OURS, 0.7, 0.6), ("Method A", 1.1, 0.8), ("Method B", 1.4, 0.85),
                ("Method C", 1.7, 0.9))}
     cdf(e, st, errors, r"Rotation error ($^\circ$, log scale)")
-    _title(e, "(e) Ours cuts the tail of large errors",
+    _title(e, "(e) Distribution of rotation errors",
            "Fewer failures: cumulative error curve")
 
     lam = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
@@ -195,7 +196,7 @@ def gallery(scheme, path):
                 r"Loss weight $\lambda$ (log scale)", r"Accuracy (%) $\uparrow$",
                 reference=77, stable=(0.1, 10))
     f.set_ylim(75, 86)
-    _title(f, r"(f) Ours is stable for $\lambda$ from 0.1 to 10",
+    _title(f, r"(f) Accuracy vs. loss weight $\lambda$",
            "Insensitive to a setting: line, default marked")
 
     handles = [plt.Line2D([], [], **st[m]) for m in methods]
