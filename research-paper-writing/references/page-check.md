@@ -46,7 +46,7 @@ The defaults fit the images that Claude's viewer keeps (1.15 megapixels, 1568 pi
 - Overflow. Text, a table, or a URL that runs into the margin or into the gap between the columns (A1.1).
 - Float positions. Each figure and table sits right after the text that introduces it, in the same section (A2.5).
 - Overlaps. Text over a figure, a caption that touches the text, or labels that overlap inside a figure.
-- The page limit. The main text ends exactly at the limit, and the references and the Appendix follow the venue's rules (`references/venue-rules.md`).
+- The page limits. The main text ends exactly at its limit, and the references, the whole paper, and the Appendix stay within theirs (`references/venue-rules.md`).
 
 The script misses overlaps, misplaced floats, and bad crops. Your eyes are the check.
 

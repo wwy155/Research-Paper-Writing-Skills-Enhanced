@@ -8,7 +8,7 @@ description: Write or improve academic paper writing quality for ML/CV/NLP-style
 
 These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: create the figure or table, and run the experiment behind it (item 9).
 
-1. The venue is settled, its rules are looked up and recorded, its template is in use, and the main text ends exactly at its page limit (Execution Rule 1).
+1. The venue is settled, its rules are looked up and recorded, and its template is in use. The main text ends exactly at its page limit, and the references and the whole paper stay within theirs (Execution Rule 1).
 2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules (placement, page limit, format), holds the detailed content, and the main text references it (Execution Rule 2).
 3. The story is written down, and every claim has evidence (Core Workflow step 3).
 4. At least 3 style references, the papers closest to ours, were viewed with `scripts/page_qa.py --reference`, and the writing follows how they write (Core Workflow step 2).
@@ -128,7 +128,7 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks.
 2. Run `scripts/figure_qa.py` after every figure change (A2.9).
 3. The scripts cannot check A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
-4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every image it writes at full size, fix what you see, and confirm with their codes (`references/page-check.md`). Then re-run the checker with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits.
+4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every image it writes at full size, fix what you see, and confirm with their codes (`references/page-check.md`). Then re-run the checker, with `--review` for the anonymous version. It reads `main.pdf` and `main.log` to check fonts, overfull boxes, anonymity, and the page limits.
 5. If a check cannot run because a tool is missing, install it or ask the user to; never skip compiling (Execution Rule 3). Never report an unchecked rule as passed.
 
 ## Section Guides
@@ -139,7 +139,7 @@ In `references/`, load what the task needs; the Writing Rules apply to every edi
 
 1. First, before any other work, settle the target venue and its template:
    - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, do not guess: ask with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues in the field; without such a tool, ask in plain text and wait.
-   - Look up this year's author guidelines, and record the page limit and the Appendix rules with their source (`references/venue-rules.md`).
+   - Look up this year's author guidelines, and record with their source the Appendix rules and the page limits of the main text (long paper), the references, and the whole paper (`references/venue-rules.md`). If not found, use 8 pages of main text, references excluded, and tell the user.
    - If the project lacks the venue's template, search for its latest official author kit and download it; if that fails, ask the user for its URL or files.
 2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (placement, page limit, format). Check the compiled PDF against them, and fix any violation (`references/venue-rules.md`). Move details there (implementation, per-scene and extra qualitative results, proofs), and reference them from the main text.
 3. Compile only with pdflatex, as Overleaf and arXiv do (`pdflatex`, `bibtex`, `pdflatex` twice, or `latexmk -pdf`), never with XeLaTeX, LuaLaTeX, Tectonic, or another tool, and never skip it. If pdflatex is missing, install TeX Live, or ask the user with the ask-user tool until `pdflatex --version` works (`references/page-check.md`). Look at every page after each compile (Checking the Writing Rules, step 4).
