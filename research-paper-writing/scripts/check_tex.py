@@ -24,8 +24,8 @@ import sys
 
 ERROR, WARN = "ERROR", "WARN"
 
-NOT_CHECKED = ("A1.1, A1.2, A1.6, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 "
-               "(and A1.3-A1.5 without --pdf/--log/--review)")
+NOT_CHECKED = ("A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 (A1.1, A1.2, and A1.6 only through page_qa.py "
+               "and your own eyes; A1.3-A1.5 need --pdf, --log, and --review)")
 
 MATH_ENVS = (r"equation|align|gather|multline|eqnarray|flalign|alignat|"
              r"displaymath|math|dmath")
@@ -1500,6 +1500,40 @@ def check_experiment_log(files, root, rep, extra=()):
                     "Experiments)")
 
 
+def page_record(pdf):
+    """The page_qa.py record of a compiled PDF, or None."""
+    import json
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(pdf)), ".page-qa", "record.json"),
+                  encoding="utf-8") as fh:
+            return json.load(fh).get(os.path.basename(pdf))
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def check_page_qa(pdf, rep, sources=()):
+    """Checking the Writing Rules, step 4: every page of the compiled PDF was looked at after the last compile."""
+    import hashlib
+    name = os.path.relpath(pdf)
+    newest = max((os.path.getmtime(s) for s in sources if os.path.isfile(s)), default=0)
+    if os.path.getmtime(pdf) < newest:
+        rep.add_plain(name, ERROR, "View", f"{name} is older than its source: recompile it (Execution Rule 3), then "
+                      "run page_qa.py on it")
+        return
+    with open(pdf, "rb") as fh:
+        digest = hashlib.sha1(fh.read()).hexdigest()
+    entry = page_record(pdf)
+    if not entry or entry.get("sha1") != digest:
+        rep.add_plain(name, ERROR, "View", f"Nobody has looked at the pages of {name} since it was compiled: run "
+                      f"scripts/page_qa.py {name}, open every sheet it writes, and look at every page")
+        return
+    for level, rule, page, msg in entry.get("issues", []):
+        rep.add_plain(name, level, rule, (f"p. {page}: " if page else "") + msg + " (page_qa)")
+    if not entry.get("viewed"):
+        rep.add_plain(name, ERROR, "View", f"The sheets of {name} were not all viewed: open each one, look at every "
+                      f"page, and run page_qa.py {name} --confirm with the code printed on each sheet")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1742,7 +1776,9 @@ def required_block(rep, venue, has_exp, min_figures):
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
         ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
         ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
-        ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9")]
+        ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9"),
+        ("Every page of the compiled PDF viewed with page_qa.py; no white space", False,
+         lambda rule, msg: rule == "View" or msg.endswith("(page_qa)") and rule == "A1.6")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
     for k, (name, exp_only, match) in enumerate(groups, 1):
@@ -1752,6 +1788,8 @@ def required_block(rep, venue, has_exp, min_figures):
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
+            if re.fullmatch(r"p\. \d+", head):  # page_qa: keep what is wrong on that page
+                head = ": ".join(errors[0][4].split(": ")[:2])
             if name == "Closest-work plan" and not head.startswith("No '%"):
                 head = f"{len(errors)} gap(s) in the plan"
             elif len(errors) > 1:
@@ -1835,9 +1873,18 @@ def main(argv=None):
         check_page_limits(args.pdf, rep, rules, args.supp_pdf)
     if args.supp_pdf:
         check_pdf(args.supp_pdf, args.review, rep)
+    sources = [f.path for f in files + supp] + bibs
+    for tex, pdf in [(args.tex[0], args.pdf)] + [(f.path, None) for f in supp]:
+        pdf = pdf or (args.supp_pdf if tex != args.tex[0] and args.supp_pdf else os.path.splitext(tex)[0] + ".pdf")
+        if os.path.isfile(pdf):
+            check_page_qa(pdf, rep, sources)
+        else:
+            rep.add_plain(os.path.relpath(tex), ERROR, "View", f"No compiled PDF of {os.path.relpath(tex)}: compile it "
+                          "(Execution Rule 3), run page_qa.py on it, and look at every page")
 
     order = {ERROR: 0, WARN: 1}
-    for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3])):
+    for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3],
+                                                                                    i[4])):
         loc = f"{path}:{line}" if line else path
         print(f"{loc}: {level} [{rule}] {msg}" + (f" | {snip}" if snip else ""))
     checked = ", ".join(os.path.relpath(f.path) for f in files)
