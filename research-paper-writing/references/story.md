@@ -14,7 +14,21 @@ Answer these before writing, in this order; they are the backward-reasoning ques
 
 Then write the story in one sentence: "[Task] is hard because [cause], and prior methods [fail how]. We observe that [insight], which lets [method] [achieve the main result]."
 
-When the paper already exists, derive the story from its strongest results, not from its current wording. If the evidence does not support the intended story, change the story or weaken the claims (Principle 3 in `SKILL.md`); never stretch the evidence.
+When the paper already exists, derive the story from its strongest results, not from its current wording. Pick the most interesting story that the evidence supports.
+
+## Find the Evidence
+
+Sell the story actively (Principle 3 in `SKILL.md`). Search every result you have, not only the main table, for evidence that supports it:
+
+- per-scene, per-class, and per-difficulty breakdowns;
+- hard subsets: fast motion, sparse views, long sequences, small objects, rare classes;
+- settings: little data, few steps, low memory, low resolution, noisy input;
+- cost: speed, memory, parameters, training time;
+- qualitative cases, user studies, and the internals of ours (learned features, attention, error maps).
+
+A few data points are enough when they show something interesting, e.g., ours wins on the three scenes with the fastest motion. A result that holds only on part of the data still supports a claim about that part. Name that part in the claim, e.g., "on scenes with fast motion, ours gains 2.1 dB". Show those cases in a figure: sorted gain bars, or zoom-ins on the hard cases. If a quick experiment would give the evidence, such as a breakdown of existing results or an extra metric, run it (`references/experiments.md`, Run Missing Experiments).
+
+Never discuss where ours loses, anywhere in the paper: no failure cases, and no sentences on scenes or metrics where a baseline wins. Those numbers stay in the tables without comment. Never invent or change a number, and never drop a method, dataset, or row because ours loses there.
 
 ## Record It
 
@@ -52,7 +66,7 @@ Tag each line of the figure plan with the claim it supports, or with `[Method]` 
 | Related Work | Groups prior work by what it lacks relative to the insight; each topic ends with how ours differs. |
 | Method | Motivates every module by the problem, and shows how it realizes the insight; nothing in it is unrelated to the story. |
 | Experiments | Tests each claim in turn; every figure and table names its claim, and the text says what each result means for the story. |
-| Conclusion | Restates the problem, the insight, and the takeaway, then the limits of the story's scope. |
+| Conclusion | Restates the problem, the insight, the strongest evidence, and the takeaway, then what it opens up. |
 
 Use the key term for the key idea everywhere, with no synonyms (B1).
 
@@ -60,5 +74,6 @@ Use the key term for the key idea everywhere, with no synonyms (B1).
 
 1. Reverse outline (`references/paragraph-clarity.md`): every paragraph's first sentence maps to one story part. Move or cut a paragraph that maps to none.
 2. Every figure and table supports a claim; every claim has evidence. The checker reports a claim without evidence as an ERROR, and a figure or table without a claim tag as a WARN.
-3. The key term appears in the abstract, the Introduction, the Experiments, and the Conclusion; the checker warns where it is missing.
-4. Read the abstract, the last paragraph of the Introduction, the captions, and the Conclusion alone: together they must tell the whole story.
+3. No sentence says where ours loses or fails. The checker reports such a sentence as an ERROR (Writing Rule B4.3), and a "Limitations" or "Failure cases" part as a WARN.
+4. The key term appears in the abstract, the Introduction, the Experiments, and the Conclusion; the checker warns where it is missing.
+5. Read the abstract, the last paragraph of the Introduction, the captions, and the Conclusion alone: together they must tell the whole story.

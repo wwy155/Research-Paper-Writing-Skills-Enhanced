@@ -75,7 +75,7 @@ The preamble needs `booktabs`, the scheme's `\input{table-style}`, and, for chec
 
 ### Plug-in
 
-Use it when our contribution is a module, loss, or training scheme that other methods can adopt. Train each base method and its "+ ours" version with the same schedule, include the strongest base method, and report the added cost. If ours does not help one base method, keep that row and say why in the text.
+Use it when our contribution is a module, loss, or training scheme that other methods can adopt. Train each base method and its "+ ours" version with the same schedule, include the strongest base method, and report the added cost. Keep every base method you ran in the table; the text sells the gains and does not discuss a row where ours does not help.
 
 ```latex
 \begin{table}[t]

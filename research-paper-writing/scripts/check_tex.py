@@ -312,6 +312,17 @@ def check_citations(f, rep):
                     "Long citation list ends the sentence: split it and cite each point where it is made")
 
 
+def sentence_spans(prose):
+    """The prose with abbreviation dots protected, and the (start, end) of each sentence, heading, or caption."""
+    protected = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", "\0"), prose)
+    bounds = [0]
+    for m in re.finditer(r"(?<=[.!?])[)}\]'\"]*\s+|\n[ \t]*\n|\\item\b|"
+                         r"\\(?:sub)*section\*?|\\paragraph\*?|\\caption", protected):
+        bounds.append(m.end())
+    bounds.append(len(protected))
+    return protected, list(zip(bounds, bounds[1:]))
+
+
 def check_prose(f, rep, max_words):
     for level, rule, msg, pat in PROSE_PATTERNS:
         for m in re.finditer(pat, f.prose, re.M):
@@ -328,13 +339,8 @@ def check_prose(f, rep, max_words):
                     f"{len(hits)} stacked adverbs (Notably/Furthermore/Moreover...) in one "
                     "paragraph: keep only real relations")
     # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3).
-    protected = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", "\0"), f.prose)
-    bounds = [0]
-    for m in re.finditer(r"(?<=[.!?])[)}\]'\"]*\s+|\n[ \t]*\n|\\item\b|"
-                         r"\\(?:sub)*section\*?|\\paragraph\*?|\\caption", protected):
-        bounds.append(m.end())
-    bounds.append(len(protected))
-    for a, b in zip(bounds, bounds[1:]):
+    protected, spans = sentence_spans(f.prose)
+    for a, b in spans:
         sent = protected[a:b]
         text = re.sub(r"\\[A-Za-z]+\*?", " ", sent)
         words = re.findall(r"[A-Za-z0-9]+(?:['\-][A-Za-z0-9]+)*", text)
@@ -798,7 +804,7 @@ def check_structure(files, root, rep, min_figures=3):
     if n_fig < min_figures:
         rep.add_plain("(paper)", ERROR, "A2.7", f"The main text has {n_fig} figure(s): add at least {min_figures - n_fig} "
                       f"(e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message in the "
-                      "figure plan. Draw diagrams now; use a [TODO] placeholder where results are missing")
+                      "figure plan. Draw diagrams now, and run the experiments behind result figures ('% Experiment log:')")
     extra = []
     for name in sibling:  # a separate Supplementary document, e.g. supp.tex next to main.tex
         try:
@@ -851,7 +857,7 @@ def has_experiments(files):
 
 def check_closest_plan(files, rep, extra=()):
     """Experiments Planning: the closest-work plan covers every figure and table of each closest paper,
-    every reproduction exists in our paper (with [TODO] placeholders if its data is missing), and
+    every reproduction exists in our paper (its experiment run or logged in '% Experiment log:'), and
     every skip has a reason."""
     if not has_experiments(files):
         return
@@ -893,7 +899,7 @@ def check_closest_plan(files, rep, extra=()):
                             "analysis does not apply to our setting, or reproduce it")
                 elif NO_DATA.search(reason):
                     rep.add(src, at, ERROR, "Experiments", f"{what}: missing data is not a reason to skip. Create "
-                            "the figure or table now with [TODO] placeholders and list the experiment to run")
+                            "the figure or table now and run the experiment behind it ('% Experiment log:')")
                 continue
             labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
             if not labels:
@@ -902,7 +908,7 @@ def check_closest_plan(files, rep, extra=()):
             for label in labels:
                 if label not in float_labels:
                     rep.add(src, at, ERROR, "Experiments", f"{what} -> {label}: no figure or table has this label. "
-                            "Create it now, with [TODO] cells or a placeholder where data is missing")
+                            "Create it now and run the experiment behind it ('% Experiment log:')")
         elif head:
             paper = head.group("paper").strip()
             papers[paper_key(paper)] = (paper, int(head.group("nf")), int(head.group("nt")), at)
@@ -1147,8 +1153,8 @@ def check_latest_sota(files, rep, exp_spans, extra=(), plan=None):
             if label not in bodies:
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' does not exist: add the comparison with '{name}'")
             elif not token.search(bodies[label]):
-                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it, with [TODO] cells "
-                        "if its numbers are missing")
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it. Run it, or "
+                        "quote its reported numbers marked \\dag")
             if plan and label in plan and not SOTA_TABLE.search(plan[label][1]):
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' is not the main comparison table: put '{name}' in "
                         "the SOTA comparison table, with reported numbers marked; never in a separate table")
@@ -1309,6 +1315,164 @@ def check_story(files, root, rep, story, plan):
                               f"never mentions the key term '{term}': tie it to the story")
 
 
+OURS_SUBJECT = r"\bours\b|\bour\s+(?:full\s+|final\s+)?(?:method|model|approach|framework|system|pipeline|network)\b"
+NEG_RESULT = re.compile(
+    r"\b(?:underperform\w*|lag(?:s|ged|ging)?\b|falls?\s+(?:short|behind)\b|fell\s+(?:short|behind)\b|"
+    r"trail(?:s|ed|ing)?\b|struggl\w*|fail(?:s|ed)?\b|loses?\s+to\b|lost\s+to\b|"
+    r"(?:is|are|was|were|remains?|stays?)\s+(?:\w+ly\s+|still\s+)?(?:worse|inferior|behind|slower|outperformed|"
+    r"beaten|surpassed)\b|performs?\s+(?:\w+ly\s+)?worse\b|"
+    r"(?:does|do|did)\s+not\s+(?:outperform|beat|surpass|improve|help|match)\b|"
+    r"(?:is|are)\s+(?:\w+ly\s+)?(?:limited|restricted)\s+to|"
+    r"(?:cannot|can't|could\s+not|(?:is|are)\s+unable\s+to)\s+(?:handle|outperform|beat|match|represent|model|"
+    r"capture|recover|reconstruct|generali[sz]e|scale|deal|cope|resolve|track|preserve|reach))\b"
+    r"(?!\s+(?:less|fewer)\b)", re.I)
+BEATS_OURS = re.compile(r"\b(?:outperform\w*|beats?|surpass\w*|exceeds?|(?:is|are)\s+(?:\w+ly\s+)?(?:better|"
+                        r"stronger|faster)\s+than)\s+(?:ours|our\s+(?:method|model|approach))\b", re.I)
+FAILURE_TALK = re.compile(r"\bfailure\s+(?:cases?|modes?|examples?)\b|\bnegative\s+results?\b", re.I)
+OTHER_SUBJECT = re.compile(r"\b(?:where|while|whereas|when|which|who|that|unlike|but|and|or|than|as|baselines?|"
+                           r"methods|prior|previous|existing|other|others|competitors?|they|their|its)\b|"
+                           r"(?-i:\b[A-Z][A-Za-z]*[A-Z0-9][\w-]*)", re.I)
+ABLATED = re.compile(r"\b(?:without|w/o|remov\w*|ablat\w*|variants?|disabl\w*|replac\w*|dropp\w*)\b", re.I)
+NEGATED = re.compile(r"(?:\b(?:not|never|rarely|seldom|nor|no\s+longer)|n't)\s+(?:\w+\s+)?$", re.I)
+NOBODY = re.compile(r"\b(?:no|none|neither|nor|not|never|nothing|cannot|fails?\s+to)\b", re.I)
+PREPOSITION = re.compile(r"\b(?:to|than|with|over|against|from|of|by|unlike|like|and|vs\.?|versus)\s*$", re.I)
+NEG_HEADING = re.compile(r"\\(?:(?:sub)*section|paragraph)\*?\s*\{([^{}]*\b(?:Failures?|Limitations?|Negative|"
+                         r"Shortcomings?|Weakness\w*)\b[^{}]*)\}", re.I)
+
+
+def ours_loses(sent, subject):
+    """The part of a sentence that says where ours loses or fails, or None."""
+    for m in re.finditer(subject, sent, re.I):
+        if PREPOSITION.search(sent[max(0, m.start() - 12):m.start()]):
+            continue
+        rest = sent[m.end():m.end() + 70]
+        n = NEG_RESULT.search(rest)
+        if not n or OTHER_SUBJECT.search(rest[:n.start()]) or re.search(r"[;:]", rest[:n.start()]):
+            continue
+        if not NEGATED.search(sent[:m.end() + n.start()]):
+            return sent[m.start():m.end() + n.end()]
+    b = BEATS_OURS.search(sent)
+    if b and not NOBODY.search(sent[max(0, b.start() - 40):b.start()]):
+        return b.group(0)
+    f = FAILURE_TALK.search(sent)
+    if f and re.search(subject + r"|\bwe\b", sent, re.I) and not re.search(r"\b(?:prior|baselines?|existing|"
+                                                                          r"previous|competing)\b", sent, re.I):
+        return f.group(0)
+    return None
+
+
+OUR_MACROS = r"ours|method|ourmethod|methodname|mname|oursname"
+
+
+def our_names(files, story):
+    """A regex for the ways the paper names our method: 'ours', the key term, the title's name, and its macro."""
+    names = {n for n in [(story or {}).get("key term", "").strip()] if n and "[" not in n}
+    for f in files:
+        t = re.search(r"\\title\s*(?:\[[^\]]*\])?\s*\{\s*([A-Z][\w-]{2,30})\s*:", f.whole)
+        if t:
+            names.add(t.group(1))
+        for m in re.finditer(r"\\(?:newcommand|renewcommand|def)\s*\{?\\(" + OUR_MACROS + r")\}?\s*(?:\[\d\])?\s*"
+                             r"\{(?:\\[a-z]+\s*\{)?([A-Z][\w-]{2,30})", f.whole):
+            names.add(m.group(2))
+    alts = [r"(?<![\w-])" + re.escape(n) + r"(?![\w-])" for n in sorted(names)]
+    return "|".join([OURS_SUBJECT, r"\\(?:" + OUR_MACROS + r")\b"] + alts)
+
+
+def check_selling(files, rep, story, rules):
+    """Principle 3 and B4.3: sell the story; never discuss where ours loses or fails."""
+    subject = our_names(files, story)
+    required = bool(re.search(r"limitation", rules.get("text") or "", re.I))
+    for f in files:
+        heads = [(m.start(), m.group(1)) for m in re.finditer(r"\\(?:(?:sub)*section|paragraph)\*?\s*\{([^{}]*)\}",
+                                                              f.nonverbatim)]
+        skip = []
+        for k, (pos, title) in enumerate(heads):
+            if not NEG_HEADING.match(f.nonverbatim, pos):
+                continue
+            if required and re.search(r"Limitation", title, re.I):
+                end = next((p for p, t in heads[k + 1:]), len(f.nonverbatim))
+                skip.append((pos, end))
+                continue
+            rep.add(f, pos, WARN, "B4.3", f"'{title.strip()}': cut it and sell the story (Principle 3). If the venue "
+                    "requires a limitations section, record that in '% Page limit:' and keep it to 2-3 sentences "
+                    "on scope and future work")
+        protected, spans = sentence_spans(f.prose)
+        for a, b in spans:
+            if any(x <= a < y for x, y in skip) or ABLATED.search(protected[a:b]):
+                continue
+            hit = ours_loses(protected[a:b].replace("\n", " "), subject)
+            if hit:
+                first = re.search(r"(?<![\\A-Za-z])[A-Za-z0-9]", protected[a:b])
+                rep.add(f, a + (first.start() if first else 0), ERROR, "B4.3", f"'{' '.join(hit.split())}': never "
+                        "discuss where ours loses or fails. Write about where it wins, and leave the numbers in the "
+                        "table (Principle 3)")
+
+
+EXP_HEAD = re.compile(r"^[ \t]*%[ \t]*Experiment log\b[^:\n]*:[ \t]*$", re.I | re.M)
+EXP_LINE = re.compile(r"^\s*%\s*(?P<id>E\d+)\b(?P<what>.*?)(?:->|\u2192)\s*(?P<target>.*?)\s*$", re.I)
+TODO_RESULT = re.compile(r"\[\s*TODO\b[^\]]*\]|\\TODO\b|\\todo\b|(?<![\w\\])TODO(?!\w)|\[\s*\.\.\s*\]"
+                         r"|(?<![\w\\])[Xx]{2,3}\.[Xx]{1,3}(?!\w)")
+RESULT_FILE = re.compile(r"[\w./~-]+\.(?:json|jsonl|csv|tsv|txt|log|out|npz|npy|pt|pkl|ya?ml|md|xlsx|h5)\b")
+
+
+def check_experiment_log(files, root, rep, extra=()):
+    """Run Missing Experiments: every [TODO] result is logged as running or blocked; done ones have result files."""
+    docs = list(files) + [g for g in extra if os.path.abspath(g.path) not in {os.path.abspath(f.path) for f in files}]
+    todo = {}
+    for f in docs:
+        for m in re.finditer(r"\\begin\{(figure|table)(\*?)\}(.*?)\\end\{\1\2\}", f.nonverbatim, re.S):
+            body = m.group(3)
+            images = re.findall(r"\\includegraphics\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}", body)
+            if TODO_RESULT.search(body) or any(re.search(r"placeholder|todo", i, re.I) for i in images):
+                for l in re.findall(r"\\label\{([^}]*)\}", body):
+                    todo.setdefault(l.strip(), (f, m.start()))
+    log = {}
+    for f in docs:
+        h = EXP_HEAD.search(f.raw)
+        if not h:
+            continue
+        pos = f.raw.find("\n", h.start()) + 1 or len(f.raw)
+        for line in f.raw[pos:].split("\n"):
+            if not line.lstrip().startswith("%"):
+                break
+            e = EXP_LINE.match(line)
+            if e:
+                labels = [l for l in PLAN_LABEL.findall(e.group("target"))
+                          if not re.match(r"(?:done|running|blocked|todo)\b", l, re.I)]
+                status = re.search(r"\b(done|running|blocked)\b", e.group("target"), re.I)
+                log[e.group("id").upper()] = (f, pos, labels, status.group(1).lower() if status else None,
+                                              e.group("target"))
+            pos += len(line) + 1
+    covered = {}
+    for eid, (f, pos, labels, status, target) in log.items():
+        for l in labels:
+            covered.setdefault(l, []).append((eid, status))
+        if status is None:
+            rep.add(f, pos, ERROR, "Run", f"{eid} has no status: write 'done; <result file>', 'running; <log file>', or "
+                    "'blocked: <what is missing>; asked the user'")
+        elif status == "done":
+            paths = RESULT_FILE.findall(target)
+            if not any(os.path.isfile(p if os.path.isabs(p) else os.path.join(root, p)) for p in paths):
+                rep.add(f, pos, ERROR, "Run", f"{eid} is done but names no result file that exists: record where its "
+                        "numbers come from, e.g., 'done; results/views.json'")
+            for l in labels:
+                if l in todo:
+                    rep.add(f, pos, ERROR, "Run", f"{eid} is done, but {l} still has [TODO] results: fill them in from "
+                            "its result file")
+        elif status == "running":
+            rep.add(f, pos, WARN, "Run", f"{eid} is still running: fill in its results when it finishes")
+        else:
+            reason = re.split(r"blocked", target, maxsplit=1, flags=re.I)[1]
+            if len(re.findall(r"[A-Za-z]{2,}", reason)) < 4 or not re.search(r"\b(?:asked|user)\b", reason, re.I):
+                rep.add(f, pos, WARN, "Run", f"{eid} is blocked: say what is missing and ask the user for it "
+                        "('blocked: <what is missing>; asked the user')")
+    for label, (f, pos) in sorted(todo.items(), key=lambda kv: kv[1][1]):
+        if label not in covered:
+            rep.add(f, pos, ERROR, "Run", f"{label} still has [TODO] results: run the experiment and fill it in, or "
+                    "log it as running or blocked in '% Experiment log:' (references/experiments.md, Run Missing "
+                    "Experiments)")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1384,7 +1548,8 @@ def read_venue_rules(files):
             if m and key not in rules:
                 rules[key] = m.group(1)
     out = {"url": rules.get("url"), "page_limit": None, "refs_included": False, "place": None,
-           "appendix_limit": None, "after_refs": False, "appendix_text": rules.get("appendix")}
+           "appendix_limit": None, "after_refs": False, "appendix_text": rules.get("appendix"),
+           "text": " ".join(v for v in rules.values() if v)}
     if rules.get("pages"):
         m = re.search(r"(\d+)\s*(?:content\s+)?pages?", rules["pages"], re.I)
         out["page_limit"] = int(m.group(1)) if m else None
@@ -1549,6 +1714,7 @@ def required_block(rep, venue, has_exp, min_figures):
         (f"At least {min_figures} main-text figures; every figure and table in the plan", False,
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
         ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
+        ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
         ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
@@ -1628,9 +1794,11 @@ def main(argv=None):
     check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
     check_story(files, root, rep, read_story(files), plan)
+    check_experiment_log(files, root, rep, supp)
     venue = check_venue(files, rep)
     rules = read_venue_rules(files)
     check_venue_rules(files, root, rep, rules, supp)
+    check_selling(files + supp, rep, read_story(files), rules)
     if args.review:
         check_review(files + supp, rep)
     if args.log:

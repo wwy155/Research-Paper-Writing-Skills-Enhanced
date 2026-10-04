@@ -26,7 +26,7 @@ Read this file when you settle the venue (Execution Rule 1 in `SKILL.md`) and be
    % Appendix rules: same PDF after the references; no page limit
    ```
 
-   Write "references included" when references count toward the limit, and "[M] pages" in the Appendix rules when the Appendix has a limit.
+   Write "references included" when references count toward the limit, and "[M] pages" in the Appendix rules when the Appendix has a limit. When the venue requires a limitations section, add it to the page-limit line, e.g., `% Page limit: [N] pages, references excluded; a Limitations section is required and not counted`. Without that note, the checker warns about any "Limitations" part (Principle 3 in `SKILL.md`).
 
 ## What the Checker Verifies
 
