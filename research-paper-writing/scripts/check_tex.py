@@ -1654,6 +1654,46 @@ def check_style_refs(files, root, rep):
                     "them (references/style-references.md)")
 
 
+REVIEW_HEAD = re.compile(r"^[ \t]*%[ \t]*Review log\b[^:\n]*:[ \t]*$", re.I | re.M)
+REVIEW_ROUND = re.compile(r"^\s*%\s*R(\d+)\b[^:\n]*:\s*(.*?)\s*$", re.I)
+REVIEW_DONE = re.compile(r"\breview\s*:\s*(?:none|no (?:new )?findings|nothing new|no new issues)\b", re.I)
+CHECKS_CLEAN = re.compile(r"\bchecks?\s*:\s*(?:0|no|zero)\s+errors?\b|\bchecks?\s*:\s*(?:clean|pass(?:ed)?)\b", re.I)
+
+
+def check_review_log(files, rep):
+    """Core Workflow steps 4-7: the loop of edit, check, review, and fix ran until a round found nothing.
+    Returns (file, position, round) of a last round that says the loop ended, else None."""
+    src = next((f for f in files if REVIEW_HEAD.search(f.raw)), None)
+    if not src:
+        rep.add_plain("(paper)", ERROR, "Loop", "No '% Review log:': run the loop of Core Workflow steps 4-7 (edit, "
+                      "check, review, fix) and log each round (references/paper-review.md)")
+        return None
+    head = REVIEW_HEAD.search(src.raw)
+    pos = src.raw.find("\n", head.start()) + 1 or len(src.raw)
+    rounds = []
+    for line in src.raw[pos:].split("\n"):
+        if not line.lstrip().startswith("%"):
+            break
+        m = REVIEW_ROUND.match(line)
+        if m:
+            rounds.append((pos, int(m.group(1)), m.group(2)))
+        pos += len(line) + 1
+    if not rounds:
+        rep.add(src, head.start(), ERROR, "Loop", "The review log has no rounds: log each round as '% R1: checks: ...; "
+                "pages: ...; review: ...' (references/paper-review.md)")
+        return None
+    at, n, text = rounds[-1]
+    if not REVIEW_DONE.search(text):
+        rep.add(src, at, ERROR, "Loop", f"R{n} still found issues: fix them, check and review again, and log R{n + 1}. "
+                "The loop ends with a round whose review finds nothing new")
+        return None
+    if not CHECKS_CLEAN.search(text):
+        rep.add(src, at, ERROR, "Loop", f"R{n} does not say the checks were clean: the loop ends only with 'checks: 0 "
+                "errors' and 'review: no new findings' in the same round")
+        return None
+    return src, at, n
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1901,7 +1941,9 @@ def required_block(rep, venue, has_exp, min_figures):
         ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9"),
         ("Compiled with pdflatex; every page viewed with page_qa.py; no white space", False,
          lambda rule, msg: rule == "View" or (rule == "Build" and "pdflatex" in msg)
-         or (msg.endswith("(page_qa)") and rule == "A1.6"))]
+         or (msg.endswith("(page_qa)") and rule == "A1.6")),
+        ("Loop run to the end: the last logged round found no errors and nothing new in review", False,
+         lambda rule, msg: rule == "Loop")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
     for k, (name, exp_only, match) in enumerate(groups, 1):
@@ -1984,6 +2026,7 @@ def main(argv=None):
     check_story(files, root, rep, read_story(files), plan)
     check_style_refs(files, root, rep)
     check_engine_source(files, rep)
+    done = check_review_log(files, rep)
     check_experiment_log(files, root, rep, supp)
     venue = check_venue(files, rep)
     rules = read_venue_rules(files)
@@ -2010,6 +2053,12 @@ def main(argv=None):
                           "with pdflatex (Execution Rule 3), run page_qa.py on it, and look at every page. If pdflatex "
                           "is missing, install TeX Live or ask the user to, and never use another tool")
 
+    if done:
+        left = sum(1 for i in set(rep.items) if i[2] == ERROR)
+        if left:
+            rep.add(done[0], done[1], ERROR, "Loop", f"The review log ends the loop at R{done[2]}, but {left} error(s) "
+                    f"remain: fix them, check and review again, and log R{done[2] + 1}")
+
     order = {ERROR: 0, WARN: 1}
     for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3],
                                                                                     i[4])):
@@ -2019,7 +2068,9 @@ def main(argv=None):
     print(f"\nChecked: {checked}" + (f" (+ {', '.join(os.path.relpath(b) for b in bibs)})" if bibs else ""))
     print(required_block(rep, venue, has_experiments(files), args.min_figures))
     print(f"== {rep.count(ERROR)} errors, {rep.count(WARN)} warnings ==")
-    print("Fix every ERROR. Fix every WARN, or justify it in your reply.")
+    print("Fix every ERROR. Fix every WARN, or justify it in your reply. Then review the paper "
+          "(references/paper-review.md), log the round in '% Review log:', and check again: repeat until a round's "
+          "checks find no errors and its review finds nothing new.")
     print(f"Not checked by this script, so reread the changed text for: {NOT_CHECKED}.")
     return 1 if rep.count(ERROR) else 0
 
