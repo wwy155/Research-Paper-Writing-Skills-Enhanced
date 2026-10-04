@@ -32,10 +32,12 @@ If you cannot install it, for example without permission or network access, ask 
 
 1. Compile the paper with pdflatex.
 2. Run `python3 <this skill's directory>/scripts/page_qa.py main.pdf`, and add `supp.pdf` for a separate supplementary file. It needs PyMuPDF (`pip install pymupdf`) or poppler's `pdftoppm`.
-3. It renders every page and reports the white space and overflow it can measure. It writes sheets of four pages each to `.page-qa/main/`, with each problem boxed in red (ERROR) or orange (WARN).
-4. Open every sheet with your image viewer, such as the Read tool in Claude Code, and look at every page. If you cannot view images, ask the user to open the sheets, and to send you what they see and the codes.
-5. Fix what you see, recompile, and run it again.
-6. When every page looks right, confirm with the code printed on each sheet, e.g., `page_qa.py main.pdf --confirm K7QF H3XA`. `check_tex.py` reports an ERROR for a PDF whose sheets were not all viewed, or that changed after you viewed it.
+3. It renders every page and reports the white space and overflow it can measure. It writes color images to `.page-qa/main/`, each at the highest resolution an image viewer keeps without shrinking it. Every main-text page comes in four overlapping quarters, at about 200 dpi on a Letter page. Every other page comes in two halves, at about 150 dpi. Every figure or table that a tile edge cuts also comes whole, at up to 300 dpi. Each problem is boxed in red (ERROR) or orange (WARN).
+4. Open every image at full size with your image viewer, such as the Read tool in Claude Code, and look at every part: small or blurry text, overlaps, and spacing show only at this size. If you cannot view images, ask the user to open them, and to send you what they see and the codes.
+5. Fix what you see, recompile, and run it again. Pages that look as they did when you viewed them get no new images, so later rounds cost less.
+6. When every page looks right, confirm with the code printed on each image, e.g., `page_qa.py main.pdf --confirm K7QF H3XA ...`. `check_tex.py` reports an ERROR for a PDF whose images were not all viewed, or that changed after you viewed it.
+
+The defaults fit the images that Claude's viewer keeps (1.15 megapixels, 1568 pixels on the long side). If your viewer keeps larger images, raise `--max-px` and `--max-edge` for an even higher resolution. Never lower them, and never view the images shrunk.
 
 ### What to Look For
 

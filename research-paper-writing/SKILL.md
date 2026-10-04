@@ -128,7 +128,7 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks.
 2. Run `scripts/figure_qa.py` after every figure change (A2.9).
 3. The scripts cannot check A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
-4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every sheet it writes, fix what you see, and confirm with the codes on the sheets (`references/page-check.md`). Then re-run the checker with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits.
+4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every image it writes at full size, fix what you see, and confirm with their codes (`references/page-check.md`). Then re-run the checker with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits.
 5. If a check cannot run because a tool is missing, install it or ask the user to; never skip compiling (Execution Rule 3). Never report an unchecked rule as passed.
 
 ## Section Guides
@@ -158,4 +158,4 @@ After any edit, including a final polish, also return:
 5. A Writing Rules report, one line per group (A1-A4, B1-B4), with each rule's status (pass, fixed, or not checked with the reason), e.g., `A4: 1 fixed, 2 pass, 8 not checked (6 .bib entries)`. Never mark a rule pass without checking it.
 6. For a final polish: a short change log with one example per type of change. Always: the experiments still running or blocked, and what you need from the user.
 7. A setup line: the story in one sentence, the venue and template, the style references, and the path of the Appendix or Supplementary file. When Experiments, figures, or tables were touched, add the closest-work plan and the latest-SOTA line with the status of each item.
-8. For each figure or table you created or changed, its figure-plan line and, for a figure, its `figure_qa.py` result. After a compile, one line per page on what its sheet shows.
+8. For each figure or table you created or changed, its figure-plan line and, for a figure, its `figure_qa.py` result. After a compile, one line per page on what its images show.

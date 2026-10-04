@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-r"""Look at every page of a compiled paper, and record that you did, for check_tex.py.
+r"""Look at every page of a compiled paper at the highest resolution, and record that you did, for check_tex.py.
 
 After every compile, render the pages and look at them:
 
-    python3 page_qa.py main.pdf                       # checks the pages and writes sheets to look at
-    python3 page_qa.py main.pdf --confirm K7QF H3XA    # after viewing: the code printed on each sheet
-    python3 page_qa.py --reference refs/paperA.pdf     # a style-reference paper: sheets to study, no checks
+    python3 page_qa.py main.pdf                         # checks the pages and writes images to look at
+    python3 page_qa.py main.pdf --confirm K7QF H3XA ...  # after viewing: the code printed on each image
+    python3 page_qa.py --reference refs/paperA.pdf       # a style-reference paper: images to study, no checks
 
 It reports:
   ERROR  a blank band of 60 pt (5 lines) or more inside a column; a column that starts or ends
@@ -14,14 +14,19 @@ It reports:
   WARN   the same from 34 pt (3 lines); stretched space of 12 pt or more between lines of body
          text; a figure narrower than 70% of its column; paragraphs whose last line fills less
          than 60% of the column (A1.2).
-It writes sheets of up to 4 pages to .page-qa/<pdf name>/ next to the PDF, with the problems
-boxed (red: ERROR, orange: WARN), and a code printed on each sheet. Open every sheet and look at
-every page: white space, float positions, text in the margins, overlaps, and short last lines.
-No script sees everything. Fix what you see, recompile, and run it again. When the pages look
-right, confirm with the codes; check_tex.py reports a PDF whose sheets were not viewed.
 
-Rendering uses PyMuPDF (pip install pymupdf), poppler's pdftoppm, Ghostscript, or mutool, and the
-sheets need numpy and matplotlib. Exit status 1 if any ERROR remains, 2 on a usage error.
+It writes images to .page-qa/<pdf name>/ next to the PDF, in color, each at the highest dpi that
+an image viewer keeps without shrinking it (--max-px pixels and --max-edge on the long side):
+every main-text page in four overlapping quarters (about 200 dpi on a Letter page), every other
+page in two halves (about 150 dpi), and every figure or table that a tile edge cuts, whole, at up
+to 300 dpi. Problems are boxed in red (ERROR) or orange (WARN), and each image carries a code.
+Open every image at full size and look at every part: no script sees everything. Fix what you
+see, recompile, and run it again; pages that look as they did when you viewed them get no new
+images. When the pages look right, confirm with the codes; check_tex.py reports a PDF whose
+images were not all viewed.
+
+Rendering uses PyMuPDF (pip install pymupdf), poppler's pdftoppm, Ghostscript, or mutool; the
+images need numpy, matplotlib, and Pillow. Exit status 1 if any ERROR remains, 2 on a usage error.
 """
 import argparse
 import datetime
@@ -36,10 +41,14 @@ import sys
 import tempfile
 
 ERROR, WARN = "ERROR", "WARN"
-TOOL = "page_qa 1"
-DPI = 100                 # analysis resolution; 1 px = 0.72 pt
+TOOL = "page_qa 2"
+DPI = 150                 # analysis resolution; 1 px = 0.48 pt
 PT = 72.0 / DPI
-INK = 0.92                # gray level below which a pixel is ink (light table shading included)
+MAX_PX, MAX_EDGE = 1_150_000, 1568   # the largest image a model's viewer keeps without shrinking it
+OVERLAP = 0.03            # tiles overlap by 3% of the page, so nothing hides at a tile edge
+FLOAT_DPI = 300           # figures and tables cut by a tile edge are shown whole, at up to this dpi
+BAND = 44                 # pixels above each image for its label and code
+INK = 235                 # gray level (of 255) below which a pixel is ink, light table shading included
 GAP_WARN, GAP_ERROR = 34.0, 60.0   # blank band in pt: about 3 and 5 lines of 10 pt text
 STRETCH = 12.0            # blank pt between two lines of body text that means LaTeX stretched the column
 CODE_CHARS = "ACDEFHJKMNPRTUVWXY34679"
@@ -71,7 +80,7 @@ def _pymupdf():
 
 
 def render(pdf):
-    """Every page as a grayscale array in [0, 1] at DPI, and the renderer's name."""
+    """Every page as a grayscale uint8 array at DPI, and the renderer's name."""
     np = _np()
     mu = _pymupdf()
     if mu:
@@ -80,7 +89,7 @@ def render(pdf):
             for page in doc:
                 pix = page.get_pixmap(dpi=DPI, colorspace=mu.csGRAY, alpha=False)
                 a = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)[..., 0]
-                pages.append(a / 255.0)
+                pages.append(a.copy())
         return pages, "PyMuPDF"
     with tempfile.TemporaryDirectory() as tmp:
         stem = os.path.join(tmp, "p")
@@ -103,9 +112,9 @@ def render(pdf):
                     img = mimage.imread(os.path.join(tmp, f))
                     if img.ndim == 3:
                         img = img[..., :3].mean(axis=2)
-                    if img.dtype.kind in "ui":
-                        img = img / np.iinfo(img.dtype).max
-                    out.append(img.astype(float))
+                    if img.dtype.kind == "f":
+                        img = img * 255
+                    out.append(np.clip(img, 0, 255).astype(np.uint8))
                 return out, name
     return [], None
 
@@ -135,9 +144,10 @@ def page_layout(pdf, n):
                                       "text": " ".join(" ".join(sp["text"] for sp in spans).split())})
                 texts.append(sorted(lines, key=lambda d: (d["y0"], d["x0"])))
                 boxes = [("image", tuple(v * s for v in info["bbox"])) for info in page.get_image_info()]
-                if hasattr(page, "cluster_drawings"):
-                    boxes += [("plot", (c.x0 * s, c.y0 * s, c.x1 * s, c.y1 * s)) for c in page.cluster_drawings()
-                              if c.height >= 30]
+                plots = [c for c in page.cluster_drawings() if c.height >= 30] if hasattr(page, "cluster_drawings") \
+                    else []
+                boxes += [("plot", (c.x0 * s, c.y0 * s, c.x1 * s, c.y1 * s)) for c in plots]
+                boxes += [("table", tuple(v * s for v in t)) for t in table_boxes(page, plots, lines, s)]
                 images.append(boxes)
         return texts, images
     if shutil.which("pdftotext"):
@@ -153,6 +163,34 @@ def page_layout(pdf, n):
     return None, [[] for _ in range(n)]
 
 
+def table_boxes(page, plots, lines, s):
+    """Tables and algorithms, in pt: two or more horizontal rules of the same width outside plots,
+    with their caption."""
+    rules = set()
+    for d in page.get_drawings():
+        r = d["rect"]
+        if r.height <= 1.5 and r.width >= 40 and not any(c.contains(r) for c in plots):
+            rules.add((round(r.x0), round(r.y0), round(r.x1)))
+    groups = []
+    for x0, y, x1 in sorted(rules, key=lambda t: t[1]):
+        g = next((g for g in groups if abs(g[0] - x0) <= 4 and abs(g[2] - x1) <= 4 and y - g[3] <= 150), None)
+        if g:
+            g[3], g[4] = y, g[4] + 1
+        else:
+            groups.append([x0, y, x1, y, 1])
+    out = []
+    for x0, y0, x1, y1, n in groups:
+        if n < 2:
+            continue
+        for d in lines:   # the caption above or below
+            top, bottom = d["y0"] / s, d["y1"] / s
+            if re.match(r"(?:Table|Tab\.|Algorithm)\s*\d", d["text"]) and (0 <= y0 - bottom <= 60 or 0 <= top - y1 <= 30):
+                y0, y1 = min(y0, top), max(y1, bottom)
+                x0, x1 = min(x0, d["x0"] / s), max(x1, d["x1"] / s)
+        out.append((x0, y0 - 2, x1, y1 + 2))
+    return out
+
+
 def visual_lines(lines):
     """Texts of the page's lines from top to bottom, with pieces on the same line joined, such as a
     section number and its title."""
@@ -166,7 +204,7 @@ def visual_lines(lines):
         return out
     out, last = [], None
     for d in sorted(lines, key=lambda d: (round(d["y0"] / 4), d["x0"])):
-        if last and abs(d["y0"] - last["y0"]) <= 4 and 0 <= d["x0"] - last["x1"] <= 20 / PT:
+        if last and abs(d["y0"] - last["y0"]) <= 3 / PT and 0 <= d["x0"] - last["x1"] <= 20 / PT:
             out[-1] += " " + d["text"]
         else:
             out.append(d["text"])
@@ -228,9 +266,9 @@ def margin_bands(inks):
     out = np.zeros(max(len(i) for i in inks), dtype=bool)
     for cand in found:
         for a, b in cand:
-            hits = sum(1 for other in found if any(abs(a - c) <= 4 and abs(b - d) <= 4 for c, d in other))
+            hits = sum(1 for other in found if any(abs(a - c) <= 3 / PT and abs(b - d) <= 3 / PT for c, d in other))
             if hits >= max(2, 0.4 * len(inks)):
-                out[max(0, a - 2):b + 2] = True
+                out[max(0, a - int(1.5 / PT)):b + int(1.5 / PT)] = True
     return out
 
 
@@ -240,13 +278,13 @@ def columns(inks, body):
     np = _np()
     w = min(i.shape[1] for i in inks)
     prof = np.mean([i[body[:i.shape[0]], :w].mean(axis=0) for i in inks], axis=0)
-    k = 9
+    k = max(3, int(6 / PT))
     smooth = np.convolve(prof, np.ones(k) / k, mode="same")
     if smooth.max() <= 0:
         return [(0, w - 1)], []
     merged = []
     for a, b in runs(smooth > 0.3 * smooth.max()):
-        if merged and a - merged[-1][1] < 6:
+        if merged and a - merged[-1][1] < 4 / PT:
             merged[-1] = (merged[-1][0], b)
         else:
             merged.append((a, b))
@@ -261,8 +299,8 @@ def refine(cols, inks, keep):
     np = _np()
     out = []
     for c, (l, r) in enumerate(cols):
-        lo = max(l - 20, 0) if c == 0 else (cols[c - 1][1] + l) // 2
-        hi = r + 20 if c == len(cols) - 1 else (r + cols[c + 1][0]) // 2
+        lo = max(l - int(14 / PT), 0) if c == 0 else (cols[c - 1][1] + l) // 2
+        hi = r + int(14 / PT) if c == len(cols) - 1 else (r + cols[c + 1][0]) // 2
         starts, ends = [], []
         for ink in inks:
             sub = ink[:, lo:hi]
@@ -323,6 +361,27 @@ def figure_groups(boxes, cols, gutter):
     return [(k, b, c, "text width" if c is None else ref) for k, b, c in groups]
 
 
+def with_caption(box, lines):
+    """A figure's box (pixels) grown to hold its caption: a 'Figure N' line just below it, and the lines
+    that follow it closely."""
+    x0, y0, x1, y1 = box
+    near = 30 / PT
+    for i, d in enumerate(lines):
+        if not re.match(r"(?:Figure|Fig\.)\s*\d", d["text"]) or d["x1"] < x0 or d["x0"] > x1:
+            continue
+        if 0 <= d["y0"] - y1 <= near:
+            cap = [d]
+            for e in lines[i + 1:]:
+                if 0 <= e["y0"] - cap[-1]["y1"] <= 6 / PT and e["x1"] >= d["x0"] and e["x0"] <= max(d["x1"], x1):
+                    cap.append(e)
+                elif e["y0"] - cap[-1]["y1"] > 6 / PT:
+                    break
+            x0, y0 = min([x0] + [c["x0"] for c in cap]), min([y0] + [c["y0"] for c in cap])
+            x1, y1 = max([x1] + [c["x1"] for c in cap]), max([y1] + [c["y1"] for c in cap])
+            break
+    return x0, y0, x1, y1
+
+
 def body_size(texts):
     """The font size of the body text: the size that most characters have."""
     counts = {}
@@ -339,11 +398,12 @@ def analyze(pdf):
     pages, renderer = render(pdf)
     if not pages:
         return None, None, [(ERROR, "View", 0, "No renderer: pip install pymupdf (or install poppler-utils), then "
-                             "run page_qa.py again")]
+                             "run page_qa.py again")], [], set()
     n = len(pages)
     if max(g.shape[1] for g in pages) * PT < 360:
         return pages, [[] for _ in pages], [(ERROR, "View", 0, "These pages are narrower than 5 in, so this is not "
-                                             "the paper: run page_qa.py on the compiled paper")]
+                                             "the paper: run page_qa.py on the compiled paper")], [[] for _ in pages], \
+            set()
     texts, images = page_layout(pdf, n)
     boxed = texts is not None and any(d.get("y0") is not None for lines in texts for d in lines)
     ends, refs_page, refs_y, app_page = parts(texts, n)
@@ -356,7 +416,7 @@ def analyze(pdf):
         for a, b in rulers:
             ink[:, a:b] = False
     cols = refine(cols, inks, ~bands)
-    gutter = (cols[0][1] + 1, cols[1][0] - 1) if len(cols) == 2 and cols[1][0] - cols[0][1] > 6 else None
+    gutter = (cols[0][1] + 1, cols[1][0] - 1) if len(cols) == 2 and cols[1][0] - cols[0][1] > 4 / PT else None
     names = [""] if len(cols) == 1 else [" left column", " right column"] if len(cols) == 2 else \
         [f" column {k + 1}" for k in range(len(cols))]
     spans = [spanning(ink, gutter, images[p]) for p, ink in enumerate(inks)]
@@ -390,7 +450,8 @@ def analyze(pdf):
             if kind == "image" and x1 - x0 > 0.1 * w:
                 in_image[int(max(y0, 0)):int(min(y1, h))] = True
         # Figures narrower than their column or the text width leave white space beside them.
-        for kind, (x0, y0, x1, y1), c, ref in figure_groups(images[p], cols, gutter):
+        for kind, (x0, y0, x1, y1), c, ref in figure_groups([kb for kb in images[p] if kb[0] != "table"], cols,
+                                                            gutter):
             l, r = cols[0][0] if c is None else cols[c][0], cols[-1][1] if c is None else cols[c][1]
             frac = (x1 - x0) / max(r - l, 1)
             a, b = int(max(y0, 0)), int(min(y1, h))
@@ -471,7 +532,7 @@ def analyze(pdf):
         shorts = 0
         for c, (l, r) in enumerate(cols):
             rows = ink[:, l:r + 1].any(axis=1) & ~span
-            lines = [(a, b) for a, b in runs(rows) if b - a >= 2]
+            lines = [(a, b) for a, b in runs(rows) if b - a >= 1.5 / PT]
             if p == refs_page and refs_y is not None:
                 lines = [(a, b) for a, b in lines if b < refs_y]
             ext = []
@@ -502,7 +563,11 @@ def analyze(pdf):
         if shorts:
             issues.append((WARN, "A1.2", p + 1, f"{shorts} paragraph(s) end with a line under 60% of the column "
                            "width: reword them"))
-    return pages, marks, issues
+    floats = [[b if k == "table" else with_caption(b, texts[p] if boxed else [])
+               for k, b, _, _ in figure_groups(images[p], cols, gutter)] for p in range(n)]
+    last_main = refs_page if refs_page is not None else n - 1
+    quarter = {p for p in range(n) if p <= last_main}   # main-text pages; the others are viewed in halves
+    return pages, marks, issues, floats, quarter
 
 
 def qa_dir(pdf):
@@ -550,7 +615,7 @@ def write_sheets(pdf, pages, marks, kind="Sheet"):
         cols_n = 2 if len(group) > 1 else 1
         rows_n = 2 if len(group) > 2 else 1
         W, H = cols_n * pw + (cols_n + 1) * pad, rows_n * ph + (rows_n + 1) * pad + head
-        canvas = np.full((H, W), 0.82)
+        canvas = np.full((H, W), 209, dtype=np.uint8)
         origin = {}
         for k, p in enumerate(group):
             ox, oy = pad + (k % 2) * (pw + pad), head + pad + (k // 2) * (ph + pad)
@@ -561,7 +626,7 @@ def write_sheets(pdf, pages, marks, kind="Sheet"):
         dpi = 100 * scale
         fig = plt.figure(figsize=(W / 100, H / 100), dpi=dpi)
         ax = fig.add_axes([0, 0, 1, 1])
-        ax.imshow(canvas, cmap="gray", vmin=0, vmax=1, interpolation="antialiased")
+        ax.imshow(canvas, cmap="gray", vmin=0, vmax=255, interpolation="antialiased")
         ax.set_xlim(0, W)
         ax.set_ylim(H, 0)
         ax.axis("off")
@@ -586,8 +651,157 @@ def write_sheets(pdf, pages, marks, kind="Sheet"):
         fig.savefig(path, dpi=dpi)
         plt.close(fig)
         sheets.append({"path": os.path.relpath(path, qa_dir(pdf)), "pages": [p + 1 for p in group],
-                       "salt": salt, "hash": code_hash(code, salt)})
+                       "salt": salt, "code": code_hash(code, salt)})
     return sheets
+
+
+class Clipper:
+    """Renders parts of the PDF's pages in color, at any dpi."""
+
+    def __init__(self, pdf):
+        self.pdf, self.mu, self.cache = pdf, _pymupdf(), {}
+        self.doc = self.mu.open(pdf) if self.mu else None
+
+    def clip(self, p, rect, dpi):
+        """Region (x0, y0, x1, y1 in pt) of page p as an RGB uint8 array."""
+        np = _np()
+        if self.doc is not None:
+            pix = self.doc[p].get_pixmap(matrix=self.mu.Matrix(dpi / 72, dpi / 72), clip=self.mu.Rect(*rect),
+                                         colorspace=self.mu.csRGB, alpha=False)
+            return np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)[..., :3].copy()
+        dpi = round(dpi)
+        if (p, dpi) not in self.cache:
+            self.cache = {(p, dpi): self._full(p, dpi)}
+        s = dpi / 72
+        return self.cache[(p, dpi)][int(rect[1] * s):int(rect[3] * s), int(rect[0] * s):int(rect[2] * s)]
+
+    def _full(self, p, dpi):
+        np = _np()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "p.png")
+            for cmd in (["pdftoppm", "-png", "-r", str(dpi), "-f", str(p + 1), "-l", str(p + 1), "-singlefile",
+                         self.pdf, out[:-4]],
+                        ["gs", "-q", "-dSAFER", "-dBATCH", "-dNOPAUSE", "-sDEVICE=png16m", f"-r{dpi}",
+                         f"-dFirstPage={p + 1}", f"-dLastPage={p + 1}", f"-sOutputFile={out}", self.pdf],
+                        ["mutool", "draw", "-q", "-r", str(dpi), "-o", out, self.pdf, str(p + 1)]):
+                if not shutil.which(cmd[0]):
+                    continue
+                try:
+                    subprocess.run(cmd, check=True, capture_output=True, timeout=600)
+                except (OSError, subprocess.SubprocessError):
+                    continue
+                if os.path.isfile(out):
+                    import matplotlib.image as mimage
+                    img = mimage.imread(out)
+                    img = img[..., :3] if img.ndim == 3 else np.repeat(img[..., None], 3, axis=2)
+                    return np.clip(img * 255 if img.dtype.kind == "f" else img, 0, 255).astype(np.uint8)
+        raise RuntimeError("no renderer for page images")
+
+    def close(self):
+        if self.doc is not None:
+            self.doc.close()
+
+
+def fit_dpi(w_pt, h_pt, cap=None):
+    """The highest dpi at which a w x h pt region, with the label band on top, fits the viewer
+    (MAX_EDGE pixels on its long side, MAX_PX pixels in all) without being shrunk."""
+    w, h = w_pt / 72, h_pt / 72
+    dpi = min((MAX_EDGE - 2) / w, (MAX_EDGE - BAND - 2) / h, (MAX_PX / (w * h)) ** 0.5)
+    while (w * dpi + 1) * (h * dpi + BAND + 1) > MAX_PX:
+        dpi *= 0.99
+    return min(dpi, cap) if cap else dpi
+
+
+def _font(size):
+    from PIL import ImageFont
+    try:
+        import matplotlib
+        return ImageFont.truetype(os.path.join(matplotlib.get_data_path(), "fonts", "ttf", "DejaVuSans-Bold.ttf"),
+                                  size)
+    except Exception:  # noqa: BLE001
+        return ImageFont.load_default()
+
+
+def save_view(rgb, path, label, code, boxes):
+    """Save one image to view: the region with its boxes, under a band with its label and code."""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGB", (rgb.shape[1], rgb.shape[0] + BAND), (230, 230, 230))
+    img.paste(Image.fromarray(rgb), (0, BAND))
+    d = ImageDraw.Draw(img)
+    for color, (x0, y0, x1, y1), width in boxes:
+        d.rectangle([x0, y0 + BAND, x1, y1 + BAND], outline=color, width=width)
+    f = _font(int(BAND * 0.5))
+    d.text((10, BAND / 2), label, fill=(0, 0, 0), font=f, anchor="lm")
+    text = f"code {code}"
+    tw = d.textlength(text, font=f)
+    d.rectangle([img.width - tw - 28, 5, img.width - 6, BAND - 5], fill=(255, 242, 179), outline=(0, 0, 0))
+    d.text((img.width - 17, BAND / 2), text, fill=(0, 0, 0), font=f, anchor="rm")
+    img.save(path)
+
+
+def page_tiles(w, h, n):
+    """The n tiles of a w x h pt page, as (name, rect): quarters for 4, halves for 2, with overlap."""
+    tw, th = (w / 2 + OVERLAP * w, h / 2 + OVERLAP * h) if n == 4 else (w, h / 2 + OVERLAP * h)
+    spots = [("top left", 0, 0), ("top right", w - tw, 0), ("bottom left", 0, h - th),
+             ("bottom right", w - tw, h - th)] if n == 4 else [("top", 0, 0), ("bottom", 0, h - th)]
+    return [(name, (x, y, x + tw, y + th)) for name, x, y in spots]
+
+
+def new_code():
+    code, salt = "".join(secrets.choice(CODE_CHARS) for _ in range(4)), secrets.token_hex(8)
+    return code, salt, code_hash(code, salt)
+
+
+def write_views(pdf, pages, marks, floats, quarter, viewed, tiles=None):
+    """Images to look at, at the highest dpi the viewer keeps: each page in tiles (quarters for the
+    main text, halves for the rest), and each figure or table that a tile edge cuts, whole. Pages
+    whose look is unchanged since they were viewed get none. Returns their records."""
+    import hashlib as hl
+    out_dir = os.path.join(qa_dir(pdf), os.path.splitext(os.path.basename(pdf))[0])
+    os.makedirs(out_dir, exist_ok=True)
+    for f in os.listdir(out_dir):
+        if f.endswith(".png"):
+            os.remove(os.path.join(out_dir, f))
+    color = {ERROR: (214, 39, 40), WARN: (255, 127, 14), "SHORT": (255, 127, 14)}
+    clipper, views = Clipper(pdf), []
+    try:
+        for p, g in enumerate(pages):
+            digest = hl.sha1(g.tobytes()).hexdigest()
+            if digest in viewed:
+                continue
+            w, h = g.shape[1] * PT, g.shape[0] * PT
+            here = page_tiles(w, h, tiles or (4 if p in quarter else 2))
+            for name, rect in here:
+                dpi = fit_dpi(rect[2] - rect[0], rect[3] - rect[1])
+                rgb = clipper.clip(p, rect, dpi)
+                k = dpi / 72
+                boxes = []
+                for level, (x0, y0, x1, y1), blank in marks[p]:
+                    x0, y0, x1, y1 = [(v * PT - o) * k for v, o in zip((x0, y0, x1, y1), (rect[0], rect[1]) * 2)]
+                    if x1 < 0 or y1 < 0 or x0 > rgb.shape[1] or y0 > rgb.shape[0]:
+                        continue
+                    pad = -4 if blank and y1 - y0 > 16 else 4
+                    boxes.append((color[level], (x0 - pad, y0 - pad, x1 + pad, y1 + pad), 3 if level != "SHORT" else 2))
+                code, salt, hashed = new_code()
+                path = os.path.join(out_dir, f"p{p + 1:02d}-{name.replace(' ', '-')}.png")
+                save_view(rgb, path, f"p. {p + 1}, {name}, {dpi:.0f} dpi", code, boxes)
+                views.append({"path": os.path.relpath(path, qa_dir(pdf)), "page": p + 1, "part": name,
+                              "dpi": round(dpi), "hash": digest, "salt": salt, "code": hashed})
+            for i, (x0, y0, x1, y1) in enumerate(floats[p]):
+                box = (x0 * PT - 6, y0 * PT - 6, x1 * PT + 6, y1 * PT + 6)
+                if any(r[0] <= box[0] and r[1] <= box[1] and box[2] <= r[2] and box[3] <= r[3] for _, r in here):
+                    continue   # one tile shows it whole
+                box = (max(box[0], 0), max(box[1], 0), min(box[2], w), min(box[3], h))
+                dpi = fit_dpi(box[2] - box[0], box[3] - box[1], cap=FLOAT_DPI)
+                code, salt, hashed = new_code()
+                path = os.path.join(out_dir, f"p{p + 1:02d}-float{i + 1}.png")
+                save_view(clipper.clip(p, box, dpi), path, f"p. {p + 1}, figure or table {i + 1}, {dpi:.0f} dpi",
+                          code, [])
+                views.append({"path": os.path.relpath(path, qa_dir(pdf)), "page": p + 1, "part": f"float {i + 1}",
+                              "dpi": round(dpi), "hash": digest, "salt": salt, "code": hashed})
+    finally:
+        clipper.close()
+    return views
 
 
 def report(pdf, issues, entry):
@@ -598,38 +812,67 @@ def report(pdf, issues, entry):
     return errors
 
 
+def _me():
+    me = os.path.relpath(__file__)
+    return os.path.abspath(__file__) if me.startswith("..") else me
+
+
 def reference(pdf, rec):
-    """Sheets of a style-reference paper's main pages (up to its references, at most 16) to study."""
-    pages, _ = render(pdf)
+    """A style-reference paper: overview sheets of its main pages (up to its references, at most 16),
+    and each of its figures and tables at up to FLOAT_DPI, to study."""
+    out = analyze(pdf)
+    pages = out[0]
     if not pages:
         print(f"{os.path.relpath(pdf)}: no renderer: pip install pymupdf (or install poppler-utils)")
         return 1
     texts, _ = page_layout(pdf, len(pages))
     refs_page = parts(texts, len(pages))[1]
     keep = pages[:min(len(pages) if refs_page is None else refs_page + 1, 16)]
-    sheets = write_sheets(pdf, keep, [[] for _ in keep], kind="Reference sheet")
-    rec[os.path.basename(pdf)] = {"sha1": sha1(pdf), "pages": len(keep), "issues": [], "sheets": sheets,
+    views = write_sheets(pdf, keep, [[] for _ in keep], kind="Reference sheet")
+    clipper = Clipper(pdf)
+    out_dir = os.path.dirname(os.path.join(qa_dir(pdf), views[0]["path"])) if views else qa_dir(pdf)
+    try:
+        for p in range(len(keep)):
+            w, h = keep[p].shape[1] * PT, keep[p].shape[0] * PT
+            for i, (x0, y0, x1, y1) in enumerate(out[3][p]):
+                box = (max(x0 * PT - 6, 0), max(y0 * PT - 6, 0), min(x1 * PT + 6, w), min(y1 * PT + 6, h))
+                dpi = fit_dpi(box[2] - box[0], box[3] - box[1], cap=FLOAT_DPI)
+                code, salt, hashed = new_code()
+                path = os.path.join(out_dir, f"p{p + 1:02d}-float{i + 1}.png")
+                save_view(clipper.clip(p, box, dpi), path, f"p. {p + 1}, figure or table {i + 1}, {dpi:.0f} dpi",
+                          code, [])
+                views.append({"path": os.path.relpath(path, qa_dir(pdf)), "page": p + 1, "part": f"float {i + 1}",
+                              "dpi": round(dpi), "salt": salt, "code": hashed})
+    finally:
+        clipper.close()
+    rec[os.path.basename(pdf)] = {"sha1": sha1(pdf), "pages": len(keep), "issues": [], "images": views,
                                   "viewed": None, "tool": TOOL, "kind": "reference",
                                   "checked": datetime.datetime.now().isoformat(timespec="seconds")}
     save_record(pdf, rec)
-    me = os.path.relpath(__file__)
-    me = os.path.abspath(__file__) if me.startswith("..") else me
-    print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on {len(sheets)} sheet(s). Open every sheet and study how "
-          "this paper writes and draws: its section structure, which figures it has and their layouts, colors, "
-          "fonts, and line widths, and its table layouts:")
-    for s in sheets:
-        print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), s['path']))}")
-    print(f"Then run python3 {me} {os.path.relpath(pdf)} --confirm <the code on each sheet>")
+    print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on overview sheets, and its figures and tables at up to "
+          f"{FLOAT_DPI} dpi. Open every image and study how this paper writes and draws: its section structure, "
+          "which figures it has and their layouts, colors, fonts, and line widths, and its table layouts:")
+    for v in views:
+        print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), v['path']))}")
+    print(f"Then run python3 {_me()} {os.path.relpath(pdf)} --confirm <the code on each image>")
     return 0
 
 
 def main(argv=None):
+    global MAX_PX, MAX_EDGE
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", nargs="+", help="compiled PDF(s): the paper, and a separate supplementary file if any")
-    ap.add_argument("--confirm", nargs="+", metavar="CODE", help="the code printed on each sheet you viewed")
-    ap.add_argument("--reference", action="store_true", help="a style-reference paper: write sheets of its main "
-                    "pages to study, without the layout checks")
+    ap.add_argument("--confirm", nargs="+", metavar="CODE", help="the code printed on each image you viewed")
+    ap.add_argument("--reference", action="store_true", help="a style-reference paper: images to study, without "
+                    "the layout checks")
+    ap.add_argument("--tiles", type=int, choices=(2, 4), help="tiles per page for every page (default: 4 for the "
+                    "main text, 2 for the rest)")
+    ap.add_argument("--max-px", type=int, default=MAX_PX, help=f"pixels per image the viewer keeps (default "
+                    f"{MAX_PX}); raise it if yours keeps larger images")
+    ap.add_argument("--max-edge", type=int, default=MAX_EDGE, help=f"longest image side the viewer keeps (default "
+                    f"{MAX_EDGE})")
     args = ap.parse_args(argv)
+    MAX_PX, MAX_EDGE = args.max_px, args.max_edge
     for pdf in args.pdf:
         if not os.path.isfile(pdf):
             print(f"page_qa.py: no such file: {pdf}", file=sys.stderr)
@@ -640,50 +883,60 @@ def main(argv=None):
             rec = load_record(pdf)
             entry = rec.get(os.path.basename(pdf))
             if not entry or entry.get("sha1") != sha1(pdf):
-                print(f"{os.path.relpath(pdf)}: changed since its sheets were written; run page_qa.py on it again")
+                print(f"{os.path.relpath(pdf)}: changed since its images were written; run page_qa.py on it again")
                 status = 1
                 continue
-            missing = [s for s in entry["sheets"] if not any(code_hash(c, s["salt"]) == s["hash"]
-                                                              for c in args.confirm)]
+            views = entry.get("images", entry.get("sheets", []))
+            missing = [v for v in views if not any(code_hash(c, v["salt"]) == v.get("code", v.get("hash"))
+                                                   for c in args.confirm)]
             if missing:
-                print(f"{os.path.relpath(pdf)}: no matching code for " + ", ".join(
-                    os.path.join(".page-qa", s["path"]) for s in missing) + ". Open each of these sheets and read "
-                    "the code in its top right corner")
+                print(f"{os.path.relpath(pdf)}: no matching code for {len(missing)} image(s), e.g., " + ", ".join(
+                    os.path.join(".page-qa", v["path"]) for v in missing[:6]) + ". Open each of them and read the "
+                    "code in its top right corner")
                 status = 1
                 continue
             entry["viewed"] = datetime.datetime.now().isoformat(timespec="seconds")
+            entry["viewed_hashes"] = sorted(set(entry.get("viewed_hashes", [])) |
+                                            {v["hash"] for v in views if v.get("hash")})
             save_record(pdf, rec)
-            print(f"{os.path.relpath(pdf)}: recorded that all {len(entry['sheets'])} sheet(s) were viewed")
+            print(f"{os.path.relpath(pdf)}: recorded that all {len(views)} image(s) were viewed")
         return status
     errors = 0
     for pdf in args.pdf:
         rec = load_record(pdf)
         name = os.path.basename(pdf)
-        old = rec.get(name)
-        if old and old.get("sha1") == sha1(pdf) and old.get("viewed"):
+        old = rec.get(name) or {}
+        if old.get("sha1") == sha1(pdf) and old.get("viewed"):
             print(f"{os.path.relpath(pdf)}: unchanged since you viewed it on {old['viewed']}")
             errors += report(pdf, [tuple(i) for i in old.get("issues", [])], old)
             continue
         if args.reference:
             errors += reference(pdf, rec)
             continue
-        pages, marks, issues = analyze(pdf)
-        sheets = write_sheets(pdf, pages, marks) if pages else []
+        pages, marks, issues, floats, quarter = analyze(pdf)
+        viewed = set(old.get("viewed_hashes", []))
+        views = write_views(pdf, pages, marks, floats, quarter, viewed, args.tiles) if pages else []
         entry = {"sha1": sha1(pdf), "pages": len(pages or []), "issues": [list(i) for i in issues],
-                 "sheets": sheets, "viewed": None, "tool": TOOL, "kind": "paper",
+                 "images": views, "viewed": None, "viewed_hashes": sorted(viewed), "tool": TOOL, "kind": "paper",
                  "checked": datetime.datetime.now().isoformat(timespec="seconds")}
+        if pages and not views:
+            entry["viewed"] = entry["checked"]   # every page looks as it did when it was viewed
         rec[name] = entry
         save_record(pdf, rec)
         errors += report(pdf, issues, entry)
-        if sheets:
-            print("Now open every sheet and look at every page: white space, float positions, text in the "
-                  "margins, overlaps, and short last lines. No script sees everything:")
-            for s in sheets:
-                print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), s['path']))}")
-            me = os.path.relpath(__file__)
-            me = os.path.abspath(__file__) if me.startswith("..") else me
+        if views:
+            shown = sorted({v["page"] for v in views})
+            same = len(pages) - len(shown)
+            print(f"Now open all {len(views)} image(s) at full size and look at every part: white space, float "
+                  "positions, text in the margins, overlaps, small or blurry text, and short last lines. No script "
+                  "sees everything." + (f" {same} page(s) look as they did when you viewed them, so they have no "
+                                        "images." if same else ""))
+            for v in views:
+                print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), v['path']))}")
             print(f"Fix what you see, recompile, and run this again. When every page looks right, run "
-                  f"python3 {me} {os.path.relpath(pdf)} --confirm <the code on each sheet>")
+                  f"python3 {_me()} {os.path.relpath(pdf)} --confirm <the code on each image>")
+        elif pages:
+            print("Every page looks as it did when you viewed it.")
     return 1 if errors else 0
 
 

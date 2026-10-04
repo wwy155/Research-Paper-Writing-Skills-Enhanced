@@ -10,8 +10,8 @@ Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL
 
 ## Look at Them
 
-1. Run `python3 <this skill's directory>/scripts/page_qa.py --reference refs/paperA.pdf`. It writes sheets of the paper's main pages, four per sheet, with a code on each.
-2. Open every sheet with your image viewer and study the figures and tables.
+1. Run `python3 <this skill's directory>/scripts/page_qa.py --reference refs/paperA.pdf`. It writes overview sheets of the paper's main pages, four per sheet, and each of its figures and tables at up to 300 dpi, with a code on each image.
+2. Open every image with your image viewer, and study the layout on the sheets and the details of the figures and tables: fonts, line widths, colors, and markers.
 3. Read the text of each section as well, with the alphaXiv tools or from the PDF.
 4. Confirm with the codes, e.g., `page_qa.py refs/paperA.pdf --confirm K7QF`.
 
@@ -34,7 +34,7 @@ Write the block at the top of the main `.tex` file. The checker reads it:
 % PaperC (Author et al., CVPR 2025), refs/paperC.pdf -> writing tone, pipeline style, captions
 ```
 
-The checker reports an ERROR when the block is missing, when it lists fewer than 3 papers, and when a PDF is missing or its sheets were not all viewed. It warns when a line names nothing to follow, or when no line covers the writing, the figures, or the tables.
+The checker reports an ERROR when the block is missing, when it lists fewer than 3 papers, and when a PDF is missing or its images were not all viewed. It warns when a line names nothing to follow, or when no line covers the writing, the figures, or the tables.
 
 ## Use Them
 
