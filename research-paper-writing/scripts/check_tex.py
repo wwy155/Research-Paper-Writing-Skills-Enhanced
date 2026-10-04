@@ -1581,13 +1581,13 @@ def check_page_qa(pdf, rep, sources=()):
     entry = page_record(pdf)
     if not entry or entry.get("sha1") != digest:
         rep.add_plain(name, ERROR, "View", f"Nobody has looked at the pages of {name} since it was compiled: run "
-                      f"scripts/page_qa.py {name}, open every sheet it writes, and look at every page")
+                      f"scripts/page_qa.py {name}, open every image it writes, and look at every part of every page")
         return
     for level, rule, page, msg in entry.get("issues", []):
         rep.add_plain(name, level, rule, (f"p. {page}: " if page else "") + msg + " (page_qa)")
     if not entry.get("viewed"):
-        rep.add_plain(name, ERROR, "View", f"The sheets of {name} were not all viewed: open each one, look at every "
-                      f"page, and run page_qa.py {name} --confirm with the code printed on each sheet")
+        rep.add_plain(name, ERROR, "View", f"The images of {name} were not all viewed: open each one at full size, "
+                      f"look at every part, and run page_qa.py {name} --confirm with the code printed on each image")
 
 
 STYLE_HEAD = re.compile(r"^[ \t]*%[ \t]*Style references?\b[^:\n]*:[ \t]*$", re.I | re.M)
@@ -1647,7 +1647,7 @@ def check_style_refs(files, root, rep):
         entry = page_record(path)
         if not entry or entry.get("sha1") != digest or not entry.get("viewed"):
             rep.add(src, at, ERROR, "Style", f"{paper}: its pages were not viewed. Run page_qa.py --reference {pdf}, "
-                    "open every sheet, and confirm the codes")
+                    "open every image, and confirm the codes")
     for k in ("writing", "figures", "tables") if refs else ():
         if k not in covered:
             rep.add(src, head.start(), WARN, "Style", f"No style reference covers the {k}: name what to follow for "
@@ -1953,7 +1953,9 @@ def required_block(rep, venue, has_exp, min_figures):
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
-            if re.fullmatch(r"p\. \d+", head) or errors[0][3] == "Style":  # keep what is wrong with that page or paper
+            if re.fullmatch(r"p\. \d+", head):  # page_qa: keep what is wrong on that page
+                head = ": ".join(errors[0][4].split(": ")[:2])
+            elif errors[0][3] == "Style":  # keep what is wrong with that paper
                 head = ": ".join(errors[0][4].split(": ")[:2]).split(". ")[0]
             if name == "Closest-work plan" and not head.startswith("No '%"):
                 head = f"{len(errors)} gap(s) in the plan"
