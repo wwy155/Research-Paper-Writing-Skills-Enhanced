@@ -393,7 +393,7 @@ Local cite:
 
 ## Part D: Choose the Figure or Table of the Introduction
 
-Each pipeline version above points to one figure or table. Choose the one that shows the main claim at a glance, and follow the chosen style scheme (`references/figure-table-styles.md`).
+Each pipeline version above points to one figure or table. Choose the one that shows the story's main claim at a glance (`references/figures.md`).
 
 | Option | Use it when | What it shows |
 |---|---|---|
@@ -414,7 +414,6 @@ Sentence skeleton:
 
 1. `As shown in Figure~\ref{fig:teaser}, [baseline] produces [failure] on [hard case], while [method] recovers [what].`
 
-For reference, the teaser of 3D Gaussian Splatting shows renderings of several methods next to their training time, FPS, and PSNR.
 
 ### Trade-Off Plot
 
@@ -428,7 +427,6 @@ Sentence skeleton:
 
 1. `As shown in Figure~\ref{fig:teaser}, [method] reaches [quality] comparable to [baseline] while running [N]$\times$ faster.`
 
-For reference, Figure 1 of EfficientNet plots ImageNet accuracy against model size.
 
 ### Comparison Table
 

@@ -26,13 +26,13 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
-Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Search every result you have for evidence of the story, even a few scenes or one subset (`references/story.md`, Find the Evidence). Before making a figure or table, write its one-line conclusion; if you cannot, do not make it. Then pick the form that shows that conclusion from the table in `references/figure-table-styles.md`.
+Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Search every result you have for evidence of the story, even a few scenes or one subset (`references/story.md`, Find the Evidence). Before making a figure or table, write the claim of the story it supports as a one-line conclusion; if you cannot, do not make it. Then choose the form that shows that conclusion most directly (`references/figures.md`).
 
 Whenever the paper has an Experiments section, write the closest-work plan before writing Experiments or making any figure or table (Core Workflow step 2 in `SKILL.md`). The checker verifies it and reports every gap as an ERROR.
 
 1. Name the 1-3 closest prior works: the methods ours is most directly compared with.
 2. Open each paper, including its supplementary material, and count its figures and tables. Use the alphaXiv tools, the web, or PDFs from the user; if you cannot open a paper, ask the user for its PDF or link. The closest works are usually style references too, so reuse their PDFs and sheets (`references/style-references.md`).
-3. Give every figure and table of each paper one line. Reproduce it under the same setting (dataset, split, metrics, protocol) with ours included, in the main text or the Appendix. Skip one only when the analysis does not apply to our setting, e.g., their own pipeline figure, and write why. Turn their failure-case figure into a comparison on the same hard inputs, where ours succeeds. If ours fails there too, skip it ("-> skipped: it shows failure cases, which our paper does not discuss").
+3. Give every figure and table of each paper one line, and decide it by our story. Reproduce it, under the same setting (dataset, split, metrics, protocol) with ours included, when it supports one of our claims or when reviewers will expect that comparison. Otherwise skip it and write why, e.g., "-> skipped: their pipeline; our story does not need it". Never reproduce a figure only because they have it.
 4. Missing data is never a reason to skip: create the figure or table now, and run the experiment behind it (Run Missing Experiments, below). Until its results exist, use `[TODO]` cells or a placeholder box that states the planned message.
 5. Record the plan as a comment block at the start of the Experiments section. Start with one count line per closest paper (main-paper figures and tables). Each reproduced item names the label of our figure or table, which must exist in the paper or the Supplementary Material. Items that share a target can share a line, and supplementary items (`Supp. Fig. 3`) may be listed too:
 
@@ -132,7 +132,7 @@ Write the setup before any result, even when earlier sections already covered pa
 
 ## Figure/Table Writing Rules
 
-Pick each table's type (SOTA comparison, plug-in, ablation, efficiency, and others) from `references/table-types.md`, and each figure's form from `references/figure-table-styles.md`.
+Decide each table and figure from the claim of the story it supports: the table type from `references/table-types.md`, and the figure from `references/figures.md`.
 
 `Good tables are part of experiment communication quality, not decoration.`
 
@@ -145,7 +145,7 @@ Pick each table's type (SOTA comparison, plug-in, ablation, efficiency, and othe
 3. Do not use double rules or dense `\hline` stacks.
 4. Use `booktabs` style (`\toprule`, `\midrule`, `\bottomrule`) for clean structure.
 5. Use as few horizontal rules as possible; lines should separate groups, not every row.
-6. Highlight best and second-best numbers and the row of ours with the macros of the chosen style scheme (`references/figure-table-styles.md`).
+6. Mark the best number of each column in bold and the second-best underlined.
 
 ### Readability rules from review practice
 
@@ -156,16 +156,15 @@ Pick each table's type (SOTA comparison, plug-in, ablation, efficiency, and othe
 5. Group multi-dataset or multi-setting results using `\multicolumn` + `\cmidrule`, not vertical separators.
 6. One table, one message: do not mix unrelated results in a single table.
 7. If rows represent different attributes/ablations, encode that explicitly in row names or attribute columns.
-8. Captions (Writing Rule A2.4 in `SKILL.md`): first what the table or figure shows, then (a)/(b) for its parts, then the conclusion in at most 2 short sentences. Keep it within 50 words, with no formatting notes such as "best in bold" (`references/figure-table-styles.md`, Write the Caption).
+8. Captions (Writing Rule A2.4 in `SKILL.md`): first what the table or figure shows, then (a)/(b) for its parts, then the conclusion in at most 2 short sentences. Keep it within 50 words, with no formatting notes such as "best in bold" (`references/figures.md`, Write the Caption).
 9. Analyze every figure and table in the text: the observation with numbers, the reason ours behaves this way, and what follows. A figure or table that the text never discusses should be cut.
 10. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
 
 ### Minimal LaTeX checklist
 
-1. Add packages in preamble: `\usepackage{booktabs}`, `\usepackage{colortbl,xcolor}` (and optionally `\usepackage{siunitx}` for decimal alignment).
+1. Add packages in preamble: `\usepackage{booktabs}` (and optionally `\usepackage{siunitx}` for decimal alignment).
 2. Replace `\hline`-heavy style with `\toprule/\midrule/\bottomrule`.
 3. Put `\caption{...}` before `\label{...}` and keep caption above.
-4. Use restrained highlighting; never color too many cells.
 
 ## Recommended Ablation Package
 
