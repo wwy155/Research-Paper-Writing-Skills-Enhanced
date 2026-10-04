@@ -18,17 +18,17 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 8. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
 9. Every needed result is run and filled in from its result file, or logged as running, or as blocked with the user asked (`% Experiment log:` in `references/experiments.md`).
 10. Experiments explains and cites every metric before the first result (A4.9).
-11. After the last compile, every page was viewed with `scripts/page_qa.py`, and no page shows white space (Checking the Writing Rules, step 4).
+11. The paper was compiled with pdflatex after the last edit, every page was viewed with `scripts/page_qa.py`, and no page shows white space (Execution Rule 3, Checking the Writing Rules step 4).
 
 ## Core Workflow
 
 1. First, settle the target venue: if it is not settled, your first action is to ask the user with the ask-user tool (Execution Rule 1). Then create the Appendix or Supplementary file if it does not exist yet (Execution Rule 2).
 2. Pick 3-5 papers closest to ours as style references and view them (`references/style-references.md`). Their writing, figures, and tables are the main style reference; this skill's examples only fill gaps. Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`, "Experiment Planning").
-3. Before editing any section, find the story and record it as a `% Story:` block: problem, insight, method, claims, takeaway, key term (`references/story.md`). Tell the whole paper around it. Every section and paragraph advances it, and every figure and table supports one of its claims; the rest goes to the Appendix or is cut.
-4. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
+3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it. Every section and paragraph advances it, and every figure and table supports one of its claims; the rest goes to the Appendix or is cut.
+4. Write paragraph by paragraph, one message each. Follow the Writing Rules in every sentence you write or edit, in every section, not only in a final pass.
 5. Run reverse outlining after writing each section (`references/paragraph-clarity.md`).
 6. Run final-paper adversarial review with `references/paper-review.md`.
-7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, run reviewers in parallel, each given the absolute paths of this file and `scripts/check_tex.py`. One checks that every reference exists and matches the real paper, one checks every Writing Rule, and one checks the venue's template, page limit, anonymity, and Appendix rules.
+7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, run three reviewers in parallel, each given the absolute paths of this file and `scripts/check_tex.py`: one for the references (each exists and matches the real paper), one for every Writing Rule, and one for the venue's template, page limit, anonymity, and Appendix rules.
 
 ## Principles
 
@@ -122,11 +122,11 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 
 ### Checking the Writing Rules
 
-1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex` (or `python`). Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks. Re-run until it reports 0 errors.
-2. After drawing or changing a figure, run `scripts/figure_qa.py` (A2.9) before rerunning the checker.
+1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks. Re-run until it reports 0 errors.
+2. Run `scripts/figure_qa.py` after every figure change (A2.9).
 3. The scripts cannot check A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
 4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every sheet it writes, fix what you see, and confirm with the codes on the sheets (`references/page-check.md`). Then re-run the checker with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits.
-5. If a check cannot run (no Python, TeX, or PDF tools), report its rules as "not checked" with the reason; never report them as passed.
+5. If a check cannot run because a tool is missing, install it or ask the user to; never skip compiling (Execution Rule 3). Never report an unchecked rule as passed.
 
 ## Section Guides
 
@@ -137,9 +137,9 @@ In `references/`, load what the task needs; the Writing Rules apply to every edi
 1. First, before any other work, settle the target venue and its template:
    - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, do not guess: ask with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues in the field; without such a tool, ask in plain text and wait.
    - Look up this year's author guidelines, and record the page limit and the Appendix rules with their source (`references/venue-rules.md`).
-   - If the project lacks the venue's template, search the web for its latest official author kit, download it into the project, and use it. If that fails, ask the user for the template URL or files.
-2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (placement, page limit, format). Check the compiled PDF against them, and fix any violation (`references/venue-rules.md`). Move detailed or redundant content there (implementation details, per-scene and extra qualitative results, proofs), and reference its important parts from the main text.
-3. Compile (`pdflatex`, `bibtex`, then `pdflatex` twice), installing TeX Live or MiKTeX if missing, and look at every page after each compile (Checking the Writing Rules, step 4).
+   - If the project lacks the venue's template, search for its latest official author kit and download it; if that fails, ask the user for its URL or files.
+2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (placement, page limit, format). Check the compiled PDF against them, and fix any violation (`references/venue-rules.md`). Move details there (implementation, per-scene and extra qualitative results, proofs), and reference them from the main text.
+3. Compile only with pdflatex, as Overleaf and arXiv do (`pdflatex`, `bibtex`, `pdflatex` twice, or `latexmk -pdf`), never with XeLaTeX, LuaLaTeX, Tectonic, or another tool, and never skip it. If pdflatex is missing, install TeX Live, or ask the user with the ask-user tool until `pdflatex --version` works (`references/page-check.md`). Look at every page after each compile (Checking the Writing Rules, step 4).
 
 ## Output Contract
 
@@ -155,4 +155,4 @@ After any edit, including a final polish, also return:
 5. A Writing Rules report, one line per group (A1-A4, B1-B4), with each rule's status (pass, fixed, or not checked with the reason), e.g., `A4: 1 fixed, 2 pass, 8 not checked (6 .bib entries)`. Never mark a rule pass without checking it.
 6. For a final polish: a short change log with one example per type of change. Always: the experiments still running or blocked, and what you need from the user.
 7. A setup line: the story in one sentence, the venue and template, the style references, and the path of the Appendix or Supplementary file. When Experiments, figures, or tables were touched, add the closest-work plan and the latest-SOTA line with the status of each item.
-8. For each figure or table you created or changed, its figure-plan line (e.g., `fig:noise: ours degrades least as noise grows -> lines over noise level`) and, for a figure, its `figure_qa.py` result. After a compile, one line per page on what its sheet shows.
+8. For each figure or table you created or changed, its figure-plan line and, for a figure, its `figure_qa.py` result. After a compile, one line per page on what its sheet shows.
