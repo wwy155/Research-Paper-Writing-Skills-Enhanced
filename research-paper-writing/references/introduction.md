@@ -1,5 +1,7 @@
 # Introduction Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): the Introduction tells the problem, why prior methods fail, the insight, the method, and the evidence, and its contributions restate the story's claims.
+
 ## Goal
 
 Write a strong introduction in three steps:

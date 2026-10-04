@@ -1,35 +1,25 @@
 # Conclusion Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): restate the problem, the insight, the strongest evidence, and the takeaway.
+
 ## Goal
 
-Close the paper with clear takeaways and credible limitations.
+Close the paper by selling it once more: the problem, the insight, the strongest evidence, and what it opens up.
 
 ## Structure
 
-1. Restate solved problem and core technical idea.
-2. Summarize strongest evidence from experiments.
-3. State practical impact or new insight.
-4. Add limitation paragraph.
-5. End with concrete future direction.
+1. Restate the problem and the core technical idea.
+2. Summarize the strongest evidence, with numbers.
+3. State the practical impact or the new insight.
+4. End with a concrete future direction.
 
-## Limitation Guidance
+## Limitations
 
-Prefer limitations tied to task goal/setting boundaries, for example:
-
-1. Data regime limitation (e.g., only short sequences).
-2. Assumption limitation (e.g., controlled viewpoints only).
-3. Deployment scope limitation (e.g., specific sensor setup).
-
-Avoid framing conclusion around fixable implementation flaws unless they critically define your method's scope.
-
-## Distinguish Limitation Types
-
-1. Technical defect: underperforms strong baselines on key metrics or causes unacceptable tradeoff.
-2. Scope limitation: bounded by current task setting and still competitive vs. current SOTA.
+Do not write a limitations paragraph, and never discuss negative results (Principle 3 in `SKILL.md`). Some venues require a limitations section (e.g., ACL). Then record that in the venue rules (`references/venue-rules.md`). Keep the section to 2-3 sentences on the scope of the setting and the next step, e.g., "DynaSplat targets scenes with one moving camera. Extending it to multi-camera rigs is a natural next step." The checker warns about a "Limitations" or "Failure cases" part unless the venue rules mention one.
 
 ## Template
 
 1. This paper addresses [problem] by proposing [method].
 2. The key idea is [core insight], which enables [main benefit].
-3. Experiments show [main gains] across [datasets/settings].
-4. A current limitation is [scope boundary], and extending to [future setting] is an important next step.
+3. Experiments show [main gains with numbers] on [datasets/settings].
+4. A natural next step is to extend [method] to [future setting].

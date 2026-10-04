@@ -312,6 +312,17 @@ def check_citations(f, rep):
                     "Long citation list ends the sentence: split it and cite each point where it is made")
 
 
+def sentence_spans(prose):
+    """The prose with abbreviation dots protected, and the (start, end) of each sentence, heading, or caption."""
+    protected = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", "\0"), prose)
+    bounds = [0]
+    for m in re.finditer(r"(?<=[.!?])[)}\]'\"]*\s+|\n[ \t]*\n|\\item\b|"
+                         r"\\(?:sub)*section\*?|\\paragraph\*?|\\caption", protected):
+        bounds.append(m.end())
+    bounds.append(len(protected))
+    return protected, list(zip(bounds, bounds[1:]))
+
+
 def check_prose(f, rep, max_words):
     for level, rule, msg, pat in PROSE_PATTERNS:
         for m in re.finditer(pat, f.prose, re.M):
@@ -328,13 +339,8 @@ def check_prose(f, rep, max_words):
                     f"{len(hits)} stacked adverbs (Notably/Furthermore/Moreover...) in one "
                     "paragraph: keep only real relations")
     # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3).
-    protected = ABBREVIATIONS.sub(lambda m: m.group(0).replace(".", "\0"), f.prose)
-    bounds = [0]
-    for m in re.finditer(r"(?<=[.!?])[)}\]'\"]*\s+|\n[ \t]*\n|\\item\b|"
-                         r"\\(?:sub)*section\*?|\\paragraph\*?|\\caption", protected):
-        bounds.append(m.end())
-    bounds.append(len(protected))
-    for a, b in zip(bounds, bounds[1:]):
+    protected, spans = sentence_spans(f.prose)
+    for a, b in spans:
         sent = protected[a:b]
         text = re.sub(r"\\[A-Za-z]+\*?", " ", sent)
         words = re.findall(r"[A-Za-z0-9]+(?:['\-][A-Za-z0-9]+)*", text)
@@ -407,6 +413,11 @@ SIGNIFICANCE = re.compile(r"\bp\s*(?:<|>|=|\\leq?|\\geq?|\\le\b|\\ge\b)|\bp-valu
                           r"\bstatistical(?:ly)?\s+significan\w*|\bsignificance\b|\bBonferroni\b|\bHolm\b", re.I)
 
 
+PROVENANCE = re.compile(r"\b(?:reported|quoted|copied|taken)\b[^.]{0,60}?\b(?:from|by|in)\s+(?:the\s+|their\s+)?"
+                        r"(?:own\s+|original\s+|respective\s+)?papers?\b|\bunder their own (?:protocols?|settings?)\b|"
+                        r"\b(?:reported|original) (?:numbers|results|values)\b", re.I)
+
+
 def caption_sentences(arg):
     """Sentences of a caption, as printed text."""
     text = re.sub(r"\\(?:cite[a-zA-Z]*|ref|eqref|autoref|[cC]ref)\*?(?:\s*\[[^\]]*\])*\s*\{[^}]*\}", "X", arg)
@@ -421,7 +432,7 @@ def states_conclusion(sentence):
     return not DESCRIPTION_START.match(sentence) and bool(CLAIM.search(sentence))
 
 
-def check_caption(f, rep, pos, arg, limit, results=True):
+def check_caption(f, rep, pos, arg, limit, results=True, kind="figure"):
     """A2.4: what it shows first, then (a)/(b), then at most 2 short sentences of conclusion; no filler."""
     sentences = caption_sentences(arg)
     if not sentences:
@@ -444,6 +455,9 @@ def check_caption(f, rep, pos, arg, limit, results=True):
     if SIGNIFICANCE.search(arg):
         rep.add(f, pos, WARN, "B4.5", "Significance details in a caption: move them to the Appendix and keep one "
                 "sentence in the text")
+    if kind == "table" and PROVENANCE.search(arg):
+        rep.add(f, pos, WARN, "A2.8", "The caption explains where numbers come from: put reported numbers in the main "
+                "comparison table, marked with a dagger and a one-line table note; never in a separate table")
     n = len(latex_words(arg))
     if n > limit:
         rep.add(f, pos, WARN, "A2.4", f"Caption has {n} words (> {limit}): keep what it shows, (a)/(b), and a short "
@@ -461,7 +475,7 @@ def check_floats(f, rep, plan=None):
         for c in caps:
             end = brace_end(body, c.end() - 1) or len(body)
             check_caption(f, rep, off + c.start(), body[c.end():end - 1],
-                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS, results=not diagram)
+                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS, results=not diagram, kind=env)
         for sub in re.finditer(SUBFLOATS, full, re.S):
             for c in re.finditer(r"\\caption(?:\[[^\]]*\])?\{", sub.group(0)):
                 end = brace_end(sub.group(0), c.end() - 1) or len(sub.group(0))
@@ -790,7 +804,7 @@ def check_structure(files, root, rep, min_figures=3):
     if n_fig < min_figures:
         rep.add_plain("(paper)", ERROR, "A2.7", f"The main text has {n_fig} figure(s): add at least {min_figures - n_fig} "
                       f"(e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message in the "
-                      "figure plan. Draw diagrams now; use a [TODO] placeholder where results are missing")
+                      "figure plan. Draw diagrams now, and run the experiments behind result figures ('% Experiment log:')")
     extra = []
     for name in sibling:  # a separate Supplementary document, e.g. supp.tex next to main.tex
         try:
@@ -843,7 +857,7 @@ def has_experiments(files):
 
 def check_closest_plan(files, rep, extra=()):
     """Experiments Planning: the closest-work plan covers every figure and table of each closest paper,
-    every reproduction exists in our paper (with [TODO] placeholders if its data is missing), and
+    every reproduction exists in our paper (its experiment run or logged in '% Experiment log:'), and
     every skip has a reason."""
     if not has_experiments(files):
         return
@@ -885,7 +899,7 @@ def check_closest_plan(files, rep, extra=()):
                             "analysis does not apply to our setting, or reproduce it")
                 elif NO_DATA.search(reason):
                     rep.add(src, at, ERROR, "Experiments", f"{what}: missing data is not a reason to skip. Create "
-                            "the figure or table now with [TODO] placeholders and list the experiment to run")
+                            "the figure or table now and run the experiment behind it ('% Experiment log:')")
                 continue
             labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
             if not labels:
@@ -894,7 +908,7 @@ def check_closest_plan(files, rep, extra=()):
             for label in labels:
                 if label not in float_labels:
                     rep.add(src, at, ERROR, "Experiments", f"{what} -> {label}: no figure or table has this label. "
-                            "Create it now, with [TODO] cells or a placeholder where data is missing")
+                            "Create it now and run the experiment behind it ('% Experiment log:')")
         elif head:
             paper = head.group("paper").strip()
             papers[paper_key(paper)] = (paper, int(head.group("nf")), int(head.group("nt")), at)
@@ -1097,7 +1111,12 @@ def float_bodies(docs):
     return out
 
 
-def check_latest_sota(files, rep, exp_spans, extra=()):
+SOTA_TABLE = re.compile(r"\b(?:SOTA|state[- ]of[- ]the[- ]art|main comparison)\b", re.I)
+PROTOCOL_REASON = re.compile(r"\b(?:protocols?|splits?|resolutions?|reported|numbers?|hardware|GPUs?|setups?|"
+                             r"budgets?)\b", re.I)
+
+
+def check_latest_sota(files, rep, exp_spans, extra=(), plan=None):
     """Experiments: the main comparison includes the latest state of the art, and the text discusses it."""
     if not has_experiments(files):
         return
@@ -1122,6 +1141,9 @@ def check_latest_sota(files, rep, exp_spans, extra=()):
             if len(reason.split()) < 3 or NO_DATA.search(reason) or re.search(r"\bcode\b", reason, re.I):
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{name}' is not compared, and the reason does not hold: if "
                         "it has results on your benchmark, use its reported numbers and mark them")
+            elif PROTOCOL_REASON.search(reason):
+                rep.add(f, m.start(), ERROR, "SOTA", f"A different protocol is no reason to leave out '{name}': put "
+                        "its reported numbers in the main comparison table, marked with a dagger and a one-line note")
             continue
         labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
         if not labels:
@@ -1131,11 +1153,18 @@ def check_latest_sota(files, rep, exp_spans, extra=()):
             if label not in bodies:
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' does not exist: add the comparison with '{name}'")
             elif not token.search(bodies[label]):
-                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it, with [TODO] cells "
-                        "if its numbers are missing")
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it. Run it, or "
+                        "quote its reported numbers marked \\dag")
+            if plan and label in plan and not SOTA_TABLE.search(plan[label][1]):
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' is not the main comparison table: put '{name}' in "
+                        "the SOTA comparison table, with reported numbers marked; never in a separate table")
         if not token.search(exp_text):
             rep.add(f, m.start(), ERROR, "SOTA", f"The Experiments text never discusses '{name}': say how ours "
                     "compares with it and why")
+    said = [s for s in re.split(r"(?<=[.!?])\s+", exp_text) if PROVENANCE.search(s)]
+    if len(said) >= 3:
+        rep.add_plain("(paper)", WARN, "A2.8", f"{len(said)} sentences in Experiments explain where numbers come "
+                      "from: one short clause is enough ('numbers marked with a dagger are from the original papers')")
 
 
 IMAGE_EXTS = (".pdf", ".png", ".jpg", ".jpeg", ".eps")
@@ -1203,6 +1232,247 @@ def check_figure_qa(files, root, rep, extra=()):
                                                                     else ""))
 
 
+STORY_HEAD = re.compile(r"^[ \t]*%[ \t]*Story\b[^:\n]*:[ \t]*$", re.I | re.M)
+STORY_LINE = re.compile(r"^\s*%\s*(Problem|Insight|Method|Claim\s+(C\d+)|Takeaway|Key term)\s*:\s*(\S.*?)\s*$", re.I)
+STORY_TAG = re.compile(r"\[(C\d+|Method|Insight|Problem|Takeaway)\]", re.I)
+STORY_SECTIONS = [("Introduction", r"Introduction"), ("Experiments", r"Experiment|Evaluation|Results"),
+                  ("Conclusion", r"Conclusion|Discussion")]
+
+
+def read_story(files):
+    """The '% Story:' block: {problem, insight, method, takeaway, key term, claims: {C1: ...}, file, pos}."""
+    for f in files:
+        m = STORY_HEAD.search(f.raw)
+        if not m:
+            continue
+        story = {"claims": {}, "file": f, "pos": m.start()}
+        for line in f.raw[m.end():].split("\n")[1:]:
+            if not line.lstrip().startswith("%"):
+                break
+            s = STORY_LINE.match(line)
+            if s and s.group(2):
+                story["claims"][s.group(2).upper()] = s.group(3)
+            elif s:
+                story[s.group(1).lower()] = s.group(3)
+        return story
+    return None
+
+
+def check_story(files, root, rep, story, plan):
+    """Core Workflow step 3: the story is written down, every figure and table supports one of its claims,
+    every claim has evidence, and the key term runs through the paper (references/story.md)."""
+    if story is None:
+        rep.add_plain("(paper)", ERROR, "Story", "No '% Story:' block: write the story first (problem, insight, "
+                      "method, claims, takeaway, key term) at the top of the main .tex file (references/story.md)")
+        return
+    f, pos = story["file"], story["pos"]
+    missing = [k for k in ("problem", "insight", "method", "takeaway", "key term") if not story.get(k)]
+    if missing:
+        rep.add(f, pos, ERROR, "Story", f"The story has no {', '.join(missing)}: add '% {missing[0].capitalize()}: ...'")
+    if not story["claims"]:
+        rep.add(f, pos, ERROR, "Story", "The story has no claims: add 2-4 '% Claim C1: ...' lines, each a checkable "
+                "result")
+    parts = {k: v for k, v in story.items() if k not in ("claims", "file", "pos")}
+    parts.update(story["claims"])
+    holes = [k for k, v in parts.items() if re.search(r"\[[^\]]+\]", v)]
+    if holes:
+        rep.add(f, pos, WARN, "Story", f"The story still has placeholders in: {', '.join(holes)}")
+    if plan:
+        main_labels = {l.strip() for text in split_main(files, root)[1]
+                       for m in re.finditer(r"\\begin\{(figure|table)\*?\}(.*?)\\end\{\1\*?\}", text, re.S)
+                       for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))}
+        evidence = {}
+        for label, (message, form, kinds) in plan.items():
+            tags = {t.upper() if t[0] in "cC" else t.capitalize() for t in STORY_TAG.findall(message)}
+            for tag in tags:
+                if tag.startswith("C") and tag not in story["claims"]:
+                    rep.add(f, pos, ERROR, "Story", f"The plan line of {label} cites claim {tag}, which the story "
+                            "does not have")
+                evidence.setdefault(tag, []).append(label)
+            if not tags and label in main_labels:
+                rep.add_plain("(paper)", WARN, "Story", f"The plan line of {label} names no story claim: tag it, e.g., "
+                              f"'% {label}: [C1] message -> form', or cut it")
+        for cid in story["claims"]:
+            if cid not in evidence:
+                rep.add(f, pos, ERROR, "Story", f"Claim {cid} has no figure or table as evidence: add one, or weaken "
+                        "or drop the claim")
+    term = story.get("key term")
+    if term and not re.search(r"\[[^\]]+\]", term):
+        pattern = re.compile(r"(?<![\w-])" + re.escape(term).replace(r"\ ", r"\s+") + r"(?:e?s)?(?![\w-])", re.I)
+        texts = {"abstract": [], **{name: [] for name, _ in STORY_SECTIONS}}
+        for g, a, b in main_parts(files, root):
+            for m in re.finditer(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", g.nonverbatim[:b], re.S):
+                texts["abstract"].append(g.prose[m.start(1):m.end(1)])
+            heads = [(m.start(), m.group(1)) for m in re.finditer(r"\\section\*?\{([^}]*)\}", g.clean[:b])]
+            for k, (s, title) in enumerate(heads):
+                e = heads[k + 1][0] if k + 1 < len(heads) else b
+                for name, pat in STORY_SECTIONS:
+                    if re.search(pat, title, re.I):
+                        texts[name].append(g.prose[s:e])
+        for name, chunks in texts.items():
+            if chunks and not any(pattern.search(c) for c in chunks):
+                rep.add_plain("(paper)", WARN, "Story", f"The {name if name == 'abstract' else name + ' section'} "
+                              f"never mentions the key term '{term}': tie it to the story")
+
+
+OURS_SUBJECT = r"\bours\b|\bour\s+(?:full\s+|final\s+)?(?:method|model|approach|framework|system|pipeline|network)\b"
+NEG_RESULT = re.compile(
+    r"\b(?:underperform\w*|lag(?:s|ged|ging)?\b|falls?\s+(?:short|behind)\b|fell\s+(?:short|behind)\b|"
+    r"trail(?:s|ed|ing)?\b|struggl\w*|fail(?:s|ed)?\b|loses?\s+to\b|lost\s+to\b|"
+    r"(?:is|are|was|were|remains?|stays?)\s+(?:\w+ly\s+|still\s+)?(?:worse|inferior|behind|slower|outperformed|"
+    r"beaten|surpassed)\b|performs?\s+(?:\w+ly\s+)?worse\b|"
+    r"(?:does|do|did)\s+not\s+(?:outperform|beat|surpass|improve|help|match)\b|"
+    r"(?:is|are)\s+(?:\w+ly\s+)?(?:limited|restricted)\s+to|"
+    r"(?:cannot|can't|could\s+not|(?:is|are)\s+unable\s+to)\s+(?:handle|outperform|beat|match|represent|model|"
+    r"capture|recover|reconstruct|generali[sz]e|scale|deal|cope|resolve|track|preserve|reach))\b"
+    r"(?!\s+(?:less|fewer)\b)", re.I)
+BEATS_OURS = re.compile(r"\b(?:outperform\w*|beats?|surpass\w*|exceeds?|(?:is|are)\s+(?:\w+ly\s+)?(?:better|"
+                        r"stronger|faster)\s+than)\s+(?:ours|our\s+(?:method|model|approach))\b", re.I)
+FAILURE_TALK = re.compile(r"\bfailure\s+(?:cases?|modes?|examples?)\b|\bnegative\s+results?\b", re.I)
+OTHER_SUBJECT = re.compile(r"\b(?:where|while|whereas|when|which|who|that|unlike|but|and|or|than|as|baselines?|"
+                           r"methods|prior|previous|existing|other|others|competitors?|they|their|its)\b|"
+                           r"(?-i:\b[A-Z][A-Za-z]*[A-Z0-9][\w-]*)", re.I)
+ABLATED = re.compile(r"\b(?:without|w/o|remov\w*|ablat\w*|variants?|disabl\w*|replac\w*|dropp\w*)\b", re.I)
+NEGATED = re.compile(r"(?:\b(?:not|never|rarely|seldom|nor|no\s+longer)|n't)\s+(?:\w+\s+)?$", re.I)
+NOBODY = re.compile(r"\b(?:no|none|neither|nor|not|never|nothing|cannot|fails?\s+to)\b", re.I)
+PREPOSITION = re.compile(r"\b(?:to|than|with|over|against|from|of|by|unlike|like|and|vs\.?|versus)\s*$", re.I)
+NEG_HEADING = re.compile(r"\\(?:(?:sub)*section|paragraph)\*?\s*\{([^{}]*\b(?:Failures?|Limitations?|Negative|"
+                         r"Shortcomings?|Weakness\w*)\b[^{}]*)\}", re.I)
+
+
+def ours_loses(sent, subject):
+    """The part of a sentence that says where ours loses or fails, or None."""
+    for m in re.finditer(subject, sent, re.I):
+        if PREPOSITION.search(sent[max(0, m.start() - 12):m.start()]):
+            continue
+        rest = sent[m.end():m.end() + 70]
+        n = NEG_RESULT.search(rest)
+        if not n or OTHER_SUBJECT.search(rest[:n.start()]) or re.search(r"[;:]", rest[:n.start()]):
+            continue
+        if not NEGATED.search(sent[:m.end() + n.start()]):
+            return sent[m.start():m.end() + n.end()]
+    b = BEATS_OURS.search(sent)
+    if b and not NOBODY.search(sent[max(0, b.start() - 40):b.start()]):
+        return b.group(0)
+    f = FAILURE_TALK.search(sent)
+    if f and re.search(subject + r"|\bwe\b", sent, re.I) and not re.search(r"\b(?:prior|baselines?|existing|"
+                                                                          r"previous|competing)\b", sent, re.I):
+        return f.group(0)
+    return None
+
+
+OUR_MACROS = r"ours|method|ourmethod|methodname|mname|oursname"
+
+
+def our_names(files, story):
+    """A regex for the ways the paper names our method: 'ours', the key term, the title's name, and its macro."""
+    names = {n for n in [(story or {}).get("key term", "").strip()] if n and "[" not in n}
+    for f in files:
+        t = re.search(r"\\title\s*(?:\[[^\]]*\])?\s*\{\s*([A-Z][\w-]{2,30})\s*:", f.whole)
+        if t:
+            names.add(t.group(1))
+        for m in re.finditer(r"\\(?:newcommand|renewcommand|def)\s*\{?\\(" + OUR_MACROS + r")\}?\s*(?:\[\d\])?\s*"
+                             r"\{(?:\\[a-z]+\s*\{)?([A-Z][\w-]{2,30})", f.whole):
+            names.add(m.group(2))
+    alts = [r"(?<![\w-])" + re.escape(n) + r"(?![\w-])" for n in sorted(names)]
+    return "|".join([OURS_SUBJECT, r"\\(?:" + OUR_MACROS + r")\b"] + alts)
+
+
+def check_selling(files, rep, story, rules):
+    """Principle 3 and B4.3: sell the story; never discuss where ours loses or fails."""
+    subject = our_names(files, story)
+    required = bool(re.search(r"limitation", rules.get("text") or "", re.I))
+    for f in files:
+        heads = [(m.start(), m.group(1)) for m in re.finditer(r"\\(?:(?:sub)*section|paragraph)\*?\s*\{([^{}]*)\}",
+                                                              f.nonverbatim)]
+        skip = []
+        for k, (pos, title) in enumerate(heads):
+            if not NEG_HEADING.match(f.nonverbatim, pos):
+                continue
+            if required and re.search(r"Limitation", title, re.I):
+                end = next((p for p, t in heads[k + 1:]), len(f.nonverbatim))
+                skip.append((pos, end))
+                continue
+            rep.add(f, pos, WARN, "B4.3", f"'{title.strip()}': cut it and sell the story (Principle 3). If the venue "
+                    "requires a limitations section, record that in '% Page limit:' and keep it to 2-3 sentences "
+                    "on scope and future work")
+        protected, spans = sentence_spans(f.prose)
+        for a, b in spans:
+            if any(x <= a < y for x, y in skip) or ABLATED.search(protected[a:b]):
+                continue
+            hit = ours_loses(protected[a:b].replace("\n", " "), subject)
+            if hit:
+                first = re.search(r"(?<![\\A-Za-z])[A-Za-z0-9]", protected[a:b])
+                rep.add(f, a + (first.start() if first else 0), ERROR, "B4.3", f"'{' '.join(hit.split())}': never "
+                        "discuss where ours loses or fails. Write about where it wins, and leave the numbers in the "
+                        "table (Principle 3)")
+
+
+EXP_HEAD = re.compile(r"^[ \t]*%[ \t]*Experiment log\b[^:\n]*:[ \t]*$", re.I | re.M)
+EXP_LINE = re.compile(r"^\s*%\s*(?P<id>E\d+)\b(?P<what>.*?)(?:->|\u2192)\s*(?P<target>.*?)\s*$", re.I)
+TODO_RESULT = re.compile(r"\[\s*TODO\b[^\]]*\]|\\TODO\b|\\todo\b|(?<![\w\\])TODO(?!\w)|\[\s*\.\.\s*\]"
+                         r"|(?<![\w\\])[Xx]{2,3}\.[Xx]{1,3}(?!\w)")
+RESULT_FILE = re.compile(r"[\w./~-]+\.(?:json|jsonl|csv|tsv|txt|log|out|npz|npy|pt|pkl|ya?ml|md|xlsx|h5)\b")
+
+
+def check_experiment_log(files, root, rep, extra=()):
+    """Run Missing Experiments: every [TODO] result is logged as running or blocked; done ones have result files."""
+    docs = list(files) + [g for g in extra if os.path.abspath(g.path) not in {os.path.abspath(f.path) for f in files}]
+    todo = {}
+    for f in docs:
+        for m in re.finditer(r"\\begin\{(figure|table)(\*?)\}(.*?)\\end\{\1\2\}", f.nonverbatim, re.S):
+            body = m.group(3)
+            images = re.findall(r"\\includegraphics\*?\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}", body)
+            if TODO_RESULT.search(body) or any(re.search(r"placeholder|todo", i, re.I) for i in images):
+                for l in re.findall(r"\\label\{([^}]*)\}", body):
+                    todo.setdefault(l.strip(), (f, m.start()))
+    log = {}
+    for f in docs:
+        h = EXP_HEAD.search(f.raw)
+        if not h:
+            continue
+        pos = f.raw.find("\n", h.start()) + 1 or len(f.raw)
+        for line in f.raw[pos:].split("\n"):
+            if not line.lstrip().startswith("%"):
+                break
+            e = EXP_LINE.match(line)
+            if e:
+                labels = [l for l in PLAN_LABEL.findall(e.group("target"))
+                          if not re.match(r"(?:done|running|blocked|todo)\b", l, re.I)]
+                status = re.search(r"\b(done|running|blocked)\b", e.group("target"), re.I)
+                log[e.group("id").upper()] = (f, pos, labels, status.group(1).lower() if status else None,
+                                              e.group("target"))
+            pos += len(line) + 1
+    covered = {}
+    for eid, (f, pos, labels, status, target) in log.items():
+        for l in labels:
+            covered.setdefault(l, []).append((eid, status))
+        if status is None:
+            rep.add(f, pos, ERROR, "Run", f"{eid} has no status: write 'done; <result file>', 'running; <log file>', or "
+                    "'blocked: <what is missing>; asked the user'")
+        elif status == "done":
+            paths = RESULT_FILE.findall(target)
+            if not any(os.path.isfile(p if os.path.isabs(p) else os.path.join(root, p)) for p in paths):
+                rep.add(f, pos, ERROR, "Run", f"{eid} is done but names no result file that exists: record where its "
+                        "numbers come from, e.g., 'done; results/views.json'")
+            for l in labels:
+                if l in todo:
+                    rep.add(f, pos, ERROR, "Run", f"{eid} is done, but {l} still has [TODO] results: fill them in from "
+                            "its result file")
+        elif status == "running":
+            rep.add(f, pos, WARN, "Run", f"{eid} is still running: fill in its results when it finishes")
+        else:
+            reason = re.split(r"blocked", target, maxsplit=1, flags=re.I)[1]
+            if len(re.findall(r"[A-Za-z]{2,}", reason)) < 4 or not re.search(r"\b(?:asked|user)\b", reason, re.I):
+                rep.add(f, pos, WARN, "Run", f"{eid} is blocked: say what is missing and ask the user for it "
+                        "('blocked: <what is missing>; asked the user')")
+    for label, (f, pos) in sorted(todo.items(), key=lambda kv: kv[1][1]):
+        if label not in covered:
+            rep.add(f, pos, ERROR, "Run", f"{label} still has [TODO] results: run the experiment and fill it in, or "
+                    "log it as running or blocked in '% Experiment log:' (references/experiments.md, Run Missing "
+                    "Experiments)")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1258,6 +1528,151 @@ def check_pdf(path, review, rep):
             rep.add_plain(path, ERROR, "A1.3", f"Review version: PDF metadata names an author ({m.group(1).strip()})")
 
 
+RULE_LINE = {key: re.compile(r"^[ \t]*%[ \t]*" + head + r"[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
+             for key, head in (("url", r"Venue rules"), ("pages", r"Page limit"), ("appendix", r"Appendix rules"))}
+SEPARATE = re.compile(r"\bseparate\b|\bown (?:pdf|file)\b|\bsupplementary (?:pdf|file|zip)\b", re.I)
+SAME_PDF = re.compile(r"\bsame (?:pdf|file|document)\b|\bafter the references\b|\bin the main (?:pdf|paper|file)\b", re.I)
+NO_LIMIT = re.compile(r"\bno (?:page )?limit\b|\bunlimited\b|\bnot limited\b", re.I)
+REFS_INCLUDED = re.compile(r"\b(?:including|includes?|counting|counts?)\s+(?:the\s+)?references\b|"
+                           r"\breferences\s+(?:included|count(?:ed)?|are counted|are included)\b", re.I)
+REFS_EXCLUDED = re.compile(r"\breferences\s+(?:excluded|not counted|do not count|are extra|extra)\b|"
+                           r"\bexcluding\s+(?:the\s+)?references\b|\bplus references\b", re.I)
+
+
+def read_venue_rules(files):
+    """The '% Venue rules:', '% Page limit:', and '% Appendix rules:' lines of the paper."""
+    rules = {}
+    for f in files:
+        for key, pat in RULE_LINE.items():
+            m = pat.search(f.raw)
+            if m and key not in rules:
+                rules[key] = m.group(1)
+    out = {"url": rules.get("url"), "page_limit": None, "refs_included": False, "place": None,
+           "appendix_limit": None, "after_refs": False, "appendix_text": rules.get("appendix"),
+           "text": " ".join(v for v in rules.values() if v)}
+    if rules.get("pages"):
+        m = re.search(r"(\d+)\s*(?:content\s+)?pages?", rules["pages"], re.I)
+        out["page_limit"] = int(m.group(1)) if m else None
+        out["refs_included"] = bool(REFS_INCLUDED.search(rules["pages"])) and not REFS_EXCLUDED.search(rules["pages"])
+    text = rules.get("appendix") or ""
+    if SEPARATE.search(text):
+        out["place"] = "separate"
+    elif SAME_PDF.search(text):
+        out["place"] = "same"
+    out["after_refs"] = bool(re.search(r"\bafter (?:the )?references\b", text, re.I))
+    m = re.search(r"(\d+)\s*pages?", text, re.I)
+    if m and not NO_LIMIT.search(text):
+        out["appendix_limit"] = int(m.group(1))
+    return out
+
+
+def check_venue_rules(files, root, rep, rules, supp):
+    """Execution Rules 1 and 2: the venue's rules are searched, recorded, and followed by the source."""
+    if not rules["url"] or not re.search(r"https?://", rules["url"]):
+        rep.add_plain("(paper)", ERROR, "Venue", "Venue rules not recorded: search the venue's call for papers or "
+                      "author guidelines, and record '% Venue rules: <URL>' at the top of the main .tex file "
+                      "(references/venue-rules.md)")
+    if rules["page_limit"] is None:
+        rep.add_plain("(paper)", ERROR, "Venue", "Page limit not recorded: add '% Page limit: <N> pages, references "
+                      "excluded' (or included), as the venue's guidelines state")
+    if not rules["appendix_text"]:
+        rep.add_plain("(paper)", ERROR, "Appendix", "Appendix rules not recorded: add '% Appendix rules: <same PDF "
+                      "after the references | separate PDF>; <page limit or no page limit>; <format>', as the venue's "
+                      "guidelines state")
+        return
+    if rules["place"] is None:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The Appendix rules do not say where the Appendix goes: write "
+                      "'same PDF after the references' or 'separate PDF'")
+        return
+    main = files[0]
+    inside = bool(re.search(r"\\appendix\b", main.clean)) or any(
+        APPENDIX_NAME.search(os.path.basename(f.path)) for f in files[1:])
+    if rules["place"] == "separate" and inside:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix as a separate file, but the main "
+                      "document contains it: move it to its own .tex file with the same template")
+    if rules["place"] == "same" and not inside:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix in the same PDF: put it in the main "
+                      "document after \\appendix")
+    if rules["place"] == "same" and rules["after_refs"]:
+        bib = re.search(r"\\(?:bibliography|printbibliography)\b", main.clean)
+        cut = re.search(r"\\appendix\b", main.clean)
+        if bib and cut and cut.start() < bib.start():
+            rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix after the references: move "
+                          "\\appendix and its sections after the bibliography")
+    if rules["place"] == "separate":
+        code = strip_comments(main.raw)
+        pkgs = {n.strip() for m in re.finditer(r"\\(?:documentclass|usepackage)\s*(?:\[[^\]]*\])?\s*\{([^}]*)\}", code)
+                for n in m.group(1).split(",")}
+        venue_pkgs = {n for n in pkgs if any(re.fullmatch(pat, n, re.I) for pat, _ in VENUE_TEMPLATES)}
+        for g in supp:
+            gcode = strip_comments(g.raw)
+            if venue_pkgs and not any(re.search(r"\{[^}]*\b" + re.escape(n) + r"\b[^}]*\}", gcode) for n in venue_pkgs):
+                rep.add_plain(os.path.relpath(g.path), WARN, "Appendix", "The supplementary file does not load the "
+                              f"venue template ({', '.join(sorted(venue_pkgs))}): use the same template")
+
+
+REF_HEADING = re.compile(r"^\s*(?:\d+\.?\s*)?(?:References|REFERENCES|Bibliography)\s*$")
+APPENDIX_HEADING = re.compile(r"^\s*(?:Appendix\b|APPENDIX\b|Supplementary Material\b|A\.?\s{1,4}[A-Z][a-z]+(?:\s+\w+){0,6}\s*$)")
+
+
+def pdf_pages(path):
+    """Page texts of a PDF, or None without pdftotext."""
+    if not shutil.which("pdftotext"):
+        return None
+    text = run(["pdftotext", "-layout", path, "-"])
+    if text is None:
+        return None
+    pages = text.split("\f")
+    return pages[:-1] if pages and not pages[-1].strip() else pages
+
+
+def check_page_limits(path, rep, rules, supp_pdf=None):
+    """A1.1 and Execution Rule 2: page counts of the main text and of the Appendix."""
+    pages = pdf_pages(path)
+    if pages is None:
+        rep.add_plain(path, WARN, "A1.1", "pdftotext not installed: page limits not checked; count the pages by hand")
+        return
+    ref_page, appendix_page = None, None
+    for i, page in enumerate(pages):
+        lines = page.splitlines()
+        for k, line in enumerate(lines):
+            if ref_page is None and REF_HEADING.match(line):
+                ref_page = i + 1 if len([l for l in lines[:k] if l.strip()]) > 5 else i
+            elif ref_page is not None and appendix_page is None and i + 1 > ref_page and APPENDIX_HEADING.match(line):
+                appendix_page = i + 1
+    limit = rules["page_limit"]
+    if limit:
+        if rules["refs_included"]:
+            main_last = (appendix_page - 1) if appendix_page else len(pages)
+        else:
+            main_last = ref_page
+        if main_last is None:
+            rep.add_plain(path, WARN, "A1.1", "Could not find the References heading in the PDF: count the main-text "
+                          "pages by hand")
+        elif main_last > limit:
+            rep.add_plain(path, ERROR, "A1.1", f"The main text runs to page {main_last}, over the {limit}-page limit: "
+                          "cut text, move details to the Appendix, or shrink floats; never squeeze the template")
+        elif main_last < limit:
+            rep.add_plain(path, WARN, "A1.1", f"The main text ends on page {main_last}, short of the {limit}-page "
+                          "limit: the main text must end exactly at the page limit")
+    if rules["appendix_limit"] and rules["place"] == "same":
+        if appendix_page:
+            n = len(pages) - appendix_page + 1
+            if n > rules["appendix_limit"]:
+                rep.add_plain(path, ERROR, "Appendix", f"The Appendix has {n} pages, over the venue's "
+                              f"{rules['appendix_limit']}-page limit: cut or condense it")
+        else:
+            rep.add_plain(path, WARN, "Appendix", "Could not find where the Appendix starts in the PDF: count its "
+                          "pages by hand")
+    if supp_pdf:
+        spages = pdf_pages(supp_pdf)
+        if spages is None:
+            rep.add_plain(supp_pdf, WARN, "Appendix", "pdftotext not installed: supplementary pages not counted")
+        elif rules["appendix_limit"] and len(spages) > rules["appendix_limit"]:
+            rep.add_plain(supp_pdf, ERROR, "Appendix", f"The supplementary PDF has {len(spages)} pages, over the "
+                          f"venue's {rules['appendix_limit']}-page limit: cut or condense it")
+
+
 VENUE_COMMENT = re.compile(r"^[ \t]*%[ \t]*Venue[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
 # Template packages and classes that name the venue (fullmatch, case-insensitive).
 VENUE_TEMPLATES = [
@@ -1288,25 +1703,29 @@ def check_venue(files, rep):
 
 def required_block(rep, venue, has_exp, min_figures):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
-    groups = [
-        ("Venue and template", lambda rule, msg: rule == "Venue"),
-        ("Appendix or Supplementary Material", lambda rule, msg: rule == "Appendix"),
-        ("Closest-work plan", lambda rule, msg: rule == "Experiments"),
-        ("Latest SOTA compared and discussed", lambda rule, msg: rule == "SOTA"),
-        (f"At least {min_figures} main-text figures; every figure and table in the plan",
+    groups = [  # (name, experiments only, matches a finding)
+        ("Venue, template, and page limit", False, lambda rule, msg: rule == "Venue" or (
+            rule == "A1.1" and "page" in msg and "limit" in msg)),
+        ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
+        ("Story written; every figure and table supports a claim; every claim has evidence", False,
+         lambda rule, msg: rule == "Story"),
+        ("Closest-work plan", True, lambda rule, msg: rule == "Experiments"),
+        ("Latest SOTA compared and discussed", True, lambda rule, msg: rule == "SOTA"),
+        (f"At least {min_figures} main-text figures; every figure and table in the plan", False,
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
-        ("Every image checked with figure_qa.py", lambda rule, msg: rule == "A2.9"),
-        ("Metrics explained and cited before the results", lambda rule, msg: rule == "A4.9")]
+        ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
+        ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
+        ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
-    for k, (name, match) in enumerate(groups, 1):
+    for k, (name, exp_only, match) in enumerate(groups, 1):
         hits = [i for i in items if match(i[3], i[4])]
         errors = [i for i in hits if i[2] == ERROR]
-        if k in (3, 4, 7) and not has_exp:
+        if exp_only and not has_exp:
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
-            if k == 3 and not head.startswith("No '%"):
+            if name == "Closest-work plan" and not head.startswith("No '%"):
                 head = f"{len(errors)} gap(s) in the plan"
             elif len(errors) > 1:
                 head += f" (+{len(errors) - 1} more)"
@@ -1325,12 +1744,13 @@ def main(argv=None):
     ap.add_argument("--bib", action="append", default=[], help=".bib file (default: from \\bibliography)")
     ap.add_argument("--log", help="LaTeX .log file from the latest compile")
     ap.add_argument("--pdf", help="compiled PDF")
+    ap.add_argument("--supp-pdf", help="compiled supplementary PDF, when the venue wants it as a separate file")
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
     ap.add_argument("--max-words", type=int, default=25, help="B2.1 sentence length limit (default 25)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
     ap.add_argument("--min-figures", type=int, default=3, help="A2.7 figures in the main text (default 3)")
     args = ap.parse_args(argv)
-    for p in args.tex + args.bib + [x for x in (args.log, args.pdf) if x]:
+    for p in args.tex + args.bib + [x for x in (args.log, args.pdf, args.supp_pdf) if x]:
         if not os.path.isfile(p):
             print(f"check_tex.py: no such file: {p}", file=sys.stderr)
             return 2
@@ -1371,15 +1791,23 @@ def main(argv=None):
     check_run_in_heads(files, root, rep)
     supp = [File(os.path.join(root, n)) for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
             and os.path.abspath(os.path.join(root, n)) not in {os.path.abspath(f.path) for f in files}]
-    check_latest_sota(files, rep, exp_spans, supp)
+    check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
+    check_story(files, root, rep, read_story(files), plan)
+    check_experiment_log(files, root, rep, supp)
     venue = check_venue(files, rep)
+    rules = read_venue_rules(files)
+    check_venue_rules(files, root, rep, rules, supp)
+    check_selling(files + supp, rep, read_story(files), rules)
     if args.review:
-        check_review(files, rep)
+        check_review(files + supp, rep)
     if args.log:
         check_log(args.log, rep)
     if args.pdf:
         check_pdf(args.pdf, args.review, rep)
+        check_page_limits(args.pdf, rep, rules, args.supp_pdf)
+    if args.supp_pdf:
+        check_pdf(args.supp_pdf, args.review, rep)
 
     order = {ERROR: 0, WARN: 1}
     for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3])):

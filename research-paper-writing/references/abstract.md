@@ -1,5 +1,7 @@
 # Abstract Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): the abstract tells the whole story in one or two sentences per part (problem, insight, method, strongest evidence).
+
 ## Goal
 
 Write a strong abstract by doing three things repeatedly:

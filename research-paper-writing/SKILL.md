@@ -4,31 +4,31 @@ description: Write or improve academic paper writing quality for ML/CV/NLP-style
 ---
 # Research Paper Writing
 
-Rewrite a research paper into a clear, reviewer-friendly draft: first-impression quality (figures, tables, layout), logical flow, and evidence-backed claims.
+Write a clear, reviewer-friendly paper: strong figures and tables, logical flow, and evidence-backed claims.
 
 ## Required in Every Paper
 
-These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: add the figure or table with `[TODO]` placeholders and list the experiment for the author.
+These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: create the figure or table, and run the experiment behind it (item 8).
 
-1. The venue is settled, recorded, and its template is in use (Execution Rule 1).
-2. The Appendix or Supplementary file exists from the start, holds the detailed content, and the main text references it (Execution Rule 2).
-3. The closest-work plan gives every figure and table of each closest paper a line, and each one is reproduced in our paper or skipped with a reason (Core Workflow step 2).
-4. The main comparison includes the latest state of the art, and the text discusses it (`references/experiments.md`).
-5. The main text has at least 3 figures, and every figure and table has its message and form in the figure plan (A2.1, A2.7).
-6. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
-7. Experiments explains and cites every metric before the first result (A4.9).
+1. The venue is settled, its rules are looked up and recorded, its template is in use, and the main text ends exactly at its page limit (Execution Rule 1).
+2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules (placement, page limit, format), holds the detailed content, and the main text references it (Execution Rule 2).
+3. The story is written down, every figure and table supports one of its claims, and every claim has evidence (Core Workflow step 3).
+4. The closest-work plan gives every figure and table of each closest paper a line, and each one is reproduced in our paper or skipped with a reason (Core Workflow step 2).
+5. The main comparison includes the latest state of the art, and the text discusses it (`references/experiments.md`).
+6. The main text has at least 3 figures, and every figure and table has its message and form in the figure plan (A2.1, A2.7).
+7. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
+8. Every needed result is run and filled in from its result file, or logged as running, or as blocked with the user asked (`% Experiment log:` in `references/experiments.md`).
+9. Experiments explains and cites every metric before the first result (A4.9).
 
 ## Core Workflow
 
 1. First, settle the target venue: if it is not settled, your first action is to ask the user with the ask-user tool (Execution Rule 1). Then create the Appendix or Supplementary file if it does not exist yet (Execution Rule 2).
 2. Whenever the paper has an Experiments section, write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`, "Experiment Planning").
-3. Clarify the paper story before sentence-level edits.
-4. Use section-specific guidance in `references/`.
-5. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
-6. Run reverse outlining after writing each section (`references/paragraph-clarity.md`).
-7. Check every major claim in Abstract/Introduction against experimental evidence.
-8. Run final-paper adversarial review with `references/paper-review.md`.
-9. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
+3. Before editing any section, find the story and record it as a `% Story:` block: problem, insight, method, claims, takeaway, key term (`references/story.md`). Tell the whole paper around it. Every section and paragraph advances it, and every figure and table supports one of its claims; the rest goes to the Appendix or is cut.
+4. Rewrite paragraph-by-paragraph with one message per paragraph. Follow the Writing Rules below in every sentence you write or edit, in every section, not only in a final pass.
+5. Run reverse outlining after writing each section (`references/paragraph-clarity.md`).
+6. Run final-paper adversarial review with `references/paper-review.md`.
+7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, also run one reviewer per aspect in parallel, and give each reviewer the absolute paths of this file and of `scripts/check_tex.py`:
    - references: every entry exists, and its title, authors, and venue match the real paper (no hallucinated citations);
    - wording and format: every Writing Rule, reported rule by rule;
    - template compliance when the venue is known: page limit, anonymity, Appendix/Supplementary rules.
@@ -36,20 +36,17 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 ## Principles
 
 1. One message per paragraph, stated in its first sentence; define terms before reusing them, and link each sentence to the last.
-2. Outline before drafting. In each subsection, state the motivation, the design, and the technical advantage; never write it as a patch on a naive baseline.
-3. Sell the paper: state what our method brings over prior work, back every selling point with evidence, and weaken or remove any claim the results do not support.
-4. Visual quality is core content: a clean teaser and pipeline figure, readable minimal-ink tables, and consistent formatting.
-5. Read as a skeptical reviewer: before finalizing, answer the five-dimension self-review of `references/paper-review.md`, and revise for every unresolved item.
-6. Load only the section guide for the current edit target; the Writing Rules apply to every edit.
+2. Outline before drafting; in each subsection, state the motivation, the design, and the technical advantage.
+3. Sell the story: lead with what ours brings. Back it with every result that supports it, even a few cases or one subset, and scope each claim to where it holds (`references/story.md`). Never discuss where ours loses; never invent numbers or drop table rows.
 
 ## Writing Rules (Apply to Every Edit)
 
-Apply these rules whenever you write or edit text, in any section. The examples in `references/examples/` are quoted from published papers: reuse their logic, never their wording; where they conflict with these rules, these rules win.
+The examples in `references/examples/` are quoted from published papers: reuse their logic, never their wording; where they conflict with these rules, these rules win.
 
 ### Do Not Violate
 
 1. Preserve meaning: never change numbers, equations, citation keys, labels, or the scope of a claim.
-2. Never invent claims or numbers; leave `[TODO: number]` instead.
+2. Never invent claims or numbers; run the experiment, and leave `[TODO: number]` only until it finishes.
 3. Do not rewrite clear sentences for variety, and never introduce the patterns in B3.
 
 ### A. Typesetting
@@ -71,8 +68,8 @@ Apply these rules whenever you write or edit text, in any section. The examples 
 4. Captions: first what it shows ("Qualitative comparison on D-NeRF."), then what each part shows ("(a) ... (b) ..."), then the conclusion in at most 2 short sentences; within 50 words, or 80 for a teaser or pipeline figure. No formatting notes ("best in bold"), no significance details. Titles inside a figure and subfigure captions name what is shown, never the conclusion. Figure captions go below, table captions above.
 5. Except for the teaser, place a figure, table, or algorithm right after the paragraph that introduces it, in the same (sub)section: `flafter`, and `\FloatBarrier` (`placeins`) before the next (sub)section. If the barrier leaves white space (A1.6), move the source earlier or resize the float.
 6. Read `references/figure-table-styles.md` before making or restyling a figure, and `references/table-types.md` before a table. Pick the form or table type for its message, add it to the figure plan, and use one style scheme for all of them. If the user has not chosen a scheme, ask with the ask-user tool.
-7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message (A2.1). If there are fewer, plan and create the missing ones now: draw diagrams yourself, and use a `[TODO]` placeholder where results are missing. Use one form (e.g., line plots) for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
-8. Tables: pick the type that fits the comparison (SOTA comparison, plug-in, ablation, efficiency, ...). One protocol for all rows, every method cited in its row, numbers you did not run marked, and the latest state of the art included.
+7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message (A2.1). If there are fewer, plan and create the missing ones now: draw diagrams yourself, and run the experiments behind result figures. Use one form (e.g., line plots) for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
+8. Tables: pick the type that fits the comparison (SOTA comparison, plug-in, ablation, efficiency, ...). Run every method you can under one protocol, cite every method in its row, and include the latest state of the art. Numbers you could not run go in the same table, marked † with a one-line note; never in a separate table.
 9. Draw each figure at its printed width, export it to PDF, and run `python3 <this skill's directory>/scripts/figure_qa.py` on the script that draws it, or on the file. Fix every overlap, cut-off, size, and white-space problem it reports, then look at the preview it writes. Repeat after every change; `check_tex.py` reports any image not checked since its last change.
 
 #### A3. Math
@@ -107,7 +104,7 @@ One concept, one term: never alternate `module / block / component` for the same
 
 #### B3. Sentence Patterns Overused by LLMs
 
-LLMs overuse these patterns (Reinhart et al., arXiv:2410.16107). Never introduce them, and fix every instance in the author's text.
+LLMs overuse these patterns (Reinhart et al., arXiv:2410.16107): never introduce them, and fix every instance.
 
 1. Trailing participle: "..., highlighting / enabling / paving the way for ..." -> state the concrete consequence, or delete it.
 2. Negate-then-correct: "not merely A, but B", "not only A but also B", or "It is A, not B" -> state B, or write "A and B".
@@ -121,49 +118,46 @@ LLMs overuse these patterns (Reinhart et al., arXiv:2410.16107). Never introduce
 
 1. Opening: no clichés such as "With the rapid development of deep learning, ..." or "The community has ..."; start from the task and its concrete difficulty.
 2. Contributions: parallel, concrete, and each checkable against an experiment.
-3. Results: every result sentence names metric, dataset, baseline, and magnitude.
+3. Results: every result sentence names metric, dataset, baseline, and magnitude. Write where ours wins, never where it loses or fails (Principle 3).
 4. Related Work: specific and fair ("does not model X"), never dismissive.
 5. Statistical significance: one sentence in the main text, e.g., the standard deviation over runs, or "Appendix C reports the tests; all gains are significant". Details go to the Appendix, never into captions; main tables show at most mean ± std.
 6. Bold run-in headings (`\paragraph`, an opening `\textbf`): use them sparingly, only where the reader needs to find a part again; never on every paragraph, least of all in Method.
 
 ### Checking the Writing Rules
 
-1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex` (use `python` if `python3` is missing). It follows `\input` / `\include` and finds the `.bib`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks. Re-run until it reports 0 errors.
+1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex` (or `python`). Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks. Re-run until it reports 0 errors.
 2. After drawing or changing a figure, run `scripts/figure_qa.py` (A2.9) before rerunning the checker.
 3. The script cannot check A1.1, A1.2, A1.6, A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
-4. After compiling (Execution Rule 3), re-run it with `--log main.log --pdf main.pdf` (and `--review` for the anonymous version) to check references, overfull boxes, fonts, and anonymity. Then render the pages (`pdftoppm -r 60 -png main.pdf page`) and look at the page limit, short last lines, white space, and float positions (A1.1, A1.2, A1.6, A2.5).
+4. After compiling (Execution Rule 3), re-run it with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits. Then render the pages (`pdftoppm -r 60 -png main.pdf page`) and look at the page limit, short last lines, white space, and float positions (A1.1, A1.2, A1.6, A2.5).
 5. If a check cannot run (no Python, TeX, or PDF tools), report its rules as "not checked" with the reason; never report them as passed.
 
 ## Section Guides
 
-Load only the file you need, from `references/`:
-
-- Sections: `introduction.md`, `abstract.md`, `related-work.md`, `method.md`, `experiments.md`, `conclusion.md`, and `preliminary.md` (optional: for a technique uncommon in the field, or a formal task definition).
-- Figures (form, caption, QA, style; read before making any): `figure-table-styles.md`. Tables (types, templates; read before making any): `table-types.md`.
-- Paper review: `paper-review.md`. Paragraph clarity and reverse outlining (when asked whether a paragraph flows, and after each section): `paragraph-clarity.md`. Examples: `examples/index.md`.
+In `references/`, load what the task needs; the Writing Rules apply to every edit regardless. Sections: `introduction.md`, `abstract.md`, `related-work.md`, `method.md`, `experiments.md`, `conclusion.md`, `preliminary.md`. Also `story.md` (read first), `figure-table-styles.md` and `table-types.md` (read before any figure or table), `venue-rules.md`, `paper-review.md`, `paragraph-clarity.md` (reverse outlining), and `examples/index.md`.
 
 ## Execution Rules
 
 1. First, before any other work, settle the target venue and its template:
-   - Determine the venue from the user's request or the LaTeX preamble (e.g., `\usepackage[review]{cvpr}`, `\usepackage{neurips_2025}`). Unless the template package names it, record it at the top of the main `.tex` file, e.g., `% Venue: CVPR 2027`. If it is still unknown, do not guess. Your first action is then to ask which venue to submit to with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues in the field (e.g., CVPR / ICCV / ECCV, NeurIPS / ICML / ICLR, ACL / EMNLP / NAACL). Without such a tool, ask in plain text and wait.
+   - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, do not guess: ask with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues in the field; without such a tool, ask in plain text and wait.
+   - Look up this year's author guidelines, and record the page limit and the Appendix rules with their source (`references/venue-rules.md`).
    - If the project lacks the venue's template, search the web for its latest official author kit, download it into the project, and use it. If that fails, ask the user for the template URL or files.
    - The main text must end exactly at the template's page limit: neither short of it nor over it.
-2. Create the Appendix or Supplementary Material at the start, following the template: check which name it uses and whether it goes in the same file or a separate one. Move overly detailed or redundant content there (implementation details, per-scene results, more qualitative results, proofs, reproduced closest-work analyses that do not fit), and reference its important parts from the main text.
-3. Compile with `pdflatex`, `bibtex`, and `pdflatex` twice, installing TeX Live or MiKTeX if it is missing. After each major revision, check the PDF and log (Checking the Writing Rules, step 4).
+2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules: its name, the same PDF after the references or a separate file, its page limit, and its format. Check the compiled PDF against them, and fix any violation (`references/venue-rules.md`). Move detailed or redundant content there (implementation details, per-scene and extra qualitative results, proofs), and reference its important parts from the main text.
+3. Compile (`pdflatex`, `bibtex`, then `pdflatex` twice), installing TeX Live or MiKTeX if missing, and check the PDF after each major revision (Checking the Writing Rules, step 4).
 
 ## Output Contract
 
 When asked to rewrite or draft sections, return:
 
 1. A section outline (3-7 bullets).
-2. The revised paragraphs, each labeled with its role (opening, challenge, method, advantage, evidence, limitation).
+2. The revised paragraphs, each labeled with its role (opening, challenge, method, advantage, evidence).
 3. A short self-review: clarity, flow, terminology, unsupported claims, missing evidence.
-4. A claim-evidence map: `Claim: ... | Evidence: ... | Status: supported/needs evidence`.
+4. A claim-evidence map of the story's claims: `Claim: ... | Evidence: ... | Status: supported/needs evidence`.
 
 After any edit, including a final polish, also return:
 
 5. The checker's "Required in Every Paper" list, copied as printed, its final summary line, and a one-line justification for each remaining `WARN`.
-6. A Writing Rules report with one line per group (A1-A4, B1-B4) giving each rule's status, e.g., `A4: 1 fixed, 2 pass, ..., 8 not checked (6 entries in the .bib)`. A status is pass, fixed, or not checked (with the reason); never mark a rule pass without checking it.
-7. For a final polish: a short change log with one example per type of change, and the `[TODO]` items that need the author.
-8. A setup line: the venue and template, the path of the Appendix or Supplementary file, and, when Experiments, figures, or tables were touched, the closest-work plan and the latest-SOTA line with the status of each item.
+6. A Writing Rules report with one line per group (A1-A4, B1-B4) giving each rule's status, e.g., `A4: 1 fixed, 2 pass, ..., 8 not checked (6 .bib entries)`. A status is pass, fixed, or not checked (with the reason); never mark a rule pass without checking it.
+7. For a final polish: a short change log with one example per type of change. Always: the experiments still running or blocked, and what you need from the user.
+8. A setup line: the story in one sentence, the venue and template, and the path of the Appendix or Supplementary file. When Experiments, figures, or tables were touched, add the closest-work plan and the latest-SOTA line with the status of each item.
 9. For each figure or table you created or changed, its figure-plan line (e.g., `fig:noise: ours degrades least as noise grows -> lines over noise level`) and, for a figure, its `figure_qa.py` result.

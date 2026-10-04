@@ -59,7 +59,7 @@ Use each question to trigger concrete edits before submission.
 1. Are improvements over strong baselines meaningful, not just statistically tiny?
 2. Is absolute performance competitive enough for the target venue?
 3. Are gains consistent across multiple datasets/settings/metrics?
-4. Do we report both strengths and failure cases honestly?
+4. Does every claim name the data or setting where it holds, so no reviewer can call it overclaimed?
 
 ### 4. Evaluation Completeness
 

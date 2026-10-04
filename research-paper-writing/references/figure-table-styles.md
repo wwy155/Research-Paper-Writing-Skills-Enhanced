@@ -40,16 +40,16 @@ Keep one line per figure and per table at the top of the main `.tex` file, under
 ```latex
 % Figure and table scheme: clean
 % Figure plan (label: message -> form):
-% fig:teaser: ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
-% fig:pipeline: how the method works -> pipeline diagram
-% fig:qualitative: ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
-% fig:views: our lead grows as the input views get sparser -> lines over the number of views
-% fig:per_class: the gain comes from thin categories -> sorted gain bars
-% tab:main: ours has the best PSNR on both datasets -> SOTA comparison table
-% tab:ablation: each module helps; the deformation module the most -> ablation table
+% fig:teaser: [C1] ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
+% fig:pipeline: [Method] how the method works -> pipeline diagram
+% fig:qualitative: [C2] ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
+% fig:views: [C3] our lead grows as the input views get sparser -> lines over the number of views
+% fig:per_class: [C2] the gain comes from thin categories -> sorted gain bars
+% tab:main: [C1] ours has the best PSNR on both datasets -> SOTA comparison table
+% tab:ablation: [C4] each module helps; the deformation module the most -> ablation table
 ```
 
-Name the form with one of these words, so the checker can count it: teaser, diagram, qualitative grid, scatter, lines, bars, cumulative curve, map, or table. Synonyms also work: pipeline, curves, histogram, box plot. For a table, name its type from `references/table-types.md`, e.g., SOTA comparison table or plug-in table. A figure whose panels use different forms names each, e.g., `lines over noise; sorted gain bars`.
+Start each message with the story claim it supports, e.g., `[C1]`, or `[Method]` or `[Insight]` for a pipeline diagram or a basic-idea teaser (`references/story.md`). Name the form with one of these words, so the checker can count it: teaser, diagram, qualitative grid, scatter, lines, bars, cumulative curve, map, or table. Synonyms also work: pipeline, curves, histogram, box plot. For a table, name its type from `references/table-types.md`, e.g., SOTA comparison table or plug-in table. A figure whose panels use different forms names each, e.g., `lines over noise; sorted gain bars`.
 
 ### Vary the Forms
 
