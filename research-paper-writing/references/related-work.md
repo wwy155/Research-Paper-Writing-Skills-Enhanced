@@ -1,5 +1,7 @@
 # Related Work Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): group prior work by what it lacks relative to the story's insight, and end each topic with how ours differs.
+
 ## Goal
 
 Position your work against the most relevant lines of research, and make your novelty easy to verify.

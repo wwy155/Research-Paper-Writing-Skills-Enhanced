@@ -3,8 +3,8 @@
 Read this file before you create or restyle any table (Writing Rule A2.8 in `SKILL.md`). A table supports one comparison. First write that comparison as one sentence. Then pick the type below that shows it, and add the table to the figure plan with its type:
 
 ```latex
-% tab:main: ours has the best PSNR on both datasets -> SOTA comparison table
-% tab:plugin: our module helps every detector it is added to -> plug-in table
+% tab:main: [C1] ours has the best PSNR on both datasets -> SOTA comparison table
+% tab:plugin: [C2] our module helps every detector it is added to -> plug-in table
 ```
 
 Style every table with the chosen scheme (`references/figure-table-styles.md`).

@@ -1,6 +1,6 @@
 # Paragraph Clarity Check
 
-Use this quick test whenever the user asks whether a paragraph "flows" or is clear, and for the reverse outlining after each section (Core Workflow step 6 in `SKILL.md`).
+Use this quick test whenever the user asks whether a paragraph "flows" or is clear, and for the reverse outlining after each section (Core Workflow step 5 in `SKILL.md`).
 
 1. Read as an external reader:
    - Does this paragraph have one explicit message?

@@ -1,5 +1,7 @@
 # Method Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): motivate every module by the story's problem, and show how it realizes the insight. Cut or move to the Appendix what serves neither.
+
 ## Goal
 
 Write the Method section clearly by following this sequence:

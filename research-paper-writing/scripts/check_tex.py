@@ -1226,6 +1226,89 @@ def check_figure_qa(files, root, rep, extra=()):
                                                                     else ""))
 
 
+STORY_HEAD = re.compile(r"^[ \t]*%[ \t]*Story\b[^:\n]*:[ \t]*$", re.I | re.M)
+STORY_LINE = re.compile(r"^\s*%\s*(Problem|Insight|Method|Claim\s+(C\d+)|Takeaway|Key term)\s*:\s*(\S.*?)\s*$", re.I)
+STORY_TAG = re.compile(r"\[(C\d+|Method|Insight|Problem|Takeaway)\]", re.I)
+STORY_SECTIONS = [("Introduction", r"Introduction"), ("Experiments", r"Experiment|Evaluation|Results"),
+                  ("Conclusion", r"Conclusion|Discussion")]
+
+
+def read_story(files):
+    """The '% Story:' block: {problem, insight, method, takeaway, key term, claims: {C1: ...}, file, pos}."""
+    for f in files:
+        m = STORY_HEAD.search(f.raw)
+        if not m:
+            continue
+        story = {"claims": {}, "file": f, "pos": m.start()}
+        for line in f.raw[m.end():].split("\n")[1:]:
+            if not line.lstrip().startswith("%"):
+                break
+            s = STORY_LINE.match(line)
+            if s and s.group(2):
+                story["claims"][s.group(2).upper()] = s.group(3)
+            elif s:
+                story[s.group(1).lower()] = s.group(3)
+        return story
+    return None
+
+
+def check_story(files, root, rep, story, plan):
+    """Core Workflow step 3: the story is written down, every figure and table supports one of its claims,
+    every claim has evidence, and the key term runs through the paper (references/story.md)."""
+    if story is None:
+        rep.add_plain("(paper)", ERROR, "Story", "No '% Story:' block: write the story first (problem, insight, "
+                      "method, claims, takeaway, key term) at the top of the main .tex file (references/story.md)")
+        return
+    f, pos = story["file"], story["pos"]
+    missing = [k for k in ("problem", "insight", "method", "takeaway", "key term") if not story.get(k)]
+    if missing:
+        rep.add(f, pos, ERROR, "Story", f"The story has no {', '.join(missing)}: add '% {missing[0].capitalize()}: ...'")
+    if not story["claims"]:
+        rep.add(f, pos, ERROR, "Story", "The story has no claims: add 2-4 '% Claim C1: ...' lines, each a checkable "
+                "result")
+    parts = {k: v for k, v in story.items() if k not in ("claims", "file", "pos")}
+    parts.update(story["claims"])
+    holes = [k for k, v in parts.items() if re.search(r"\[[^\]]+\]", v)]
+    if holes:
+        rep.add(f, pos, WARN, "Story", f"The story still has placeholders in: {', '.join(holes)}")
+    if plan:
+        main_labels = {l.strip() for text in split_main(files, root)[1]
+                       for m in re.finditer(r"\\begin\{(figure|table)\*?\}(.*?)\\end\{\1\*?\}", text, re.S)
+                       for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))}
+        evidence = {}
+        for label, (message, form, kinds) in plan.items():
+            tags = {t.upper() if t[0] in "cC" else t.capitalize() for t in STORY_TAG.findall(message)}
+            for tag in tags:
+                if tag.startswith("C") and tag not in story["claims"]:
+                    rep.add(f, pos, ERROR, "Story", f"The plan line of {label} cites claim {tag}, which the story "
+                            "does not have")
+                evidence.setdefault(tag, []).append(label)
+            if not tags and label in main_labels:
+                rep.add_plain("(paper)", WARN, "Story", f"The plan line of {label} names no story claim: tag it, e.g., "
+                              f"'% {label}: [C1] message -> form', or cut it")
+        for cid in story["claims"]:
+            if cid not in evidence:
+                rep.add(f, pos, ERROR, "Story", f"Claim {cid} has no figure or table as evidence: add one, or weaken "
+                        "or drop the claim")
+    term = story.get("key term")
+    if term and not re.search(r"\[[^\]]+\]", term):
+        pattern = re.compile(r"(?<![\w-])" + re.escape(term).replace(r"\ ", r"\s+") + r"(?:e?s)?(?![\w-])", re.I)
+        texts = {"abstract": [], **{name: [] for name, _ in STORY_SECTIONS}}
+        for g, a, b in main_parts(files, root):
+            for m in re.finditer(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", g.nonverbatim[:b], re.S):
+                texts["abstract"].append(g.prose[m.start(1):m.end(1)])
+            heads = [(m.start(), m.group(1)) for m in re.finditer(r"\\section\*?\{([^}]*)\}", g.clean[:b])]
+            for k, (s, title) in enumerate(heads):
+                e = heads[k + 1][0] if k + 1 < len(heads) else b
+                for name, pat in STORY_SECTIONS:
+                    if re.search(pat, title, re.I):
+                        texts[name].append(g.prose[s:e])
+        for name, chunks in texts.items():
+            if chunks and not any(pattern.search(c) for c in chunks):
+                rep.add_plain("(paper)", WARN, "Story", f"The {name if name == 'abstract' else name + ' section'} "
+                              f"never mentions the key term '{term}': tie it to the story")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1455,26 +1538,28 @@ def check_venue(files, rep):
 
 def required_block(rep, venue, has_exp, min_figures):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
-    groups = [
-        ("Venue, template, and page limit", lambda rule, msg: rule == "Venue" or (rule == "A1.1" and "page" in msg
-                                                                                   and "limit" in msg)),
-        ("Appendix, following the venue's rules", lambda rule, msg: rule == "Appendix"),
-        ("Closest-work plan", lambda rule, msg: rule == "Experiments"),
-        ("Latest SOTA compared and discussed", lambda rule, msg: rule == "SOTA"),
-        (f"At least {min_figures} main-text figures; every figure and table in the plan",
+    groups = [  # (name, experiments only, matches a finding)
+        ("Venue, template, and page limit", False, lambda rule, msg: rule == "Venue" or (
+            rule == "A1.1" and "page" in msg and "limit" in msg)),
+        ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
+        ("Story written; every figure and table supports a claim; every claim has evidence", False,
+         lambda rule, msg: rule == "Story"),
+        ("Closest-work plan", True, lambda rule, msg: rule == "Experiments"),
+        ("Latest SOTA compared and discussed", True, lambda rule, msg: rule == "SOTA"),
+        (f"At least {min_figures} main-text figures; every figure and table in the plan", False,
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
-        ("Every image checked with figure_qa.py", lambda rule, msg: rule == "A2.9"),
-        ("Metrics explained and cited before the results", lambda rule, msg: rule == "A4.9")]
+        ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
+        ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
-    for k, (name, match) in enumerate(groups, 1):
+    for k, (name, exp_only, match) in enumerate(groups, 1):
         hits = [i for i in items if match(i[3], i[4])]
         errors = [i for i in hits if i[2] == ERROR]
-        if k in (3, 4, 7) and not has_exp:
+        if exp_only and not has_exp:
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
-            if k == 3 and not head.startswith("No '%"):
+            if name == "Closest-work plan" and not head.startswith("No '%"):
                 head = f"{len(errors)} gap(s) in the plan"
             elif len(errors) > 1:
                 head += f" (+{len(errors) - 1} more)"
@@ -1542,6 +1627,7 @@ def main(argv=None):
             and os.path.abspath(os.path.join(root, n)) not in {os.path.abspath(f.path) for f in files}]
     check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
+    check_story(files, root, rep, read_story(files), plan)
     venue = check_venue(files, rep)
     rules = read_venue_rules(files)
     check_venue_rules(files, root, rep, rules, supp)

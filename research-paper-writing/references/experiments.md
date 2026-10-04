@@ -1,5 +1,7 @@
 # Experiments Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): the Experiments test the story's claims in turn. Every figure and table names its claim in the figure plan (`[C1]`), and the text says what each result means for the story.
+
 ## Goal
 
 Convince reviewers with complete evidence on effectiveness, causality, and practical value.

@@ -1,5 +1,7 @@
 # Conclusion Writing Guide
 
+Start from the `% Story:` block (`references/story.md`): restate the problem, the insight, and the takeaway, then the limits of the story's scope.
+
 ## Goal
 
 Close the paper with clear takeaways and credible limitations.
