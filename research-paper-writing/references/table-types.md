@@ -7,7 +7,7 @@ Read this file before you create or restyle any table (Writing Rule A2.8 in `SKI
 % tab:plugin: [C2] our module helps every detector it is added to -> plug-in table
 ```
 
-Style every table with the chosen scheme (`references/figure-table-styles.md`).
+Lay out each table as the style references do (`references/style-references.md`): their columns, grouping, metric arrows, decimals, and marks for the best results. Use the templates below for what they leave open, and style every table with the chosen scheme (`references/figure-table-styles.md`).
 
 ## Pick the Type
 

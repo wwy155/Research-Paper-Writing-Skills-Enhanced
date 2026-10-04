@@ -5,6 +5,7 @@ After every compile, render the pages and look at them:
 
     python3 page_qa.py main.pdf                       # checks the pages and writes sheets to look at
     python3 page_qa.py main.pdf --confirm K7QF H3XA    # after viewing: the code printed on each sheet
+    python3 page_qa.py --reference refs/paperA.pdf     # a style-reference paper: sheets to study, no checks
 
 It reports:
   ERROR  a blank band of 60 pt (5 lines) or more inside a column; a column that starts or ends
@@ -527,7 +528,7 @@ def code_hash(code, salt):
     return hashlib.sha256((salt + code.strip().upper()).encode()).hexdigest()
 
 
-def write_sheets(pdf, pages, marks):
+def write_sheets(pdf, pages, marks, kind="Sheet"):
     """Sheets of up to 4 pages with the problems boxed and a code on each; returns their records."""
     import matplotlib
     matplotlib.use("Agg")
@@ -568,7 +569,7 @@ def write_sheets(pdf, pages, marks):
         salt = secrets.token_hex(8)
         first, last = group[0] + 1, group[-1] + 1
         label = f"pages {first}-{last}" if last > first else f"page {first}"
-        ax.text(pad, head / 2, f"Sheet {s // 4 + 1}, {label}", fontsize=22 * 100 / 72, va="center", ha="left")
+        ax.text(pad, head / 2, f"{kind} {s // 4 + 1}, {label}", fontsize=22 * 100 / 72, va="center", ha="left")
         ax.text(W - pad, head / 2, f"code {code}", fontsize=26 * 100 / 72, va="center", ha="right",
                 family="monospace", weight="bold",
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="#fff2b3", edgecolor="black"))
@@ -597,10 +598,37 @@ def report(pdf, issues, entry):
     return errors
 
 
+def reference(pdf, rec):
+    """Sheets of a style-reference paper's main pages (up to its references, at most 16) to study."""
+    pages, _ = render(pdf)
+    if not pages:
+        print(f"{os.path.relpath(pdf)}: no renderer: pip install pymupdf (or install poppler-utils)")
+        return 1
+    texts, _ = page_layout(pdf, len(pages))
+    refs_page = parts(texts, len(pages))[1]
+    keep = pages[:min(len(pages) if refs_page is None else refs_page + 1, 16)]
+    sheets = write_sheets(pdf, keep, [[] for _ in keep], kind="Reference sheet")
+    rec[os.path.basename(pdf)] = {"sha1": sha1(pdf), "pages": len(keep), "issues": [], "sheets": sheets,
+                                  "viewed": None, "tool": TOOL, "kind": "reference",
+                                  "checked": datetime.datetime.now().isoformat(timespec="seconds")}
+    save_record(pdf, rec)
+    me = os.path.relpath(__file__)
+    me = os.path.abspath(__file__) if me.startswith("..") else me
+    print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on {len(sheets)} sheet(s). Open every sheet and study how "
+          "this paper writes and draws: its section structure, which figures it has and their layouts, colors, "
+          "fonts, and line widths, and its table layouts:")
+    for s in sheets:
+        print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), s['path']))}")
+    print(f"Then run python3 {me} {os.path.relpath(pdf)} --confirm <the code on each sheet>")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", nargs="+", help="compiled PDF(s): the paper, and a separate supplementary file if any")
     ap.add_argument("--confirm", nargs="+", metavar="CODE", help="the code printed on each sheet you viewed")
+    ap.add_argument("--reference", action="store_true", help="a style-reference paper: write sheets of its main "
+                    "pages to study, without the layout checks")
     args = ap.parse_args(argv)
     for pdf in args.pdf:
         if not os.path.isfile(pdf):
@@ -636,10 +664,13 @@ def main(argv=None):
             print(f"{os.path.relpath(pdf)}: unchanged since you viewed it on {old['viewed']}")
             errors += report(pdf, [tuple(i) for i in old.get("issues", [])], old)
             continue
+        if args.reference:
+            errors += reference(pdf, rec)
+            continue
         pages, marks, issues = analyze(pdf)
         sheets = write_sheets(pdf, pages, marks) if pages else []
         entry = {"sha1": sha1(pdf), "pages": len(pages or []), "issues": [list(i) for i in issues],
-                 "sheets": sheets, "viewed": None, "tool": TOOL,
+                 "sheets": sheets, "viewed": None, "tool": TOOL, "kind": "paper",
                  "checked": datetime.datetime.now().isoformat(timespec="seconds")}
         rec[name] = entry
         save_record(pdf, rec)

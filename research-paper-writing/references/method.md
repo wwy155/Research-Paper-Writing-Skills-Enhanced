@@ -2,6 +2,8 @@
 
 Start from the `% Story:` block (`references/story.md`): motivate every module by the story's problem, and show how it realizes the insight. Cut or move to the Appendix what serves neither.
 
+Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+
 ## Goal
 
 Write the Method section clearly by following this sequence:

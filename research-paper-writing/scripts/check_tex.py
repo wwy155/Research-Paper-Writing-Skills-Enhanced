@@ -1534,6 +1534,70 @@ def check_page_qa(pdf, rep, sources=()):
                       f"page, and run page_qa.py {name} --confirm with the code printed on each sheet")
 
 
+STYLE_HEAD = re.compile(r"^[ \t]*%[ \t]*Style references?\b[^:\n]*:[ \t]*$", re.I | re.M)
+STYLE_LINE = re.compile(r"^\s*%\s*(?P<paper>[^\n]*?)(?:,\s*(?P<pdf>[^\s,]+\.pdf))?\s*(?:->|\u2192)\s*(?P<aspects>.*?)\s*$",
+                        re.I)
+STYLE_ASPECTS = {
+    "writing": re.compile(r"\b(?:structure|sections?|writing|tone|terms?|terminology|notation|wording|introduction|"
+                          r"abstract|contributions?|related work|method|experiments?|conclusion|story|length)\b", re.I),
+    "figures": re.compile(r"\b(?:figures?|teaser|pipeline|plots?|diagrams?|qualitative|colou?rs?|fonts?|lines?|"
+                          r"markers?|visual|zoom\w*|insets?)\b", re.I),
+    "tables": re.compile(r"\btables?\b", re.I),
+}
+
+
+def check_style_refs(files, root, rep):
+    """Core Workflow step 2: the papers closest to ours are the style reference, and their pages were viewed."""
+    import hashlib
+    src = next((f for f in files if STYLE_HEAD.search(f.raw)), None)
+    if not src:
+        rep.add_plain("(paper)", ERROR, "Style", "No '% Style references:' block: pick 3-5 papers closest to ours, "
+                      "view their PDFs with page_qa.py --reference, and record what to follow from each "
+                      "(references/style-references.md)")
+        return
+    head = STYLE_HEAD.search(src.raw)
+    pos = src.raw.find("\n", head.start()) + 1 or len(src.raw)
+    refs = []
+    for line in src.raw[pos:].split("\n"):
+        if not line.lstrip().startswith("%"):
+            break
+        m = STYLE_LINE.match(line)
+        if m and m.group("paper").strip(" ,"):
+            refs.append((pos, m))
+        elif line.strip("% \t"):
+            rep.add(src, pos, WARN, "Style", "Write each style reference as '% Paper (authors, venue year), "
+                    "refs/paper.pdf -> what to follow'")
+        pos += len(line) + 1
+    if len(refs) < 3:
+        rep.add(src, head.start(), ERROR, "Style", f"{len(refs)} style reference(s): study at least 3 papers closest "
+                "to ours (references/style-references.md)")
+    covered = set()
+    for at, m in refs:
+        paper, pdf, aspects = m.group("paper").strip(" ,"), m.group("pdf"), m.group("aspects") or ""
+        covered |= {k for k, pat in STYLE_ASPECTS.items() if pat.search(aspects)}
+        if not aspects.strip():
+            rep.add(src, at, WARN, "Style", f"{paper}: name what to follow from it, e.g., 'section structure, teaser "
+                    "layout, table layout'")
+        if not pdf:
+            rep.add(src, at, ERROR, "Style", f"{paper}: no PDF. Download it into the project, or ask the user for "
+                    "it, and view it with page_qa.py --reference")
+            continue
+        path = pdf if os.path.isabs(pdf) else os.path.join(root, pdf)
+        if not os.path.isfile(path):
+            rep.add(src, at, ERROR, "Style", f"{paper}: '{pdf}' does not exist. Download it, or ask the user for it")
+            continue
+        with open(path, "rb") as fh:
+            digest = hashlib.sha1(fh.read()).hexdigest()
+        entry = page_record(path)
+        if not entry or entry.get("sha1") != digest or not entry.get("viewed"):
+            rep.add(src, at, ERROR, "Style", f"{paper}: its pages were not viewed. Run page_qa.py --reference {pdf}, "
+                    "open every sheet, and confirm the codes")
+    for k in ("writing", "figures", "tables") if refs else ():
+        if k not in covered:
+            rep.add(src, head.start(), WARN, "Style", f"No style reference covers the {k}: name what to follow for "
+                    "them (references/style-references.md)")
+
+
 def check_log(path, rep):
     with open(path, encoding="utf-8", errors="replace") as fh:
         log = fh.read()
@@ -1770,6 +1834,8 @@ def required_block(rep, venue, has_exp, min_figures):
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
         ("Story written; every figure and table supports a claim; every claim has evidence", False,
          lambda rule, msg: rule == "Story"),
+        ("Style references: at least 3 closest papers viewed, and their style followed", False,
+         lambda rule, msg: rule == "Style"),
         ("Closest-work plan", True, lambda rule, msg: rule == "Experiments"),
         ("Latest SOTA compared and discussed", True, lambda rule, msg: rule == "SOTA"),
         (f"At least {min_figures} main-text figures; every figure and table in the plan", False,
@@ -1788,8 +1854,8 @@ def required_block(rep, venue, has_exp, min_figures):
             status = "n/a (no Experiments section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
-            if re.fullmatch(r"p\. \d+", head):  # page_qa: keep what is wrong on that page
-                head = ": ".join(errors[0][4].split(": ")[:2])
+            if re.fullmatch(r"p\. \d+", head) or errors[0][3] == "Style":  # keep what is wrong with that page or paper
+                head = ": ".join(errors[0][4].split(": ")[:2]).split(". ")[0]
             if name == "Closest-work plan" and not head.startswith("No '%"):
                 head = f"{len(errors)} gap(s) in the plan"
             elif len(errors) > 1:
@@ -1859,6 +1925,7 @@ def main(argv=None):
     check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
     check_story(files, root, rep, read_story(files), plan)
+    check_style_refs(files, root, rep)
     check_experiment_log(files, root, rep, supp)
     venue = check_venue(files, rep)
     rules = read_venue_rules(files)

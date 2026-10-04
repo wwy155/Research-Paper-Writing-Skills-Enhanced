@@ -1,5 +1,7 @@
 # Preliminary Writing Guide (Optional Section)
 
+First read how the style references present background (`references/style-references.md`), and follow them.
+
 ## When to Include
 
 Include it only when the Method needs:
