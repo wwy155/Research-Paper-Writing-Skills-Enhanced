@@ -1500,6 +1500,62 @@ def check_experiment_log(files, root, rep, extra=()):
                     "Experiments)")
 
 
+ENGINE_SOURCE = re.compile(r"\\usepackage\s*(?:\[[^\]]*\])?\s*\{[^}]*?\b(fontspec|unicode-math|polyglossia|xeCJK|"
+                           r"xltxtra|xunicode|luacode|luatexja|luaotfload)\b[^}]*\}|\\(directlua|setmainfont|"
+                           r"setsansfont|setmonofont|newfontfamily|setCJKmainfont)\b")
+
+
+def pdf_producer(path):
+    """The program that wrote a PDF, from its Producer entry, or None."""
+    import zlib
+    with open(path, "rb") as fh:
+        data = fh.read()
+    pat = re.compile(rb"/Producer\s*(?:\((.*?)(?<!\\)\)|<([0-9A-Fa-f\s]*)>)", re.S)
+    m = pat.search(data)
+    if not m:
+        for st in re.finditer(rb"stream\r?\n(.*?)endstream", data, re.S):
+            try:
+                m = pat.search(zlib.decompress(st.group(1)))
+            except zlib.error:
+                continue
+            if m:
+                break
+    if not m:
+        out = run(["pdfinfo", path]) if shutil.which("pdfinfo") else None
+        p = re.search(r"^Producer:\s*(.+)$", out or "", re.M)
+        return p.group(1).strip() if p else None
+    raw = m.group(1) if m.group(1) is not None else bytes.fromhex(re.sub(rb"\s", b"", m.group(2)).decode())
+    return raw[2:].decode("utf-16-be", "replace") if raw.startswith(b"\xfe\xff") else raw.decode("latin-1", "replace")
+
+
+def check_engine_source(files, rep):
+    """Execution Rule 3: the source compiles with pdflatex, as on Overleaf and arXiv."""
+    for f in files:
+        for m in ENGINE_SOURCE.finditer(f.whole):
+            what = m.group(1) or "\\" + m.group(2)
+            rep.add(f, m.start(), ERROR, "Build", f"'{what}' needs XeLaTeX or LuaLaTeX, but Overleaf and arXiv compile "
+                    "with pdflatex: use pdflatex packages instead, such as \\usepackage[T1]{fontenc} and the "
+                    "template's fonts (Execution Rule 3)")
+
+
+def check_engine(pdf, rep, log=None):
+    """Execution Rule 3: the PDF was compiled with pdflatex, as on Overleaf and arXiv."""
+    name = os.path.relpath(pdf)
+    producer = pdf_producer(pdf)
+    if producer is None:
+        rep.add_plain(name, WARN, "Build", f"Cannot tell which program made {name}: compile it with pdflatex "
+                      "(Execution Rule 3)")
+    elif "pdftex" not in producer.lower():
+        rep.add_plain(name, ERROR, "Build", f"{name} was made by '{producer.strip()}', not pdflatex: compile it with "
+                      "pdflatex, as Overleaf and arXiv do (Execution Rule 3)")
+    if log and os.path.isfile(log):
+        with open(log, encoding="utf-8", errors="replace") as fh:
+            engine = re.match(r"This is (\w+)", fh.readline())
+        if engine and engine.group(1) != "pdfTeX":
+            rep.add_plain(os.path.relpath(log), ERROR, "Build", f"{os.path.relpath(log)} comes from {engine.group(1)}, "
+                          "not pdflatex: compile with pdflatex, as Overleaf and arXiv do (Execution Rule 3)")
+
+
 def page_record(pdf):
     """The page_qa.py record of a compiled PDF, or None."""
     import json
@@ -1843,8 +1899,9 @@ def required_block(rep, venue, has_exp, min_figures):
         ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
         ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
         ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9"),
-        ("Every page of the compiled PDF viewed with page_qa.py; no white space", False,
-         lambda rule, msg: rule == "View" or msg.endswith("(page_qa)") and rule == "A1.6")]
+        ("Compiled with pdflatex; every page viewed with page_qa.py; no white space", False,
+         lambda rule, msg: rule == "View" or (rule == "Build" and "pdflatex" in msg)
+         or (msg.endswith("(page_qa)") and rule == "A1.6"))]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
     for k, (name, exp_only, match) in enumerate(groups, 1):
@@ -1926,6 +1983,7 @@ def main(argv=None):
     check_figure_qa(files, root, rep, supp)
     check_story(files, root, rep, read_story(files), plan)
     check_style_refs(files, root, rep)
+    check_engine_source(files, rep)
     check_experiment_log(files, root, rep, supp)
     venue = check_venue(files, rep)
     rules = read_venue_rules(files)
@@ -1944,10 +2002,13 @@ def main(argv=None):
     for tex, pdf in [(args.tex[0], args.pdf)] + [(f.path, None) for f in supp]:
         pdf = pdf or (args.supp_pdf if tex != args.tex[0] and args.supp_pdf else os.path.splitext(tex)[0] + ".pdf")
         if os.path.isfile(pdf):
+            log = args.log if tex == args.tex[0] and args.log else os.path.splitext(tex)[0] + ".log"
+            check_engine(pdf, rep, log)
             check_page_qa(pdf, rep, sources)
         else:
             rep.add_plain(os.path.relpath(tex), ERROR, "View", f"No compiled PDF of {os.path.relpath(tex)}: compile it "
-                          "(Execution Rule 3), run page_qa.py on it, and look at every page")
+                          "with pdflatex (Execution Rule 3), run page_qa.py on it, and look at every page. If pdflatex "
+                          "is missing, install TeX Live or ask the user to, and never use another tool")
 
     order = {ERROR: 0, WARN: 1}
     for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3],
