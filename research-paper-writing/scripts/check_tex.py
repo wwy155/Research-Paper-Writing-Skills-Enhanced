@@ -1035,7 +1035,7 @@ def check_figure_plan(files, root, rep, plan):
         return
     if plan is None:
         rep.add_plain("(paper)", ERROR, "A2.1", "No '% Figure plan' block: before drawing, write one line per figure "
-                      "and table, '% label: message -> form' (references/figure-table-styles.md)")
+                      "and table, '% label: message -> form' (references/figures.md)")
         return
     missing = [labels[-1] for labels in figs + tables if not any(l in plan for l in labels)]
     if missing:
@@ -1593,17 +1593,10 @@ def check_page_qa(pdf, rep, sources=()):
 STYLE_HEAD = re.compile(r"^[ \t]*%[ \t]*Style references?\b[^:\n]*:[ \t]*$", re.I | re.M)
 STYLE_LINE = re.compile(r"^\s*%\s*(?P<paper>[^\n]*?)(?:,\s*(?P<pdf>[^\s,]+\.pdf))?\s*(?:->|\u2192)\s*(?P<aspects>.*?)\s*$",
                         re.I)
-STYLE_ASPECTS = {
-    "writing": re.compile(r"\b(?:structure|sections?|writing|tone|terms?|terminology|notation|wording|introduction|"
-                          r"abstract|contributions?|related work|method|experiments?|conclusion|story|length)\b", re.I),
-    "figures": re.compile(r"\b(?:figures?|teaser|pipeline|plots?|diagrams?|qualitative|colou?rs?|fonts?|lines?|"
-                          r"markers?|visual|zoom\w*|insets?)\b", re.I),
-    "tables": re.compile(r"\btables?\b", re.I),
-}
 
 
 def check_style_refs(files, root, rep):
-    """Core Workflow step 2: the papers closest to ours are the style reference, and their pages were viewed."""
+    """Core Workflow step 2: the papers closest to ours are the reference for the writing, and were viewed."""
     import hashlib
     src = next((f for f in files if STYLE_HEAD.search(f.raw)), None)
     if not src:
@@ -1627,13 +1620,11 @@ def check_style_refs(files, root, rep):
     if len(refs) < 3:
         rep.add(src, head.start(), ERROR, "Style", f"{len(refs)} style reference(s): study at least 3 papers closest "
                 "to ours (references/style-references.md)")
-    covered = set()
     for at, m in refs:
         paper, pdf, aspects = m.group("paper").strip(" ,"), m.group("pdf"), m.group("aspects") or ""
-        covered |= {k for k, pat in STYLE_ASPECTS.items() if pat.search(aspects)}
         if not aspects.strip():
-            rep.add(src, at, WARN, "Style", f"{paper}: name what to follow from it, e.g., 'section structure, teaser "
-                    "layout, table layout'")
+            rep.add(src, at, WARN, "Style", f"{paper}: name what to take from it, e.g., 'section structure, terms and "
+                    "notation'")
         if not pdf:
             rep.add(src, at, ERROR, "Style", f"{paper}: no PDF. Download it into the project, or ask the user for "
                     "it, and view it with page_qa.py --reference")
@@ -1647,11 +1638,7 @@ def check_style_refs(files, root, rep):
         entry = page_record(path)
         if not entry or entry.get("sha1") != digest or not entry.get("viewed"):
             rep.add(src, at, ERROR, "Style", f"{paper}: its pages were not viewed. Run page_qa.py --reference {pdf}, "
-                    "open every image, and confirm the codes")
-    for k in ("writing", "figures", "tables") if refs else ():
-        if k not in covered:
-            rep.add(src, head.start(), WARN, "Style", f"No style reference covers the {k}: name what to follow for "
-                    "them (references/style-references.md)")
+                    "open every sheet, and confirm the codes")
 
 
 REVIEW_HEAD = re.compile(r"^[ \t]*%[ \t]*Review log\b[^:\n]*:[ \t]*$", re.I | re.M)
@@ -1930,7 +1917,7 @@ def required_block(rep, venue, has_exp, min_figures):
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
         ("Story written; every figure and table supports a claim; every claim has evidence", False,
          lambda rule, msg: rule == "Story"),
-        ("Style references: at least 3 closest papers viewed, and their style followed", False,
+        ("Style references: at least 3 closest papers viewed and read for the writing", False,
          lambda rule, msg: rule == "Style"),
         ("Closest-work plan", True, lambda rule, msg: rule == "Experiments"),
         ("Latest SOTA compared and discussed", True, lambda rule, msg: rule == "SOTA"),

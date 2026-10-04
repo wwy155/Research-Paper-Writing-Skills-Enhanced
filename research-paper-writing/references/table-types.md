@@ -7,7 +7,7 @@ Read this file before you create or restyle any table (Writing Rule A2.8 in `SKI
 % tab:plugin: [C2] our module helps every detector it is added to -> plug-in table
 ```
 
-Lay out each table as the style references do (`references/style-references.md`): their columns, grouping, metric arrows, decimals, and marks for the best results. Use the templates below for what they leave open, and style every table with the chosen scheme (`references/figure-table-styles.md`).
+Decide each table from the story (`references/story.md`): make it only when a claim needs it, and show the comparison that proves that claim. Never copy the tables of another paper because they have them.
 
 ## Pick the Type
 
@@ -24,7 +24,7 @@ Lay out each table as the style references do (`references/style-references.md`)
 | Ours is insensitive to a setting. | Sensitivity | Values of the setting | Metrics |
 | People prefer ours. | User study | Ours against each baseline | Share of votes for ours |
 
-Prefer a plot over a table when the message is a trend, a trade-off, or a distribution (robustness and sensitivity usually are; see `references/figure-table-styles.md`). Prefer a table when readers will cite or compare the exact numbers. Never show the same numbers twice. Draw a figure of a table's numbers only if it reveals what the table cannot, such as a trend across settings or a trade-off. Otherwise, cut one of them.
+Prefer a plot over a table when the message is a trend, a trade-off, or a distribution (robustness and sensitivity usually are; see `references/figures.md`). Prefer a table when readers will cite or compare the exact numbers. Never show the same numbers twice. Draw a figure of a table's numbers only if it reveals what the table cannot, such as a trend across settings or a trade-off. Otherwise, cut one of them.
 
 Main text: the SOTA comparison, the ablation, and the tables that carry a claim. Appendix: per-scene and per-class tables, full sensitivity sweeps, and extra baselines.
 
@@ -35,7 +35,7 @@ Main text: the SOTA comparison, the ablation, and the tables that carry a claim.
 3. Numbers you could not run go in the same table. Copy them from the original paper, mark them with `\textsuperscript{\dag}`, and explain the mark in a one-line table note, e.g., "\dag Reported by the original paper." Mention it once in the text, in a short clause. Never move reported numbers to a separate table, and never explain where they come from at length in the caption or the text.
 4. Include the strongest and the latest methods (the `% Latest SOTA:` line in `references/experiments.md`). Write `--` with a table note for a missing number; never drop the row.
 5. Put the metric direction (`PSNR$\uparrow$`, `LPIPS$\downarrow$`) and the unit in the header, and use the same number of decimals in a column.
-6. Mark the best and second-best number of each column with `\best` and `\second`, shade the row of ours with `\oursrow`, and put ours last in its group.
+6. Mark the best number of each column in bold and the second-best underlined, and put ours last in its group.
 7. Group rows by method family or setting with `\midrule`, and columns by dataset with `\multicolumn` and `\cmidrule`. No vertical rules.
 8. Fit the column or page width by dropping columns that do not serve the comparison, or by moving them to the Appendix. Never shrink a table with `\resizebox` below the caption size.
 9. Caption above the table: what it compares and on which data, then the conclusion in at most 2 sentences (Writing Rule A2.4). No formatting notes such as "best in bold".
@@ -43,7 +43,7 @@ Main text: the SOTA comparison, the ablation, and the tables that carry a claim.
 
 ## Templates
 
-The preamble needs `booktabs`, the scheme's `\input{table-style}`, and, for check marks, `\usepackage{pifont}` with `\newcommand{\cmark}{\ding{51}}` and `\newcommand{\xmark}{\ding{55}}`. Fill the brackets with your own methods and numbers.
+The preamble needs `booktabs` and, for check marks, `\usepackage{pifont}` with `\newcommand{\cmark}{\ding{51}}` and `\newcommand{\xmark}{\ding{55}}`. Fill the brackets with your own methods and numbers.
 
 ### SOTA Comparison
 
@@ -65,8 +65,8 @@ The preamble needs `booktabs`, the scheme's `\input{table-style}`, and, for chec
     \midrule
     \multicolumn{8}{l}{\textit{[Family 2, e.g., Gaussian-based]}} \\
     [Method 3]~\cite{m3}\textsuperscript{\dag} & [..] & [..] & [..] & -- & -- & -- & [..] \\
-    [Latest SOTA]~\cite{m4} & \second{[..]} & [..] & [..] & \second{[..]} & [..] & [..] & \second{[..]} \\
-    \oursrow Ours & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} \\
+    [Latest SOTA]~\cite{m4} & \underline{[..]} & [..] & [..] & \underline{[..]} & [..] & [..] & \underline{[..]} \\
+    Ours & \textbf{[..]} & \textbf{[..]} & \textbf{[..]} & \textbf{[..]} & \textbf{[..]} & \textbf{[..]} & \textbf{[..]} \\
     \bottomrule
     \multicolumn{8}{l}{\footnotesize \textsuperscript{\dag}Reported by the original paper. -- Not reported.} \\
   \end{tabular}
@@ -88,10 +88,10 @@ Use it when our contribution is a module, loss, or training scheme that other me
     Method & AP$\uparrow$ & Params (M) & Time (ms)$\downarrow$ \\
     \midrule
     [Method 1]~\cite{m1} & [..] & [..] & [..] \\
-    \oursrow \quad + [our module] & [..] (+[..]) & [..] & [..] \\
+    \quad + [our module] & [..] (+[..]) & [..] & [..] \\
     \midrule
     [Method 2]~\cite{m2} & [..] & [..] & [..] \\
-    \oursrow \quad + [our module] & [..] (+[..]) & [..] & [..] \\
+    \quad + [our module] & [..] (+[..]) & [..] & [..] \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -113,8 +113,8 @@ Change one thing per row, or build the model up one component at a time, as belo
     \midrule
     & & & [..] & [..] \\
     \cmark & & & [..] & [..] \\
-    \cmark & \cmark & & \second{[..]} & \second{[..]} \\
-    \oursrow \cmark & \cmark & \cmark & \best{[..]} & \best{[..]} \\
+    \cmark & \cmark & & \underline{[..]} & \underline{[..]} \\
+    \cmark & \cmark & \cmark & \textbf{[..]} & \textbf{[..]} \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -136,7 +136,7 @@ Measure every method on the same GPU, at the same resolution, and name both in t
     \midrule
     [Method 1]~\cite{m1} & [..] & [..] & [..] & [..] \\
     [Method 2]~\cite{m2} & [..] & [..] & [..] & [..] \\
-    \oursrow Ours & [..] & [..] & [..] & [..] \\
+    Ours & [..] & [..] & [..] & [..] \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -155,7 +155,7 @@ Measure every method on the same GPU, at the same resolution, and name both in t
     Method & [A]$\rightarrow$[A] & [A]$\rightarrow$[B] & [A]$\rightarrow$[C] \\
     \midrule
     [Method 1]~\cite{m1} & [..] & [..] & [..] \\
-    \oursrow Ours & [..] & [..] & [..] \\
+    Ours & [..] & [..] & [..] \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -163,7 +163,7 @@ Measure every method on the same GPU, at the same resolution, and name both in t
 
 ### Breakdown, Robustness, and Sensitivity
 
-Put these in the Appendix as tables, and show the point in the main text as a plot (`references/figure-table-styles.md`, panels (c), (d), and (f)). Use sorted gain bars for a breakdown, lines over the difficulty level for robustness, and a line over the setting for sensitivity.
+Put these in the Appendix as tables, and show the point in the main text as a plot when the story needs it (`references/figures.md`).
 
 ### Property
 

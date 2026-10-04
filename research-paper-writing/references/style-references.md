@@ -1,6 +1,6 @@
-# Style References: Write and Draw Like the Closest Papers
+# Style References: How the Field Writes
 
-Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL.md`). The papers closest to ours are the most important reference for how the paper reads and looks. Reviewers in the area expect what those papers do. Follow them in writing, figures, and tables. The examples, templates, and style schemes of this skill only fill what they leave open. The Writing Rules still apply on top of both.
+Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL.md`). The papers closest to ours show how the field writes: the order and length of the sections, the terms, the tone, and the results reviewers expect to see. Use them as the reference for the writing. Decide what each figure and table shows from our story (`references/story.md`), never by copying theirs. The Writing Rules still apply on top.
 
 ## Pick the Papers
 
@@ -10,18 +10,18 @@ Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL
 
 ## Look at Them
 
-1. Run `python3 <this skill's directory>/scripts/page_qa.py --reference refs/paperA.pdf`. It writes overview sheets of the paper's main pages, four per sheet, and each of its figures and tables at up to 300 dpi, with a code on each image.
-2. Open every image with your image viewer, and study the layout on the sheets and the details of the figures and tables: fonts, line widths, colors, and markers.
-3. Read the text of each section as well, with the alphaXiv tools or from the PDF.
+1. Run `python3 <this skill's directory>/scripts/page_qa.py --reference refs/paperA.pdf`. It writes overview sheets of the paper's main pages, four per sheet, with a code on each.
+2. Open every sheet and see how the paper is built: the order of its sections and what it shows where.
+3. Read the text of each section, with the alphaXiv tools or from the PDF.
 4. Confirm with the codes, e.g., `page_qa.py refs/paperA.pdf --confirm K7QF`.
 
 ## What to Take from Them
 
-- Writing. The order and length of the sections, how the Introduction opens and lists the contributions, the terms and notation of the field, the tone, and how results are stated.
-- Figures. Which figures they have and where (teaser, pipeline, qualitative grids, plots), the layout of the teaser and the pipeline, the drawing style, colors, fonts, line widths, and markers, and how they mark zoom-ins.
-- Tables. The columns and their grouping, the metric arrows, the decimals, how the best results are marked, and the caption style.
+- The order and length of the sections, and how the Introduction opens and lists the contributions.
+- The terms and notation of the field, the tone, and how results are stated.
+- The benchmarks, metrics, and baselines that reviewers will expect, so our comparison is complete.
 
-Follow their style with our own content. Never copy their text, figures, or captions.
+Never copy their text. Never make a figure or table because they have one: what to show comes from our story.
 
 ## Record It
 
@@ -29,16 +29,14 @@ Write the block at the top of the main `.tex` file. The checker reads it:
 
 ```latex
 % Style references:
-% PaperA (Author et al., CVPR 2024), refs/paperA.pdf -> section structure, teaser layout, table layout
-% PaperB (Author et al., ICCV 2025), refs/paperB.pdf -> plot style, colors and fonts, qualitative grid
-% PaperC (Author et al., CVPR 2025), refs/paperC.pdf -> writing tone, pipeline style, captions
+% PaperA (Author et al., CVPR 2024), refs/paperA.pdf -> section structure, how the Introduction opens
+% PaperB (Author et al., ICCV 2025), refs/paperB.pdf -> terms and notation, how results are stated
+% PaperC (Author et al., CVPR 2025), refs/paperC.pdf -> tone, the benchmarks and metrics reviewers expect
 ```
 
-The checker reports an ERROR when the block is missing, when it lists fewer than 3 papers, and when a PDF is missing or its images were not all viewed. It warns when a line names nothing to follow, or when no line covers the writing, the figures, or the tables.
+The checker reports an ERROR when the block is missing, when it lists fewer than 3 papers, and when a PDF is missing or its sheets were not all viewed. It warns when a line names nothing to take from the paper.
 
 ## Use Them
 
 - Before writing a section, reread that section in each reference, and match its structure, length, and tone.
-- Before drawing a figure, look at the reference figure with the same job, such as their teaser before ours, and match its layout and style. Use the style scheme closest to them, and adjust its colors and fonts to match (`references/figure-table-styles.md`).
-- Before making a table, match their layout (`references/table-types.md`).
 - When the references disagree, follow the one from the target venue, then the most recent one.

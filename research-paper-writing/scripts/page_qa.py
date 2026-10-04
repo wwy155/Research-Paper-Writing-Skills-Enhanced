@@ -5,7 +5,7 @@ After every compile, render the pages and look at them:
 
     python3 page_qa.py main.pdf                         # checks the pages and writes images to look at
     python3 page_qa.py main.pdf --confirm K7QF H3XA ...  # after viewing: the code printed on each image
-    python3 page_qa.py --reference refs/paperA.pdf       # a style-reference paper: images to study, no checks
+    python3 page_qa.py --reference refs/paperA.pdf       # a style-reference paper: sheets to read, no checks
 
 It reports:
   ERROR  a blank band of 60 pt (5 lines) or more inside a column; a column that starts or ends
@@ -818,10 +818,9 @@ def _me():
 
 
 def reference(pdf, rec):
-    """A style-reference paper: overview sheets of its main pages (up to its references, at most 16),
-    and each of its figures and tables at up to FLOAT_DPI, to study."""
-    out = analyze(pdf)
-    pages = out[0]
+    """A style-reference paper: overview sheets of its main pages (up to its references, at most 16), to see
+    how it is built and what it shows where."""
+    pages, _ = render(pdf)
     if not pages:
         print(f"{os.path.relpath(pdf)}: no renderer: pip install pymupdf (or install poppler-utils)")
         return 1
@@ -829,32 +828,16 @@ def reference(pdf, rec):
     refs_page = parts(texts, len(pages))[1]
     keep = pages[:min(len(pages) if refs_page is None else refs_page + 1, 16)]
     views = write_sheets(pdf, keep, [[] for _ in keep], kind="Reference sheet")
-    clipper = Clipper(pdf)
-    out_dir = os.path.dirname(os.path.join(qa_dir(pdf), views[0]["path"])) if views else qa_dir(pdf)
-    try:
-        for p in range(len(keep)):
-            w, h = keep[p].shape[1] * PT, keep[p].shape[0] * PT
-            for i, (x0, y0, x1, y1) in enumerate(out[3][p]):
-                box = (max(x0 * PT - 6, 0), max(y0 * PT - 6, 0), min(x1 * PT + 6, w), min(y1 * PT + 6, h))
-                dpi = fit_dpi(box[2] - box[0], box[3] - box[1], cap=FLOAT_DPI)
-                code, salt, hashed = new_code()
-                path = os.path.join(out_dir, f"p{p + 1:02d}-float{i + 1}.png")
-                save_view(clipper.clip(p, box, dpi), path, f"p. {p + 1}, figure or table {i + 1}, {dpi:.0f} dpi",
-                          code, [])
-                views.append({"path": os.path.relpath(path, qa_dir(pdf)), "page": p + 1, "part": f"float {i + 1}",
-                              "dpi": round(dpi), "salt": salt, "code": hashed})
-    finally:
-        clipper.close()
     rec[os.path.basename(pdf)] = {"sha1": sha1(pdf), "pages": len(keep), "issues": [], "images": views,
                                   "viewed": None, "tool": TOOL, "kind": "reference",
                                   "checked": datetime.datetime.now().isoformat(timespec="seconds")}
     save_record(pdf, rec)
-    print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on overview sheets, and its figures and tables at up to "
-          f"{FLOAT_DPI} dpi. Open every image and study how this paper writes and draws: its section structure, "
-          "which figures it has and their layouts, colors, fonts, and line widths, and its table layouts:")
+    print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on {len(views)} sheet(s). Open every sheet and see how this "
+          "paper is built: the order of its sections and what it shows where. Read its text as well. Decide what "
+          "our paper shows from our story, never by copying this one:")
     for v in views:
         print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), v['path']))}")
-    print(f"Then run python3 {_me()} {os.path.relpath(pdf)} --confirm <the code on each image>")
+    print(f"Then run python3 {_me()} {os.path.relpath(pdf)} --confirm <the code on each sheet>")
     return 0
 
 
@@ -863,8 +846,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", nargs="+", help="compiled PDF(s): the paper, and a separate supplementary file if any")
     ap.add_argument("--confirm", nargs="+", metavar="CODE", help="the code printed on each image you viewed")
-    ap.add_argument("--reference", action="store_true", help="a style-reference paper: images to study, without "
-                    "the layout checks")
+    ap.add_argument("--reference", action="store_true", help="a style-reference paper: overview sheets to read, "
+                    "without the layout checks")
     ap.add_argument("--tiles", type=int, choices=(2, 4), help="tiles per page for every page (default: 4 for the "
                     "main text, 2 for the rest)")
     ap.add_argument("--max-px", type=int, default=MAX_PX, help=f"pixels per image the viewer keeps (default "

@@ -452,7 +452,7 @@ def _pdf_checks(path, print_width):
     with open(path, "rb") as fh:
         data = fh.read()
     if b"/Type3" in data or b"/Subtype /Type3" in data:
-        issues.append((ERROR, "Type 3 fonts: set pdf.fonttype to 42 (paperstyle does) and save again"))
+        issues.append((ERROR, "Type 3 fonts: set pdf.fonttype to 42 and save again"))
     m = re.search(rb"/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]", data)
     if m and print_width:
         w = (float(m.group(3)) - float(m.group(1))) / 72
