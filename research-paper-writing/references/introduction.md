@@ -2,6 +2,8 @@
 
 Start from the `% Story:` block (`references/story.md`): the Introduction tells the problem, why prior methods fail, the insight, the method, and the evidence, and its contributions restate the story's claims.
 
+Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+
 ## Goal
 
 Write a strong introduction in three steps:

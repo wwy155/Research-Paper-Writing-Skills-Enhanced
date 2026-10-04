@@ -2,6 +2,8 @@
 
 Read this file before you create or restyle any plot, diagram, or table; for tables, also read `references/table-types.md`. First pick the form that shows the message, then style it with one scheme for the whole paper. Form comes before color: a plain chart of the right form beats a polished chart of the wrong one. Every style value below comes from `scripts/paperstyle.py`, the single source of truth; regenerate from it instead of copying hex codes by hand.
 
+The figures of the style references come first (`references/style-references.md`): the forms they use for each kind of result, their layouts, colors, fonts, and line widths. Use the forms, examples, and schemes below for what they leave open, and pick the scheme closest to them.
+
 ## Pick the Form for the Message
 
 Decide what a figure must say before you decide what it looks like.
@@ -89,7 +91,7 @@ Readers skim the figures before the text. When several figures look alike, the p
 
 ### Published Figures Worth Studying
 
-Each figure below picks a form that fits its message. Figure numbers can differ between the arXiv and proceedings versions (see CLIP), so check the version you cite.
+Study the style references first; these are general examples. Each figure below picks a form that fits its message. Figure numbers can differ between the arXiv and proceedings versions (see CLIP), so check the version you cite.
 
 - Better and cheaper: EfficientNet (Tan and Le, ICML 2019), Fig. 1. ImageNet accuracy against the number of parameters; the EfficientNet curve beats the other ConvNets with far fewer parameters.
 - Scales with resources: Kaplan et al. (2020), Fig. 1. Test loss against compute, dataset size, and parameters, one panel each, with power-law fits.
@@ -161,9 +163,10 @@ Check every figure after drawing it, and again after every change (Writing Rule 
 ## Choose a Scheme
 
 1. If the user has named a scheme, use it.
-2. Otherwise, the first time you create or restyle a figure or table, ask with the ask-user tool (`AskUserQuestion` in Claude Code). Offer the four schemes below as options, with `clean` first as the recommended default. If the venue question is still open, ask both in the same call.
-3. Record the choice in a comment at the top of the main `.tex` file, e.g., `% Figure and table scheme: clean`, so later sessions keep it.
-4. Never mix schemes in one paper.
+2. Otherwise, the first time you create or restyle a figure or table, ask with the ask-user tool (`AskUserQuestion` in Claude Code). Offer the four schemes below as options, and recommend first the one closest to the style references (`references/style-references.md`), or `clean` if none is close. If the venue question is still open, ask both in the same call.
+3. Adjust the scheme's colors, fonts, and line widths to match the style references where they differ.
+4. Record the choice in a comment at the top of the main `.tex` file, e.g., `% Figure and table scheme: clean`, so later sessions keep it.
+5. Never mix schemes in one paper.
 
 ## The Four Schemes
 

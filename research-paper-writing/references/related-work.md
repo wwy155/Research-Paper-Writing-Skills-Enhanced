@@ -2,6 +2,8 @@
 
 Start from the `% Story:` block (`references/story.md`): group prior work by what it lacks relative to the story's insight, and end each topic with how ours differs.
 
+Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+
 ## Goal
 
 Position your work against the most relevant lines of research, and make your novelty easy to verify.

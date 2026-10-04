@@ -2,6 +2,8 @@
 
 Start from the `% Story:` block (`references/story.md`): the abstract tells the whole story in one or two sentences per part (problem, insight, method, strongest evidence).
 
+Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+
 ## Goal
 
 Write a strong abstract by doing three things repeatedly:

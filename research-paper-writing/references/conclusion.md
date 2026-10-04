@@ -2,6 +2,8 @@
 
 Start from the `% Story:` block (`references/story.md`): restate the problem, the insight, the strongest evidence, and the takeaway.
 
+Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+
 ## Goal
 
 Close the paper by selling it once more: the problem, the insight, the strongest evidence, and what it opens up.
