@@ -5,6 +5,8 @@ Usage:
   python3 check_tex.py main.tex [more.tex ...] [--bib refs.bib] [--log main.log]
                        [--pdf main.pdf] [--review] [--max-words 25] [--min-refs 35] [--min-figures 3]
 
+main.pdf and main.log next to main.tex are read without --pdf and --log.
+
 Follows \input, \include, and \subfile, finds the .bib from \bibliography or
 \addbibresource, and prints one line per issue:
 
@@ -12,8 +14,9 @@ Follows \input, \include, and \subfile, finds the .bib from \bibliography or
 
 ERROR: must be fixed. WARN: fix it, or justify it in your reply.
 Exit status is 1 when there is at least one ERROR, 2 on a usage error.
-Only the Python standard library is used. --pdf also uses pdffonts, pdftotext,
-and pdfinfo (poppler-utils) when they are installed.
+Only the Python standard library is used. The compiled PDF is also checked
+with pdffonts, pdftotext, and pdfinfo (poppler-utils) when they are installed:
+fonts, ?? marks, and the page limits.
 """
 import argparse
 import os
@@ -25,7 +28,7 @@ import sys
 ERROR, WARN = "ERROR", "WARN"
 
 NOT_CHECKED = ("A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, B4.4 (A1.1, A1.2, and A1.6 only through page_qa.py "
-               "and your own eyes; A1.3-A1.5 need --pdf, --log, and --review)")
+               "and your own eyes; A1.3 needs --review, and A1.4-A1.5 the compiled PDF and its log)")
 
 MATH_ENVS = (r"equation|align|gather|multline|eqnarray|flalign|alignat|"
              r"displaymath|math|dmath")
@@ -1731,7 +1734,8 @@ def check_pdf(path, review, rep):
 
 
 RULE_LINE = {key: re.compile(r"^[ \t]*%[ \t]*" + head + r"[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
-             for key, head in (("url", r"Venue rules"), ("pages", r"Page limit"), ("appendix", r"Appendix rules"))}
+             for key, head in (("url", r"Venue rules"), ("pages", r"Page limit"), ("refs", r"Reference pages"),
+                               ("total", r"Total pages"), ("appendix", r"Appendix rules"))}
 SEPARATE = re.compile(r"\bseparate\b|\bown (?:pdf|file)\b|\bsupplementary (?:pdf|file|zip)\b", re.I)
 SAME_PDF = re.compile(r"\bsame (?:pdf|file|document)\b|\bafter the references\b|\bin the main (?:pdf|paper|file)\b", re.I)
 NO_LIMIT = re.compile(r"\bno (?:page )?limit\b|\bunlimited\b|\bnot limited\b", re.I)
@@ -1739,6 +1743,39 @@ REFS_INCLUDED = re.compile(r"\b(?:including|includes?|counting|counts?)\s+(?:the
                            r"\breferences\s+(?:included|count(?:ed)?|are counted|are included)\b", re.I)
 REFS_EXCLUDED = re.compile(r"\breferences\s+(?:excluded|not counted|do not count|are extra|extra)\b|"
                            r"\bexcluding\s+(?:the\s+)?references\b|\bplus references\b", re.I)
+NO_CAP = re.compile(r"^\s*(?:no\b|none\b|unlimited\b|not limited\b)", re.I)
+CAP = re.compile(r"\b(?:at most|up to|max(?:imum)?(?: of)?)\s+(\d+)|^\s*(\d+)\b|\b(\d+)\s*(?:extra\s+|additional\s+)?"
+                 r"pages?\b", re.I)
+APPENDIX_EXCLUDED = re.compile(r"\bappendi(?:x|ces)\s+(?:excluded|not counted)\b|\bexcluding\s+(?:the\s+)?appendi",
+                               re.I)
+DEFAULT_LIMITS = "8 pages of main text, references excluded and unlimited, no total limit"
+
+
+def page_cap(text):
+    """A '% Reference pages:' or '% Total pages:' value: pages, None for no limit, 'missing', or 'unclear'."""
+    if text is None:
+        return "missing"
+    if NO_CAP.match(text):
+        return None
+    m = CAP.search(text)
+    return int(next(g for g in m.groups() if g)) if m else "unclear"
+
+
+def limits_summary(rules):
+    """The recorded page limits in a few words, for the pass/fail list."""
+    if rules["page_limit"] is None:
+        return None
+    cap = {None: "unlimited"}
+    refs, total = (cap.get(rules[k], f"at most {rules[k]} pages") for k in ("refs_limit", "total_limit"))
+    if rules["refs_included"]:
+        return f"main text {rules['page_limit']} pages with references, total {total}"
+    return f"main text {rules['page_limit']} pages, references {refs}, total {total}"
+
+
+def appendix_in_main(files):
+    """Whether the main document holds the Appendix."""
+    return any(re.search(r"\\appendix\b", f.clean) for f in files) or any(
+        APPENDIX_NAME.search(os.path.basename(f.path)) for f in files[1:])
 
 
 def read_venue_rules(files):
@@ -1751,7 +1788,10 @@ def read_venue_rules(files):
                 rules[key] = m.group(1)
     out = {"url": rules.get("url"), "page_limit": None, "refs_included": False, "place": None,
            "appendix_limit": None, "after_refs": False, "appendix_text": rules.get("appendix"),
-           "text": " ".join(v for v in rules.values() if v)}
+           "text": " ".join(v for v in rules.values() if v),
+           "not_found": bool(re.search(r"\bnot found\b", rules.get("url") or "", re.I)),
+           "refs_limit": page_cap(rules.get("refs")), "total_limit": page_cap(rules.get("total")),
+           "total_without_appendix": bool(APPENDIX_EXCLUDED.search(rules.get("total") or ""))}
     if rules.get("pages"):
         m = re.search(r"(\d+)\s*(?:content\s+)?pages?", rules["pages"], re.I)
         out["page_limit"] = int(m.group(1)) if m else None
@@ -1770,13 +1810,24 @@ def read_venue_rules(files):
 
 def check_venue_rules(files, root, rep, rules, supp):
     """Execution Rules 1 and 2: the venue's rules are searched, recorded, and followed by the source."""
-    if not rules["url"] or not re.search(r"https?://", rules["url"]):
+    if rules["not_found"]:
+        rep.add_plain("(paper)", WARN, "Venue", "Venue rules not found, so the default page limits apply: "
+                      f"{DEFAULT_LIMITS}. Tell the user, and search again before submission")
+    elif not rules["url"] or not re.search(r"https?://", rules["url"]):
         rep.add_plain("(paper)", ERROR, "Venue", "Venue rules not recorded: search the venue's call for papers or "
-                      "author guidelines, and record '% Venue rules: <URL>' at the top of the main .tex file "
-                      "(references/venue-rules.md)")
+                      "author guidelines, and record '% Venue rules: <URL>' at the top of the main .tex file. If you "
+                      "cannot find them, record '% Venue rules: not found; searched <where>' and use the default page "
+                      f"limits, {DEFAULT_LIMITS} (references/venue-rules.md)")
     if rules["page_limit"] is None:
-        rep.add_plain("(paper)", ERROR, "Venue", "Page limit not recorded: add '% Page limit: <N> pages, references "
-                      "excluded' (or included), as the venue's guidelines state")
+        rep.add_plain("(paper)", ERROR, "Venue", "Page limit not recorded: add '% Page limit: <N> pages of main text, "
+                      "references excluded' (or included) for a long paper, as the venue's guidelines state, or 8 "
+                      "pages when they cannot be found")
+    for key, line, scope in (("refs_limit", "Reference pages", "the pages after the main text"),
+                             ("total_limit", "Total pages", "every page of the main PDF")):
+        if rules[key] in ("missing", "unclear"):
+            what = "not recorded" if rules[key] == "missing" else "is unclear"
+            rep.add_plain("(paper)", ERROR, "Venue", f"'% {line}:' {what}: write 'no limit' or 'at most <N>' for "
+                          f"{scope}, as the venue's guidelines state, or 'no limit' when they cannot be found")
     if not rules["appendix_text"]:
         rep.add_plain("(paper)", ERROR, "Appendix", "Appendix rules not recorded: add '% Appendix rules: <same PDF "
                       "after the references | separate PDF>; <page limit or no page limit>; <format>', as the venue's "
@@ -1787,8 +1838,7 @@ def check_venue_rules(files, root, rep, rules, supp):
                       "'same PDF after the references' or 'separate PDF'")
         return
     main = files[0]
-    inside = bool(re.search(r"\\appendix\b", main.clean)) or any(
-        APPENDIX_NAME.search(os.path.basename(f.path)) for f in files[1:])
+    inside = appendix_in_main(files)
     if rules["place"] == "separate" and inside:
         rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix as a separate file, but the main "
                       "document contains it: move it to its own .tex file with the same template")
@@ -1813,53 +1863,90 @@ def check_venue_rules(files, root, rep, rules, supp):
                               f"venue template ({', '.join(sorted(venue_pkgs))}): use the same template")
 
 
-REF_HEADING = re.compile(r"^\s*(?:\d+\.?\s*)?(?:References|REFERENCES|Bibliography)\s*$")
-APPENDIX_HEADING = re.compile(r"^\s*(?:Appendix\b|APPENDIX\b|Supplementary Material\b|A\.?\s{1,4}[A-Z][a-z]+(?:\s+\w+){0,6}\s*$)")
+REF_HEADING = re.compile(r"^(?:\d+\.?\s*)?(?:References|REFERENCES|Bibliography|BIBLIOGRAPHY)$")
+APPENDIX_HEADING = re.compile(r"^(?:[A-Z]\.?\s+)?(?:Appendix|Appendices|APPENDIX|Supplementary Materials?|"
+                              r"SUPPLEMENTARY MATERIALS?|Technical Appendix)\b")
+APPENDIX_LETTER = re.compile(r"^A\.?(?:\s+[A-Z][\w-]*(?:\s+[\w-]+){0,7})?$")
+HEAD_TITLE = re.compile(r"^[A-Z][\w-]*(?:\s+[\w-]+){0,7}$")
 
 
-def pdf_pages(path):
+def pdf_pages(path, layout=True):
     """Page texts of a PDF, or None without pdftotext."""
     if not shutil.which("pdftotext"):
         return None
-    text = run(["pdftotext", "-layout", path, "-"])
+    text = run(["pdftotext"] + (["-layout"] if layout else []) + [path, "-"])
     if text is None:
         return None
     pages = text.split("\f")
     return pages[:-1] if pages and not pages[-1].strip() else pages
 
 
-def check_page_limits(path, rep, rules, supp_pdf=None):
-    """A1.1 and Execution Rule 2: page counts of the main text and of the Appendix."""
-    pages = pdf_pages(path)
+def pdf_parts(pages):
+    """(last page of the main text, last page of the references, first page of the Appendix), 1-based, from the
+    reading-order text of a PDF; None where not found. A heading below more than 5 lines of text on its page
+    shares that page with the part before it."""
+    main_last = refs_last = appendix_first = None
+    for i, page in enumerate(pages):
+        lines = [l.strip() for l in page.splitlines()]
+        for k, line in enumerate(lines):
+            above = sum(1 for l in lines[:k] if re.search(r"[A-Za-z]{3}", l))
+            if main_last is None:
+                if REF_HEADING.match(line):
+                    main_last = i + 1 if above > 5 else i
+            elif i + 1 > main_last and appendix_first is None:
+                nxt = next((l for l in lines[k + 1:] if l), "")
+                if APPENDIX_HEADING.match(line) or (APPENDIX_LETTER.match(line) and (
+                        len(line) > 2 or HEAD_TITLE.match(nxt))):
+                    appendix_first, refs_last = i + 1, (i + 1 if above > 5 else i)
+    if main_last is not None and refs_last is None:
+        refs_last = len(pages)
+    return main_last, refs_last, appendix_first
+
+
+def check_page_limits(path, rep, rules, supp_pdf=None, appendix_inside=False):
+    """A1.1 and Execution Rules 1-2: the main text, the references, the whole PDF, and the Appendix against the
+    venue's page limits."""
+    pages = pdf_pages(path, layout=False)
     if pages is None:
         rep.add_plain(path, WARN, "A1.1", "pdftotext not installed: page limits not checked; count the pages by hand")
         return
-    ref_page, appendix_page = None, None
-    for i, page in enumerate(pages):
-        lines = page.splitlines()
-        for k, line in enumerate(lines):
-            if ref_page is None and REF_HEADING.match(line):
-                ref_page = i + 1 if len([l for l in lines[:k] if l.strip()]) > 5 else i
-            elif ref_page is not None and appendix_page is None and i + 1 > ref_page and APPENDIX_HEADING.match(line):
-                appendix_page = i + 1
+    main_last, refs_last, appendix_first = pdf_parts(pages)
+    lost = appendix_inside and appendix_first is None  # an Appendix whose start the text does not show
     limit = rules["page_limit"]
     if limit:
-        if rules["refs_included"]:
-            main_last = (appendix_page - 1) if appendix_page else len(pages)
-        else:
-            main_last = ref_page
-        if main_last is None:
-            rep.add_plain(path, WARN, "A1.1", "Could not find the References heading in the PDF: count the main-text "
-                          "pages by hand")
-        elif main_last > limit:
-            rep.add_plain(path, ERROR, "A1.1", f"The main text runs to page {main_last}, over the {limit}-page limit: "
+        last = (None if lost else refs_last) if rules["refs_included"] else main_last
+        if last is None:
+            rep.add_plain(path, WARN, "A1.1", "Could not find where the main text ends in the PDF (the References "
+                          "heading, or the start of the Appendix): count the main-text pages by hand")
+        elif last > limit:
+            rep.add_plain(path, ERROR, "A1.1", f"The main text runs to page {last}, over the {limit}-page limit: "
                           "cut text, move details to the Appendix, or shrink floats; never squeeze the template")
-        elif main_last < limit:
-            rep.add_plain(path, WARN, "A1.1", f"The main text ends on page {main_last}, short of the {limit}-page "
+        elif last < limit:
+            rep.add_plain(path, WARN, "A1.1", f"The main text ends on page {last}, short of the {limit}-page "
                           "limit: the main text must end exactly at the page limit")
+    if isinstance(rules["refs_limit"], int) and not rules["refs_included"] and main_last is not None:
+        if lost:
+            rep.add_plain(path, WARN, "A1.1", "Could not find where the Appendix starts in the PDF: count the "
+                          "reference pages by hand")
+        elif refs_last - main_last > rules["refs_limit"]:
+            rep.add_plain(path, ERROR, "A1.1", f"The references run {refs_last - main_last} page(s) past the main "
+                          f"text, over the venue's {rules['refs_limit']}-page limit for references: shorten the "
+                          "entries with the venue's bibliography style, and cut citations the paper does not need")
+    if isinstance(rules["total_limit"], int):
+        total = len(pages)
+        if rules["total_without_appendix"] and appendix_inside:
+            total = None if lost else refs_last
+        if total is None:
+            rep.add_plain(path, WARN, "A1.1", "Could not find where the Appendix starts in the PDF: count the total "
+                          "pages by hand")
+        elif total > rules["total_limit"]:
+            rep.add_plain(path, ERROR, "A1.1", f"The paper has {total} pages, over the venue's "
+                          f"{rules['total_limit']}-page total limit: shorten the main text or the references"
+                          + (", or move the Appendix to a separate file if the venue allows it" if appendix_inside
+                             and not rules["total_without_appendix"] else ""))
     if rules["appendix_limit"] and rules["place"] == "same":
-        if appendix_page:
-            n = len(pages) - appendix_page + 1
+        if appendix_first:
+            n = len(pages) - appendix_first + 1
             if n > rules["appendix_limit"]:
                 rep.add_plain(path, ERROR, "Appendix", f"The Appendix has {n} pages, over the venue's "
                               f"{rules['appendix_limit']}-page limit: cut or condense it")
@@ -1906,8 +1993,8 @@ def check_venue(files, rep):
 def required_block(rep, venue, has_exp, min_figures):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
     groups = [  # (name, experiments only, matches a finding)
-        ("Venue, template, and page limit", False, lambda rule, msg: rule == "Venue" or (
-            rule == "A1.1" and "page" in msg and "limit" in msg)),
+        ("Venue, template, and page limits (main text, references, total)", False,
+         lambda rule, msg: rule == "Venue" or (rule == "A1.1" and "page" in msg and "limit" in msg)),
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
         ("Story written; every claim has evidence", False,
          lambda rule, msg: rule == "Story"),
@@ -2017,13 +2104,18 @@ def main(argv=None):
     check_selling(files + supp, rep, read_story(files), rules)
     if args.review:
         check_review(files + supp, rep)
-    if args.log:
-        check_log(args.log, rep)
-    if args.pdf:
-        check_pdf(args.pdf, args.review, rep)
-        check_page_limits(args.pdf, rep, rules, args.supp_pdf)
-    if args.supp_pdf:
-        check_pdf(args.supp_pdf, args.review, rep)
+    log = args.log or os.path.splitext(args.tex[0])[0] + ".log"
+    if os.path.isfile(log):
+        check_log(os.path.relpath(log), rep)
+    main_pdf = args.pdf or os.path.splitext(args.tex[0])[0] + ".pdf"
+    supp_pdf = args.supp_pdf or next((p for p in (os.path.splitext(f.path)[0] + ".pdf" for f in supp)
+                                      if os.path.isfile(p)), None)
+    if os.path.isfile(main_pdf):
+        check_pdf(os.path.relpath(main_pdf), args.review, rep)
+        check_page_limits(os.path.relpath(main_pdf), rep, rules, supp_pdf and os.path.relpath(supp_pdf),
+                          appendix_in_main(files))
+    if supp_pdf:
+        check_pdf(os.path.relpath(supp_pdf), args.review, rep)
     sources = [f.path for f in files + supp] + bibs
     for tex, pdf in [(args.tex[0], args.pdf)] + [(f.path, None) for f in supp]:
         pdf = pdf or (args.supp_pdf if tex != args.tex[0] and args.supp_pdf else os.path.splitext(tex)[0] + ".pdf")
@@ -2049,6 +2141,7 @@ def main(argv=None):
         print(f"{loc}: {level} [{rule}] {msg}" + (f" | {snip}" if snip else ""))
     checked = ", ".join(os.path.relpath(f.path) for f in files)
     print(f"\nChecked: {checked}" + (f" (+ {', '.join(os.path.relpath(b) for b in bibs)})" if bibs else ""))
+    venue = "; ".join(x for x in (venue, limits_summary(rules)) if x)
     print(required_block(rep, venue, has_experiments(files), args.min_figures))
     print(f"== {rep.count(ERROR)} errors, {rep.count(WARN)} warnings ==")
     print("Fix every ERROR. Fix every WARN, or justify it in your reply. Then review the paper "
