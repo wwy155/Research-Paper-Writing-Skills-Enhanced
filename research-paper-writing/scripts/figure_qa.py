@@ -463,7 +463,18 @@ def _pdf_checks(path, print_width):
 
 
 def render_pdf(path, out_png):
-    """First page of a PDF as PNG, if poppler's pdftoppm is installed."""
+    """First page of a PDF as PNG, with PyMuPDF or poppler's pdftoppm."""
+    try:
+        import pymupdf
+    except ImportError:
+        pymupdf = None
+    if pymupdf:
+        try:
+            with pymupdf.open(path) as doc:
+                doc[0].get_pixmap(dpi=150).save(out_png)
+            return os.path.isfile(out_png)
+        except Exception:  # noqa: BLE001
+            pass
     if not shutil.which("pdftoppm"):
         return False
     stem = out_png[:-4]
@@ -526,7 +537,7 @@ def check_file(path, print_width):
             preview = png
             issues += [(lvl, msg) for lvl, msg in _raster_checks(png, None)]
         else:
-            issues.append((WARN, "No preview (pdftoppm is not installed): open the PDF and look at it"))
+            issues.append((WARN, "No preview (pip install pymupdf, or install poppler): open the PDF and look at it"))
     elif ext in RASTER_EXTS:
         issues = _raster_checks(path, print_width)
         preview = path
