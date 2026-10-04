@@ -10,9 +10,9 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 
 1. The venue is settled, its rules are looked up and recorded, its template is in use, and the main text ends exactly at its page limit (Execution Rule 1).
 2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules (placement, page limit, format), holds the detailed content, and the main text references it (Execution Rule 2).
-3. The story is written down, every figure and table supports one of its claims, and every claim has evidence (Core Workflow step 3).
+3. The story is written down, and every claim has evidence (Core Workflow step 3).
 4. At least 3 style references, the papers closest to ours, were viewed with `scripts/page_qa.py --reference`, and the writing follows how they write (Core Workflow step 2).
-5. The closest-work plan gives every figure and table of each closest paper a line, and each one is reproduced where our story needs it, or skipped with a reason (Core Workflow step 2).
+5. The closest-work plan gives every figure and table of each closest paper a line, and each one is reproduced where it tells something about ours or reviewers expect it, or skipped with a reason (Core Workflow step 2).
 6. The main comparison includes the latest state of the art, and the text discusses it (`references/experiments.md`).
 7. The main text has at least 3 figures, and every figure and table has its message and form in the figure plan (A2.1, A2.7).
 8. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
@@ -27,7 +27,7 @@ Steps 1-3 set the paper up. Steps 4-7 are a loop: repeat them until a round find
 
 1. First, settle the target venue; if it is not settled, ask the user with the ask-user tool before anything else (Execution Rule 1). Then create the Appendix or Supplementary file (Execution Rule 2).
 2. Pick 3-5 papers closest to ours as style references for the writing, and view them (`references/style-references.md`). Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`, "Experiment Planning").
-3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it: every section, paragraph, figure, and table advances it, and the rest goes to the Appendix or is cut.
+3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it: every section and paragraph advances it, and the rest goes to the Appendix or is cut.
 4. Edit. Write paragraph by paragraph, and follow the Writing Rules in every sentence you write or edit.
 5. Check everything that applies (Checking the Writing Rules): `check_tex.py`, `figure_qa.py` for changed figures, a pdflatex compile with `page_qa.py`, and a reverse outline of each changed section (`references/paragraph-clarity.md`).
 6. Review the paper as a skeptical reviewer, with sub-agent reviewers in parallel when available (`references/paper-review.md`).
@@ -62,12 +62,12 @@ The style references come first (Core Workflow step 2). The examples in `referen
 
 #### A2. Figures and Floats
 
-1. Make a figure or table only to show an advantage of our method or a non-obvious finding, never for decoration. Before drawing, write its conclusion and its form in the figure plan (A2.6); end the caption with the conclusion, and analyze it in the text: what it shows, why, and what follows. Merge or cut any that repeats another's message. Never plot numbers a table already shows, unless the figure reveals what the table cannot (a trend, a trade-off).
+1. Make a figure or table only when it shows something informative, such as a result, an advantage of ours, how the method works, or a non-obvious finding. Never make one for decoration. Before drawing, write its conclusion and its form in the figure plan (A2.6); end the caption with the conclusion, and analyze it in the text: what it shows, why, and what follows. Merge or cut any that repeats another's message. Never plot numbers a table already shows, unless the figure reveals what the table cannot (a trend, a trade-off).
 2. Use vector PDF for plots and diagrams; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name and order in every figure and table, and make ours easy to find.
 4. Captions: first what it shows ("Qualitative comparison on D-NeRF."), then what each part shows ("(a) ... (b) ..."), then the conclusion in at most 2 short sentences; within 50 words, or 80 for a teaser or pipeline figure. No formatting notes ("best in bold"), no significance details. Titles inside a figure and subfigure captions name what is shown, never the conclusion. Figure captions go below, table captions above.
 5. Except for the teaser, place a figure, table, or algorithm right after the paragraph that introduces it, in the same (sub)section: `flafter`, and `\FloatBarrier` (`placeins`) before the next (sub)section. If the barrier leaves white space (A1.6), move the source earlier or resize the float.
-6. Decide every figure and table from the story: write the claim it supports and the form that shows it in the figure plan before making it (`references/figures.md`, `references/table-types.md`). Never copy another paper's figures or tables.
+6. Above all, every figure must look good and convince. Write what it shows and its form in the figure plan before making it, and redraw it until it does (`references/figures.md`, `references/table-types.md`). Never copy another paper's figures or tables.
 7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message (A2.1). If there are fewer, plan and create the missing ones now: draw diagrams yourself, and run the experiments behind result figures. Use one form (e.g., line plots) for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
 8. Tables: pick the type that fits the comparison (SOTA comparison, plug-in, ablation, efficiency, ...). Run every method you can under one protocol, cite every method in its row, and include the latest state of the art. Numbers you could not run go in the same table, marked † with a one-line note; never in a separate table.
 9. Draw each figure at its printed width, export it to PDF, and run `scripts/figure_qa.py` on the script that draws it, or on the file. Fix every overlap, cut-off, size, and white-space problem it reports, then look at the preview it writes. Repeat after every change; `check_tex.py` reports any image not checked since its last change.

@@ -1,6 +1,6 @@
 # The Story: One Argument for the Whole Paper
 
-Read this file before you write or rewrite any section (Core Workflow step 3 in `SKILL.md`). A paper makes one argument. Every section, paragraph, figure, and table either advances it or goes to the Appendix.
+Read this file before you write or rewrite any section (Core Workflow step 3 in `SKILL.md`). A paper makes one argument. Every section and paragraph advances it or goes to the Appendix. Figures and tables need not each prove a claim, since a paper has many figures and only a few claims. Each must show something informative (`references/figures.md`).
 
 ## Find the Story
 
@@ -46,11 +46,11 @@ Write the story at the top of the main `.tex` file, before editing any section, 
 % Key term: [the name the paper uses for the key idea]
 ```
 
-Tag each line of the figure plan with the claim it supports, or with `[Method]` or `[Insight]` for a pipeline diagram or a basic-idea teaser:
+Tag the figure-plan lines of the figures and tables that are evidence for a claim, so every claim has evidence. Other figures need no tag:
 
 ```latex
-% fig:teaser: [Insight] ours keeps details that baselines blur -> results teaser with zoom-ins
-% fig:pipeline: [Method] how the method works -> pipeline diagram
+% fig:teaser: ours keeps details that baselines blur -> results teaser with zoom-ins
+% fig:pipeline: how the method works -> pipeline diagram
 % tab:main: [C1] ours has the best PSNR on both datasets -> SOTA comparison table
 % fig:views: [C2] our lead grows as the views get sparser -> lines over the number of views
 % tab:ablation: [C3] each module helps -> ablation table
@@ -65,7 +65,7 @@ Tag each line of the figure plan with the claim it supports, or with `[Method]` 
 | Introduction | Problem, then why prior methods fail, then the insight, the method, the evidence, and contributions that restate the claims. |
 | Related Work | Groups prior work by what it lacks relative to the insight; each topic ends with how ours differs. |
 | Method | Motivates every module by the problem, and shows how it realizes the insight; nothing in it is unrelated to the story. |
-| Experiments | Tests each claim in turn; every figure and table names its claim, and the text says what each result means for the story. |
+| Experiments | Tests each claim in turn, with a figure or table as evidence, and says what each result means for the story. |
 | Conclusion | Restates the problem, the insight, the strongest evidence, and the takeaway, then what it opens up. |
 
 Use the key term for the key idea everywhere, with no synonyms (B1).
@@ -73,7 +73,7 @@ Use the key term for the key idea everywhere, with no synonyms (B1).
 ## Check It
 
 1. Reverse outline (`references/paragraph-clarity.md`): every paragraph's first sentence maps to one story part. Move or cut a paragraph that maps to none.
-2. Every figure and table supports a claim; every claim has evidence. The checker reports a claim without evidence as an ERROR, and a figure or table without a claim tag as a WARN.
+2. Every claim has a figure or table as evidence, tagged with the claim in the figure plan. The checker reports a claim without evidence as an ERROR.
 3. No sentence says where ours loses or fails. The checker reports such a sentence as an ERROR (Writing Rule B4.3), and a "Limitations" or "Failure cases" part as a WARN.
 4. The key term appears in the abstract, the Introduction, the Experiments, and the Conclusion; the checker warns where it is missing.
 5. Read the abstract, the last paragraph of the Introduction, the captions, and the Conclusion alone: together they must tell the whole story.

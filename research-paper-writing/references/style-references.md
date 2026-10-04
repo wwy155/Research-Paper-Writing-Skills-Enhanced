@@ -1,6 +1,6 @@
 # Style References: How the Field Writes
 
-Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL.md`). The papers closest to ours show how the field writes: the order and length of the sections, the terms, the tone, and the results reviewers expect to see. Use them as the reference for the writing. Decide what each figure and table shows from our story (`references/story.md`), never by copying theirs. The Writing Rules still apply on top.
+Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL.md`). The papers closest to ours show how the field writes: the order and length of the sections, the terms, the tone, and the results reviewers expect to see. Use them as the reference for the writing. Decide what each figure and table shows yourself, never by copying theirs (`references/figures.md`). The Writing Rules still apply on top.
 
 ## Pick the Papers
 
@@ -21,7 +21,7 @@ Read this file first, with `references/story.md` (Core Workflow step 2 in `SKILL
 - The terms and notation of the field, the tone, and how results are stated.
 - The benchmarks, metrics, and baselines that reviewers will expect, so our comparison is complete.
 
-Never copy their text. Never make a figure or table because they have one: what to show comes from our story.
+Never copy their text, and never make a figure or table only because they have one.
 
 ## Record It
 

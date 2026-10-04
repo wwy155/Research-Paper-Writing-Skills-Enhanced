@@ -1286,8 +1286,8 @@ def read_story(files):
 
 
 def check_story(files, root, rep, story, plan):
-    """Core Workflow step 3: the story is written down, every figure and table supports one of its claims,
-    every claim has evidence, and the key term runs through the paper (references/story.md)."""
+    """Core Workflow step 3: the story is written down, every claim has a tagged figure or table as evidence,
+    and the key term runs through the paper (references/story.md). Untagged figures are fine."""
     if story is None:
         rep.add_plain("(paper)", ERROR, "Story", "No '% Story:' block: write the story first (problem, insight, "
                       "method, claims, takeaway, key term) at the top of the main .tex file (references/story.md)")
@@ -1305,9 +1305,6 @@ def check_story(files, root, rep, story, plan):
     if holes:
         rep.add(f, pos, WARN, "Story", f"The story still has placeholders in: {', '.join(holes)}")
     if plan:
-        main_labels = {l.strip() for text in split_main(files, root)[1]
-                       for m in re.finditer(r"\\begin\{(figure|table)\*?\}(.*?)\\end\{\1\*?\}", text, re.S)
-                       for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))}
         evidence = {}
         for label, (message, form, kinds) in plan.items():
             tags = {t.upper() if t[0] in "cC" else t.capitalize() for t in STORY_TAG.findall(message)}
@@ -1316,9 +1313,6 @@ def check_story(files, root, rep, story, plan):
                     rep.add(f, pos, ERROR, "Story", f"The plan line of {label} cites claim {tag}, which the story "
                             "does not have")
                 evidence.setdefault(tag, []).append(label)
-            if not tags and label in main_labels:
-                rep.add_plain("(paper)", WARN, "Story", f"The plan line of {label} names no story claim: tag it, e.g., "
-                              f"'% {label}: [C1] message -> form', or cut it")
         for cid in story["claims"]:
             if cid not in evidence:
                 rep.add(f, pos, ERROR, "Story", f"Claim {cid} has no figure or table as evidence: add one, or weaken "
@@ -1915,7 +1909,7 @@ def required_block(rep, venue, has_exp, min_figures):
         ("Venue, template, and page limit", False, lambda rule, msg: rule == "Venue" or (
             rule == "A1.1" and "page" in msg and "limit" in msg)),
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
-        ("Story written; every figure and table supports a claim; every claim has evidence", False,
+        ("Story written; every claim has evidence", False,
          lambda rule, msg: rule == "Story"),
         ("Style references: at least 3 closest papers viewed and read for the writing", False,
          lambda rule, msg: rule == "Style"),

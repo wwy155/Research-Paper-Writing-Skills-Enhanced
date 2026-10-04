@@ -393,7 +393,7 @@ Local cite:
 
 ## Part D: Choose the Figure or Table of the Introduction
 
-Each pipeline version above points to one figure or table. Choose the one that shows the story's main claim at a glance (`references/figures.md`).
+Each pipeline version above points to one figure or table. Choose the one that shows the paper's main point at a glance, and make it look good and convince (`references/figures.md`).
 
 | Option | Use it when | What it shows |
 |---|---|---|
@@ -476,4 +476,4 @@ Local cite:
 4. Are claims in Introduction aligned with experiment evidence?
 5. Is terminology stable across all sections?
 6. Does every claim that is not our own result cite a source?
-7. Does the figure or table of the Introduction (Part D) show the main claim, with every ✓ or ✗ checked against the cited paper?
+7. Does the figure or table of the Introduction (Part D) show the paper's main point at a glance, with every ✓ or ✗ checked against the cited paper?

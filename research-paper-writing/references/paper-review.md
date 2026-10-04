@@ -12,7 +12,7 @@ With sub-agents, run these reviewers in parallel. Give each the absolute paths o
 
 1. Venue reviewer. Reads the paper as a skeptical reviewer of the target venue, answers the self-review questions below, and lists the weaknesses most likely to get it rejected.
 2. Story reviewer. Checks that every claim of the story has evidence, that the paper sells it, and that no sentence discusses where ours loses (`references/story.md`).
-3. Style reviewer. Compares the writing, figures, and tables with the style references (`references/style-references.md`).
+3. Writing and figure reviewer. Compares the writing with the style references (`references/style-references.md`), and judges every figure: informative, good-looking, and convincing (`references/figures.md`).
 4. Rules reviewer. Checks every Writing Rule in the text, rule by rule, including the ones the scripts cannot check.
 5. References and venue reviewer. Checks that every reference exists and matches the real paper, and that the paper follows the venue's template, page limit, anonymity, and Appendix rules.
 

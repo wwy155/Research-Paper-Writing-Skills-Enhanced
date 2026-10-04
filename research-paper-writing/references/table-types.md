@@ -7,7 +7,7 @@ Read this file before you create or restyle any table (Writing Rule A2.8 in `SKI
 % tab:plugin: [C2] our module helps every detector it is added to -> plug-in table
 ```
 
-Decide each table from the story (`references/story.md`): make it only when a claim needs it, and show the comparison that proves that claim. Never copy the tables of another paper because they have them.
+Make a table when it shows an informative comparison, and tag its plan line with a claim when it is the evidence for one (`references/story.md`). Never copy the tables of another paper because they have them.
 
 ## Pick the Type
 
@@ -26,7 +26,7 @@ Decide each table from the story (`references/story.md`): make it only when a cl
 
 Prefer a plot over a table when the message is a trend, a trade-off, or a distribution (robustness and sensitivity usually are; see `references/figures.md`). Prefer a table when readers will cite or compare the exact numbers. Never show the same numbers twice. Draw a figure of a table's numbers only if it reveals what the table cannot, such as a trend across settings or a trade-off. Otherwise, cut one of them.
 
-Main text: the SOTA comparison, the ablation, and the tables that carry a claim. Appendix: per-scene and per-class tables, full sensitivity sweeps, and extra baselines.
+Main text: the SOTA comparison, the ablation, and the tables that carry a claim or a result reviewers expect. Appendix: per-scene and per-class tables, full sensitivity sweeps, and extra baselines.
 
 ## Rules for Every Comparison Table
 
@@ -163,7 +163,7 @@ Measure every method on the same GPU, at the same resolution, and name both in t
 
 ### Breakdown, Robustness, and Sensitivity
 
-Put these in the Appendix as tables, and show the point in the main text as a plot when the story needs it (`references/figures.md`).
+Put these in the Appendix as tables, and show the point in the main text as a plot when it matters to the paper (`references/figures.md`).
 
 ### Property
 

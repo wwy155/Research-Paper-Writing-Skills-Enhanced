@@ -1,6 +1,6 @@
 # Introduction Figure and Table Templates
 
-The code blocks below are templates, not quotations: fill the brackets with your own methods, properties, and numbers. Part D of `references/introduction.md` says when to use each. Use one only when it shows a claim of the story.
+The code blocks below are templates, not quotations: fill the brackets with your own methods, properties, and numbers. Part D of `references/introduction.md` says when to use each. Use one only when it shows the paper's main point at a glance.
 
 ## Comparison Table
 
