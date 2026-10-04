@@ -19,16 +19,19 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 9. Every needed result is run and filled in from its result file, or logged as running, or as blocked with the user asked (`% Experiment log:` in `references/experiments.md`).
 10. Experiments explains and cites every metric before the first result (A4.9).
 11. The paper was compiled with pdflatex after the last edit, every page was viewed with `scripts/page_qa.py`, and no page shows white space (Execution Rule 3, Checking the Writing Rules step 4).
+12. The loop ran to the end: the last round in `% Review log:` found no errors and nothing new in review (Core Workflow step 7).
 
 ## Core Workflow
 
-1. First, settle the target venue: if it is not settled, your first action is to ask the user with the ask-user tool (Execution Rule 1). Then create the Appendix or Supplementary file if it does not exist yet (Execution Rule 2).
-2. Pick 3-5 papers closest to ours as style references and view them (`references/style-references.md`). Their writing, figures, and tables are the main style reference; this skill's examples only fill gaps. Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`, "Experiment Planning").
-3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it. Every section and paragraph advances it, and every figure and table supports one of its claims; the rest goes to the Appendix or is cut.
-4. Write paragraph by paragraph, one message each. Follow the Writing Rules in every sentence you write or edit, in every section, not only in a final pass.
-5. Run reverse outlining after writing each section (`references/paragraph-clarity.md`).
-6. Run final-paper adversarial review with `references/paper-review.md`.
-7. After every edit, run the checks in "Checking the Writing Rules" below; fix and re-check until they pass. Before you finish, if sub-agents are available, run three reviewers in parallel, each given the absolute paths of this file and `scripts/check_tex.py`: one for the references (each exists and matches the real paper), one for every Writing Rule, and one for the venue's template, page limit, anonymity, and Appendix rules.
+Steps 1-3 set the paper up. Steps 4-7 are a loop: repeat them until a round finds nothing to fix.
+
+1. First, settle the target venue; if it is not settled, ask the user with the ask-user tool before anything else (Execution Rule 1). Then create the Appendix or Supplementary file (Execution Rule 2).
+2. Pick 3-5 papers closest to ours as style references and view them; their writing, figures, and tables are the main style reference (`references/style-references.md`). Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`, "Experiment Planning").
+3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it: every section, paragraph, figure, and table advances it, and the rest goes to the Appendix or is cut.
+4. Edit. Write paragraph by paragraph, and follow the Writing Rules in every sentence you write or edit.
+5. Check everything that applies (Checking the Writing Rules): `check_tex.py`, `figure_qa.py` for changed figures, a pdflatex compile with `page_qa.py`, and a reverse outline of each changed section (`references/paragraph-clarity.md`).
+6. Review the paper as a skeptical reviewer, with sub-agent reviewers in parallel when available (`references/paper-review.md`).
+7. Fix every ERROR, WARN, and review finding, log the round in `% Review log:`, and go back to step 5. Stop only when a round's checks find no errors and its review finds nothing new. If a missing tool, a blocked experiment, or a question for the user stops the loop, ask the user.
 
 ## Principles
 
@@ -122,7 +125,7 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 
 ### Checking the Writing Rules
 
-1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks. Re-run until it reports 0 errors.
+1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks.
 2. Run `scripts/figure_qa.py` after every figure change (A2.9).
 3. The scripts cannot check A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
 4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every sheet it writes, fix what you see, and confirm with the codes on the sheets (`references/page-check.md`). Then re-run the checker with `--log main.log --pdf main.pdf`, plus `--supp-pdf supp.pdf` for a separate supplementary file and `--review` for the anonymous version, to check references, overfull boxes, fonts, anonymity, and the page limits.
@@ -147,11 +150,11 @@ When asked to rewrite or draft sections, return:
 
 1. A section outline (3-7 bullets).
 2. The revised paragraphs, each labeled with its role (opening, challenge, method, advantage, evidence).
-3. A short self-review (clarity, flow, terminology, unsupported claims), and a claim-evidence map of the story's claims: `Claim: ... | Evidence: ... | Status: supported/needs evidence`.
+3. A claim-evidence map of the story's claims: `Claim: ... | Evidence: ... | Status: supported/needs evidence`.
 
 After any edit, including a final polish, also return:
 
-4. The checker's "Required in Every Paper" list, copied as printed, its final summary line, and a one-line justification for each remaining `WARN`.
+4. The checker's "Required in Every Paper" list, copied as printed, its final summary line, the rounds of the review log, and a one-line justification for each remaining `WARN`.
 5. A Writing Rules report, one line per group (A1-A4, B1-B4), with each rule's status (pass, fixed, or not checked with the reason), e.g., `A4: 1 fixed, 2 pass, 8 not checked (6 .bib entries)`. Never mark a rule pass without checking it.
 6. For a final polish: a short change log with one example per type of change. Always: the experiments still running or blocked, and what you need from the user.
 7. A setup line: the story in one sentence, the venue and template, the style references, and the path of the Appendix or Supplementary file. When Experiments, figures, or tables were touched, add the closest-work plan and the latest-SOTA line with the status of each item.

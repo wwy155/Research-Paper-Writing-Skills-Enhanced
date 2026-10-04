@@ -1,8 +1,37 @@
-# Paper Review (Paper Rview)
+# Paper Review: The Review Round of the Loop
 
 ## Goal
 
 Use an adversarial, reviewer-style checklist to detect reject risks early and revise the paper before submission.
+
+## The Review Round
+
+Every round of the loop in the Core Workflow (steps 4-7 in `SKILL.md`) ends with a review of the source and the compiled PDF.
+
+With sub-agents, run these reviewers in parallel. Give each the absolute paths of `SKILL.md`, `scripts/check_tex.py`, this file, the paper's `.tex` files, and the PDF:
+
+1. Venue reviewer. Reads the paper as a skeptical reviewer of the target venue, answers the self-review questions below, and lists the weaknesses most likely to get it rejected.
+2. Story reviewer. Checks that every claim of the story has evidence, that the paper sells it, and that no sentence discusses where ours loses (`references/story.md`).
+3. Style reviewer. Compares the writing, figures, and tables with the style references (`references/style-references.md`).
+4. Rules reviewer. Checks every Writing Rule in the text, rule by rule, including the ones the scripts cannot check.
+5. References and venue reviewer. Checks that every reference exists and matches the real paper, and that the paper follows the venue's template, page limit, anonymity, and Appendix rules.
+
+Without sub-agents, make the same five passes yourself, one at a time.
+
+Each reviewer returns its findings as `location | problem | fix`. Fix every finding, or say in the log why it does not apply. Then check again (Core Workflow step 5) and start the next round.
+
+### Log Each Round
+
+Log every round at the top of the main `.tex` file. The checker reads the log:
+
+```latex
+% Review log:
+% R1: checks: 14 errors, 6 warnings; pages: 2 blank bands; review: 5 findings (abstract overclaims C2, no MethodY row, ...) -> fixed
+% R2: checks: 0 errors, 1 warning (justified); pages: clean; review: 1 finding (Fig. 3 caption over 50 words) -> fixed
+% R3: checks: 0 errors; pages: clean; review: no new findings
+```
+
+The loop ends only with a round whose checks found no errors and whose review found nothing new. The checker reports an ERROR when the log is missing, when its last round still has findings, and when the log says the loop ended but the paper still has errors.
 
 ## Core Principle
 
