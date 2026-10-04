@@ -128,8 +128,8 @@ The checker counts the words; a citation, a reference, or an inline formula coun
 % Opens with the conclusion, and explains formatting.
 \caption{\textbf{Ours keeps thin structures that the baselines blur.} Novel views on the D-NeRF dataset. Our results are highlighted in red boxes.}
 
-% Better (34 words): what it shows, the parts, a reading aid, then a short conclusion.
-\caption{Qualitative comparison on the D-NeRF dataset~\cite{dnerf}. (a) Lego. (b) Jumping Jacks. Methods follow the order of Table~\ref{tab:main}; insets zoom into the boxed regions. Ours keeps the thin structures that the baselines blur.}
+% Better (35 words): what it shows, the parts, a reading aid, then a short conclusion.
+\caption{Qualitative comparison on the D-NeRF dataset~\cite{dnerf}. (a) Lego. (b) Jumping Jacks. Methods follow the order of Table~\ref{tab:main}, and insets zoom into the boxed regions. Ours keeps the thin structures that the baselines blur.}
 ```
 
 ## Check Every Figure

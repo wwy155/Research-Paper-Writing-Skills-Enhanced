@@ -68,7 +68,7 @@ The preamble needs `booktabs`, the scheme's `\input{table-style}`, and, for chec
     [Latest SOTA]~\cite{m4} & \second{[..]} & [..] & [..] & \second{[..]} & [..] & [..] & \second{[..]} \\
     \oursrow Ours & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} & \best{[..]} \\
     \bottomrule
-    \multicolumn{8}{l}{\footnotesize \textsuperscript{\dag}Reported by the original paper; -- not reported.} \\
+    \multicolumn{8}{l}{\footnotesize \textsuperscript{\dag}Reported by the original paper. -- Not reported.} \\
   \end{tabular}
 \end{table*}
 ```
@@ -146,7 +146,7 @@ Measure every method on the same GPU, at the same resolution, and name both in t
 
 ```latex
 \begin{table}[t]
-  \caption{Cross-dataset evaluation: trained on [A], tested on [B] and [C] without fine-tuning. [Conclusion, e.g., Ours loses 1.2 points on unseen data, the baselines 4 to 6.]}
+  \caption{Cross-dataset evaluation, trained on [A] and tested on [B] and [C] without fine-tuning. [Conclusion, e.g., On unseen data, ours drops 1.2 points and the baselines 4 to 6.]}
   \label{tab:transfer}
   \centering
   \small
@@ -175,7 +175,7 @@ Report the share of votes for ours against each baseline, the number of particip
 
 ```latex
 \begin{table}[t]
-  \caption{User study on [task]: share of votes for ours in pairwise comparisons. [Conclusion, e.g., Participants prefer ours over every baseline in at least 70\% of the votes.]}
+  \caption{User study on [task], with the share of votes for ours in pairwise comparisons. [Conclusion, e.g., Participants prefer ours over every baseline in at least 70\% of the votes.]}
   \label{tab:user}
   \centering
   \small

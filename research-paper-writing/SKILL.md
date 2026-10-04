@@ -112,7 +112,7 @@ LLMs overuse these patterns (Reinhart et al., arXiv:2410.16107): never introduce
 4. Progress-then-gap opener: "While X has achieved remarkable progress, ..." -> name what fails and why.
 5. Stacked adverbs: "Notably, ... Importantly, ... Furthermore, ..." -> keep only real relations.
 6. Unsupported triplets: "efficient, scalable, and robust" -> keep only what the experiments show.
-7. Em dashes: never use an em dash (`---`, `—`) -> use a comma, a colon, parentheses, or a new sentence. Hyphens and en dashes (`-`, `--`) are fine.
+7. Heavy punctuation: an em dash (`---`, `—`), a colon that announces a point ("The idea is simple: ..."), or clauses chained by semicolons -> write a new sentence. Never use an em dash, and use at most one colon or semicolon per paragraph. Hyphens and en dashes (`-`, `--`) are fine.
 
 #### B4. Section-Specific Wording
 

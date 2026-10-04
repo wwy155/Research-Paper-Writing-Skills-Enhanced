@@ -118,6 +118,11 @@ EM_DASH = r"-{3,}|[\u2014\u2015\u2e3a\u2e3b]|\\textemdash\b"
 ADVERBS = (SENT_START + r"(?:Notably|Importantly|Furthermore|Moreover|"
            r"Additionally|Crucially|Interestingly|Remarkably|Significantly|"
            r"Besides|In addition)\s*,")
+HEAVY_PUNCT = re.compile(r"(?<![\d:])[:;](?![:=])|(?<=\d)[:;](?![\d:=])")  # not in ratios or times (1:1, 10:30)
+TODO_SPAN = re.compile(r"\[\s*TODO\b[^\]]*\]|\\(?:TODO|todo)\s*\{[^{}]*\}")
+REVEAL_COLON = re.compile(r"\b(?:simple|clear|straightforward|twofold|two-fold|threefold|three-fold|question|answer|"
+                          r"reason|insight|idea|intuition|observation|catch|consequence|outcome|lesson|takeaway|"
+                          r"bottom line|in short|in other words|put simply|that is|namely)\s*:(?![\d:=])", re.I)
 RESULT_WORDS = re.compile(r"\b(?:outperform\w*|state-of-the-art|SOTA|superior|"
                           r"surpass\w*|better than|significant(?:ly)? improve\w*)")
 
@@ -323,6 +328,27 @@ def sentence_spans(prose):
     return protected, list(zip(bounds, bounds[1:]))
 
 
+def check_punctuation(f, rep):
+    """B3.7: no colon that announces a point, and at most one colon or semicolon per paragraph or caption."""
+    text = TODO_SPAN.sub(lambda m: blank(m.group(0)), f.prose)
+    for m in REVEAL_COLON.finditer(text):
+        rep.add(f, m.start(), ERROR, "B3.7", f"Colon that announces a point ('{m.group(0)}'): state the point as "
+                "its own sentence")
+    for m in re.finditer(r"\\caption\*?\s*(?:\[[^\]]*\])?\s*\{", text):
+        end = brace_end(text, m.end() - 1) or len(text)
+        hits = list(HEAVY_PUNCT.finditer(text, m.end(), end))
+        if len(hits) >= 2:
+            rep.add(f, hits[1].start(), WARN, "B3.7", f"{len(hits)} colons or semicolons in one caption: keep at most "
+                    "one, and write the rest as sentences")
+    for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")(\*?)\}.*?\\end\{\1\2\}", f.nonverbatim, re.S):
+        text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
+    for para in re.finditer(r"(?:(?!\n[ \t]*\n).)+", text, re.S):
+        hits = list(HEAVY_PUNCT.finditer(para.group(0)))
+        if len(hits) >= 2:
+            rep.add(f, para.start() + hits[1].start(), WARN, "B3.7", f"{len(hits)} colons or semicolons in one "
+                    "paragraph: keep at most one, and write the rest as sentences")
+
+
 def check_prose(f, rep, max_words):
     for level, rule, msg, pat in PROSE_PATTERNS:
         for m in re.finditer(pat, f.prose, re.M):
@@ -338,6 +364,7 @@ def check_prose(f, rep, max_words):
             rep.add(f, para.start() + hits[1].start(), ERROR, "B3.5",
                     f"{len(hits)} stacked adverbs (Notably/Furthermore/Moreover...) in one "
                     "paragraph: keep only real relations")
+    check_punctuation(f, rep)
     # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3).
     protected, spans = sentence_spans(f.prose)
     for a, b in spans:
@@ -1777,7 +1804,7 @@ def main(argv=None):
             rep.add(f, m.start(), ERROR, "A4.4", "Full-width punctuation: use ASCII , . : ; ( )")
         for m in re.finditer(EM_DASH, f.whole):
             rep.add(f, m.start(), ERROR, "B3.7",
-                    "Em dash: use a comma, a colon, parentheses, or a new sentence (in a table cell, use - or N/A)")
+                    "Em dash: use a comma, parentheses, or a new sentence (in a table cell, use - or N/A)")
     exp_spans = experiment_spans(files, root)
     known = check_named_items(files, rep, exp_spans)
     check_table_citations(files, root, rep, known)

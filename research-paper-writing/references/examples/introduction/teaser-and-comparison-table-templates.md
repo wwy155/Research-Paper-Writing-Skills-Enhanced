@@ -12,7 +12,7 @@ The code blocks below are templates, not quotations: fill the brackets with your
 As summarized in Table~\ref{tab:intro_comparison}, existing methods support either [property A] or [property B], but not both.
 
 \begin{table}[t]
-  \caption{Properties of [task] methods: [property A] ([short definition]), [property B] ([short definition]), and [property C] ([short definition]). Only [method] supports all three.}
+  \caption{Properties of [task] methods, namely [property A] ([short definition]), [property B] ([short definition]), and [property C] ([short definition]). Only [method] supports all three.}
   \label{tab:intro_comparison}
   \centering
   \begin{tabular}{lccc}
@@ -64,7 +64,7 @@ As shown in Figure~\ref{fig:teaser}, [method] reaches [quality] comparable to [b
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/teaser_results}
-  \caption{[Method] and [baseline] on [hard case] from [dataset]; zoom-ins show [region]. [Baseline] [fails how], while [method] recovers [what].}
+  \caption{[Method] and [baseline] on [hard case] from [dataset], with zoom-ins on [region]. [Baseline] [fails how], while [method] recovers [what].}
   \label{fig:teaser}
 \end{figure*}
 
