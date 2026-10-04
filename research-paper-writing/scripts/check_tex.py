@@ -407,6 +407,11 @@ SIGNIFICANCE = re.compile(r"\bp\s*(?:<|>|=|\\leq?|\\geq?|\\le\b|\\ge\b)|\bp-valu
                           r"\bstatistical(?:ly)?\s+significan\w*|\bsignificance\b|\bBonferroni\b|\bHolm\b", re.I)
 
 
+PROVENANCE = re.compile(r"\b(?:reported|quoted|copied|taken)\b[^.]{0,60}?\b(?:from|by|in)\s+(?:the\s+|their\s+)?"
+                        r"(?:own\s+|original\s+|respective\s+)?papers?\b|\bunder their own (?:protocols?|settings?)\b|"
+                        r"\b(?:reported|original) (?:numbers|results|values)\b", re.I)
+
+
 def caption_sentences(arg):
     """Sentences of a caption, as printed text."""
     text = re.sub(r"\\(?:cite[a-zA-Z]*|ref|eqref|autoref|[cC]ref)\*?(?:\s*\[[^\]]*\])*\s*\{[^}]*\}", "X", arg)
@@ -421,7 +426,7 @@ def states_conclusion(sentence):
     return not DESCRIPTION_START.match(sentence) and bool(CLAIM.search(sentence))
 
 
-def check_caption(f, rep, pos, arg, limit, results=True):
+def check_caption(f, rep, pos, arg, limit, results=True, kind="figure"):
     """A2.4: what it shows first, then (a)/(b), then at most 2 short sentences of conclusion; no filler."""
     sentences = caption_sentences(arg)
     if not sentences:
@@ -444,6 +449,9 @@ def check_caption(f, rep, pos, arg, limit, results=True):
     if SIGNIFICANCE.search(arg):
         rep.add(f, pos, WARN, "B4.5", "Significance details in a caption: move them to the Appendix and keep one "
                 "sentence in the text")
+    if kind == "table" and PROVENANCE.search(arg):
+        rep.add(f, pos, WARN, "A2.8", "The caption explains where numbers come from: put reported numbers in the main "
+                "comparison table, marked with a dagger and a one-line table note; never in a separate table")
     n = len(latex_words(arg))
     if n > limit:
         rep.add(f, pos, WARN, "A2.4", f"Caption has {n} words (> {limit}): keep what it shows, (a)/(b), and a short "
@@ -461,7 +469,7 @@ def check_floats(f, rep, plan=None):
         for c in caps:
             end = brace_end(body, c.end() - 1) or len(body)
             check_caption(f, rep, off + c.start(), body[c.end():end - 1],
-                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS, results=not diagram)
+                          DIAGRAM_CAPTION_WORDS if diagram else CAPTION_WORDS, results=not diagram, kind=env)
         for sub in re.finditer(SUBFLOATS, full, re.S):
             for c in re.finditer(r"\\caption(?:\[[^\]]*\])?\{", sub.group(0)):
                 end = brace_end(sub.group(0), c.end() - 1) or len(sub.group(0))
@@ -1097,7 +1105,12 @@ def float_bodies(docs):
     return out
 
 
-def check_latest_sota(files, rep, exp_spans, extra=()):
+SOTA_TABLE = re.compile(r"\b(?:SOTA|state[- ]of[- ]the[- ]art|main comparison)\b", re.I)
+PROTOCOL_REASON = re.compile(r"\b(?:protocols?|splits?|resolutions?|reported|numbers?|hardware|GPUs?|setups?|"
+                             r"budgets?)\b", re.I)
+
+
+def check_latest_sota(files, rep, exp_spans, extra=(), plan=None):
     """Experiments: the main comparison includes the latest state of the art, and the text discusses it."""
     if not has_experiments(files):
         return
@@ -1122,6 +1135,9 @@ def check_latest_sota(files, rep, exp_spans, extra=()):
             if len(reason.split()) < 3 or NO_DATA.search(reason) or re.search(r"\bcode\b", reason, re.I):
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{name}' is not compared, and the reason does not hold: if "
                         "it has results on your benchmark, use its reported numbers and mark them")
+            elif PROTOCOL_REASON.search(reason):
+                rep.add(f, m.start(), ERROR, "SOTA", f"A different protocol is no reason to leave out '{name}': put "
+                        "its reported numbers in the main comparison table, marked with a dagger and a one-line note")
             continue
         labels = [l for l in PLAN_LABEL.findall(target) if not re.match(r"(?:done|todo|partly|shows)\b", l, re.I)]
         if not labels:
@@ -1133,9 +1149,16 @@ def check_latest_sota(files, rep, exp_spans, extra=()):
             elif not token.search(bodies[label]):
                 rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' has no row for '{name}': add it, with [TODO] cells "
                         "if its numbers are missing")
+            if plan and label in plan and not SOTA_TABLE.search(plan[label][1]):
+                rep.add(f, m.start(), ERROR, "SOTA", f"'{label}' is not the main comparison table: put '{name}' in "
+                        "the SOTA comparison table, with reported numbers marked; never in a separate table")
         if not token.search(exp_text):
             rep.add(f, m.start(), ERROR, "SOTA", f"The Experiments text never discusses '{name}': say how ours "
                     "compares with it and why")
+    said = [s for s in re.split(r"(?<=[.!?])\s+", exp_text) if PROVENANCE.search(s)]
+    if len(said) >= 3:
+        rep.add_plain("(paper)", WARN, "A2.8", f"{len(said)} sentences in Experiments explain where numbers come "
+                      "from: one short clause is enough ('numbers marked with a dagger are from the original papers')")
 
 
 IMAGE_EXTS = (".pdf", ".png", ".jpg", ".jpeg", ".eps")
@@ -1258,6 +1281,150 @@ def check_pdf(path, review, rep):
             rep.add_plain(path, ERROR, "A1.3", f"Review version: PDF metadata names an author ({m.group(1).strip()})")
 
 
+RULE_LINE = {key: re.compile(r"^[ \t]*%[ \t]*" + head + r"[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
+             for key, head in (("url", r"Venue rules"), ("pages", r"Page limit"), ("appendix", r"Appendix rules"))}
+SEPARATE = re.compile(r"\bseparate\b|\bown (?:pdf|file)\b|\bsupplementary (?:pdf|file|zip)\b", re.I)
+SAME_PDF = re.compile(r"\bsame (?:pdf|file|document)\b|\bafter the references\b|\bin the main (?:pdf|paper|file)\b", re.I)
+NO_LIMIT = re.compile(r"\bno (?:page )?limit\b|\bunlimited\b|\bnot limited\b", re.I)
+REFS_INCLUDED = re.compile(r"\b(?:including|includes?|counting|counts?)\s+(?:the\s+)?references\b|"
+                           r"\breferences\s+(?:included|count(?:ed)?|are counted|are included)\b", re.I)
+REFS_EXCLUDED = re.compile(r"\breferences\s+(?:excluded|not counted|do not count|are extra|extra)\b|"
+                           r"\bexcluding\s+(?:the\s+)?references\b|\bplus references\b", re.I)
+
+
+def read_venue_rules(files):
+    """The '% Venue rules:', '% Page limit:', and '% Appendix rules:' lines of the paper."""
+    rules = {}
+    for f in files:
+        for key, pat in RULE_LINE.items():
+            m = pat.search(f.raw)
+            if m and key not in rules:
+                rules[key] = m.group(1)
+    out = {"url": rules.get("url"), "page_limit": None, "refs_included": False, "place": None,
+           "appendix_limit": None, "after_refs": False, "appendix_text": rules.get("appendix")}
+    if rules.get("pages"):
+        m = re.search(r"(\d+)\s*(?:content\s+)?pages?", rules["pages"], re.I)
+        out["page_limit"] = int(m.group(1)) if m else None
+        out["refs_included"] = bool(REFS_INCLUDED.search(rules["pages"])) and not REFS_EXCLUDED.search(rules["pages"])
+    text = rules.get("appendix") or ""
+    if SEPARATE.search(text):
+        out["place"] = "separate"
+    elif SAME_PDF.search(text):
+        out["place"] = "same"
+    out["after_refs"] = bool(re.search(r"\bafter (?:the )?references\b", text, re.I))
+    m = re.search(r"(\d+)\s*pages?", text, re.I)
+    if m and not NO_LIMIT.search(text):
+        out["appendix_limit"] = int(m.group(1))
+    return out
+
+
+def check_venue_rules(files, root, rep, rules, supp):
+    """Execution Rules 1 and 2: the venue's rules are searched, recorded, and followed by the source."""
+    if not rules["url"] or not re.search(r"https?://", rules["url"]):
+        rep.add_plain("(paper)", ERROR, "Venue", "Venue rules not recorded: search the venue's call for papers or "
+                      "author guidelines, and record '% Venue rules: <URL>' at the top of the main .tex file "
+                      "(references/venue-rules.md)")
+    if rules["page_limit"] is None:
+        rep.add_plain("(paper)", ERROR, "Venue", "Page limit not recorded: add '% Page limit: <N> pages, references "
+                      "excluded' (or included), as the venue's guidelines state")
+    if not rules["appendix_text"]:
+        rep.add_plain("(paper)", ERROR, "Appendix", "Appendix rules not recorded: add '% Appendix rules: <same PDF "
+                      "after the references | separate PDF>; <page limit or no page limit>; <format>', as the venue's "
+                      "guidelines state")
+        return
+    if rules["place"] is None:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The Appendix rules do not say where the Appendix goes: write "
+                      "'same PDF after the references' or 'separate PDF'")
+        return
+    main = files[0]
+    inside = bool(re.search(r"\\appendix\b", main.clean)) or any(
+        APPENDIX_NAME.search(os.path.basename(f.path)) for f in files[1:])
+    if rules["place"] == "separate" and inside:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix as a separate file, but the main "
+                      "document contains it: move it to its own .tex file with the same template")
+    if rules["place"] == "same" and not inside:
+        rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix in the same PDF: put it in the main "
+                      "document after \\appendix")
+    if rules["place"] == "same" and rules["after_refs"]:
+        bib = re.search(r"\\(?:bibliography|printbibliography)\b", main.clean)
+        cut = re.search(r"\\appendix\b", main.clean)
+        if bib and cut and cut.start() < bib.start():
+            rep.add_plain("(paper)", ERROR, "Appendix", "The venue wants the Appendix after the references: move "
+                          "\\appendix and its sections after the bibliography")
+    if rules["place"] == "separate":
+        code = strip_comments(main.raw)
+        pkgs = {n.strip() for m in re.finditer(r"\\(?:documentclass|usepackage)\s*(?:\[[^\]]*\])?\s*\{([^}]*)\}", code)
+                for n in m.group(1).split(",")}
+        venue_pkgs = {n for n in pkgs if any(re.fullmatch(pat, n, re.I) for pat, _ in VENUE_TEMPLATES)}
+        for g in supp:
+            gcode = strip_comments(g.raw)
+            if venue_pkgs and not any(re.search(r"\{[^}]*\b" + re.escape(n) + r"\b[^}]*\}", gcode) for n in venue_pkgs):
+                rep.add_plain(os.path.relpath(g.path), WARN, "Appendix", "The supplementary file does not load the "
+                              f"venue template ({', '.join(sorted(venue_pkgs))}): use the same template")
+
+
+REF_HEADING = re.compile(r"^\s*(?:\d+\.?\s*)?(?:References|REFERENCES|Bibliography)\s*$")
+APPENDIX_HEADING = re.compile(r"^\s*(?:Appendix\b|APPENDIX\b|Supplementary Material\b|A\.?\s{1,4}[A-Z][a-z]+(?:\s+\w+){0,6}\s*$)")
+
+
+def pdf_pages(path):
+    """Page texts of a PDF, or None without pdftotext."""
+    if not shutil.which("pdftotext"):
+        return None
+    text = run(["pdftotext", "-layout", path, "-"])
+    if text is None:
+        return None
+    pages = text.split("\f")
+    return pages[:-1] if pages and not pages[-1].strip() else pages
+
+
+def check_page_limits(path, rep, rules, supp_pdf=None):
+    """A1.1 and Execution Rule 2: page counts of the main text and of the Appendix."""
+    pages = pdf_pages(path)
+    if pages is None:
+        rep.add_plain(path, WARN, "A1.1", "pdftotext not installed: page limits not checked; count the pages by hand")
+        return
+    ref_page, appendix_page = None, None
+    for i, page in enumerate(pages):
+        lines = page.splitlines()
+        for k, line in enumerate(lines):
+            if ref_page is None and REF_HEADING.match(line):
+                ref_page = i + 1 if len([l for l in lines[:k] if l.strip()]) > 5 else i
+            elif ref_page is not None and appendix_page is None and i + 1 > ref_page and APPENDIX_HEADING.match(line):
+                appendix_page = i + 1
+    limit = rules["page_limit"]
+    if limit:
+        if rules["refs_included"]:
+            main_last = (appendix_page - 1) if appendix_page else len(pages)
+        else:
+            main_last = ref_page
+        if main_last is None:
+            rep.add_plain(path, WARN, "A1.1", "Could not find the References heading in the PDF: count the main-text "
+                          "pages by hand")
+        elif main_last > limit:
+            rep.add_plain(path, ERROR, "A1.1", f"The main text runs to page {main_last}, over the {limit}-page limit: "
+                          "cut text, move details to the Appendix, or shrink floats; never squeeze the template")
+        elif main_last < limit:
+            rep.add_plain(path, WARN, "A1.1", f"The main text ends on page {main_last}, short of the {limit}-page "
+                          "limit: the main text must end exactly at the page limit")
+    if rules["appendix_limit"] and rules["place"] == "same":
+        if appendix_page:
+            n = len(pages) - appendix_page + 1
+            if n > rules["appendix_limit"]:
+                rep.add_plain(path, ERROR, "Appendix", f"The Appendix has {n} pages, over the venue's "
+                              f"{rules['appendix_limit']}-page limit: cut or condense it")
+        else:
+            rep.add_plain(path, WARN, "Appendix", "Could not find where the Appendix starts in the PDF: count its "
+                          "pages by hand")
+    if supp_pdf:
+        spages = pdf_pages(supp_pdf)
+        if spages is None:
+            rep.add_plain(supp_pdf, WARN, "Appendix", "pdftotext not installed: supplementary pages not counted")
+        elif rules["appendix_limit"] and len(spages) > rules["appendix_limit"]:
+            rep.add_plain(supp_pdf, ERROR, "Appendix", f"The supplementary PDF has {len(spages)} pages, over the "
+                          f"venue's {rules['appendix_limit']}-page limit: cut or condense it")
+
+
 VENUE_COMMENT = re.compile(r"^[ \t]*%[ \t]*Venue[ \t]*:[ \t]*(\S[^\n]*?)\s*$", re.I | re.M)
 # Template packages and classes that name the venue (fullmatch, case-insensitive).
 VENUE_TEMPLATES = [
@@ -1289,8 +1456,9 @@ def check_venue(files, rep):
 def required_block(rep, venue, has_exp, min_figures):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
     groups = [
-        ("Venue and template", lambda rule, msg: rule == "Venue"),
-        ("Appendix or Supplementary Material", lambda rule, msg: rule == "Appendix"),
+        ("Venue, template, and page limit", lambda rule, msg: rule == "Venue" or (rule == "A1.1" and "page" in msg
+                                                                                   and "limit" in msg)),
+        ("Appendix, following the venue's rules", lambda rule, msg: rule == "Appendix"),
         ("Closest-work plan", lambda rule, msg: rule == "Experiments"),
         ("Latest SOTA compared and discussed", lambda rule, msg: rule == "SOTA"),
         (f"At least {min_figures} main-text figures; every figure and table in the plan",
@@ -1325,12 +1493,13 @@ def main(argv=None):
     ap.add_argument("--bib", action="append", default=[], help=".bib file (default: from \\bibliography)")
     ap.add_argument("--log", help="LaTeX .log file from the latest compile")
     ap.add_argument("--pdf", help="compiled PDF")
+    ap.add_argument("--supp-pdf", help="compiled supplementary PDF, when the venue wants it as a separate file")
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
     ap.add_argument("--max-words", type=int, default=25, help="B2.1 sentence length limit (default 25)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
     ap.add_argument("--min-figures", type=int, default=3, help="A2.7 figures in the main text (default 3)")
     args = ap.parse_args(argv)
-    for p in args.tex + args.bib + [x for x in (args.log, args.pdf) if x]:
+    for p in args.tex + args.bib + [x for x in (args.log, args.pdf, args.supp_pdf) if x]:
         if not os.path.isfile(p):
             print(f"check_tex.py: no such file: {p}", file=sys.stderr)
             return 2
@@ -1371,15 +1540,20 @@ def main(argv=None):
     check_run_in_heads(files, root, rep)
     supp = [File(os.path.join(root, n)) for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
             and os.path.abspath(os.path.join(root, n)) not in {os.path.abspath(f.path) for f in files}]
-    check_latest_sota(files, rep, exp_spans, supp)
+    check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
     venue = check_venue(files, rep)
+    rules = read_venue_rules(files)
+    check_venue_rules(files, root, rep, rules, supp)
     if args.review:
-        check_review(files, rep)
+        check_review(files + supp, rep)
     if args.log:
         check_log(args.log, rep)
     if args.pdf:
         check_pdf(args.pdf, args.review, rep)
+        check_page_limits(args.pdf, rep, rules, args.supp_pdf)
+    if args.supp_pdf:
+        check_pdf(args.supp_pdf, args.review, rep)
 
     order = {ERROR: 0, WARN: 1}
     for path, line, level, rule, msg, snip in sorted(set(rep.items), key=lambda i: (i[0], i[1], order[i[2]], i[3])):

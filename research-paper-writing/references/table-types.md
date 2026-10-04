@@ -30,9 +30,9 @@ Main text: the SOTA comparison, the ablation, and the tables that carry a claim.
 
 ## Rules for Every Comparison Table
 
-1. One protocol for all rows: the same split, resolution, metrics, training budget, and, for timings, the same GPU. Say it in the setup text, not in the caption.
+1. Run every method you can under one protocol: the same split, resolution, metrics, training budget, and, for timings, the same GPU. Say it in the setup text, not in the caption.
 2. Cite every method in its row: `4D-GS~\cite{wu2024}` (Writing Rule A4.6).
-3. Mark numbers you did not run, e.g., with `\textsuperscript{\dag}`, and explain the mark in one table note under the table. Never mix protocols silently.
+3. Numbers you could not run go in the same table. Copy them from the original paper, mark them with `\textsuperscript{\dag}`, and explain the mark in a one-line table note, e.g., "\dag Reported by the original paper." Mention it once in the text, in a short clause. Never move reported numbers to a separate table, and never explain where they come from at length in the caption or the text.
 4. Include the strongest and the latest methods (the `% Latest SOTA:` line in `references/experiments.md`). Write `--` with a table note for a missing number; never drop the row.
 5. Put the metric direction (`PSNR$\uparrow$`, `LPIPS$\downarrow$`) and the unit in the header, and use the same number of decimals in a column.
 6. Mark the best and second-best number of each column with `\best` and `\second`, shade the row of ours with `\oursrow`, and put ours last in its group.

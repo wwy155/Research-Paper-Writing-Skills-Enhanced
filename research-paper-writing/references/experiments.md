@@ -50,8 +50,8 @@ Whenever the paper has an Experiments section, write the closest-work plan befor
 
 Then find the latest state of the art, which is often newer than the closest work:
 
-1. Search the main benchmark for the strongest methods of the past 12 months: recent proceedings of the top venues in the field, arXiv, and benchmark leaderboards. Read their reported numbers under your protocol.
-2. Add the strongest one to the main comparison table, with its own row and citation. If its code is not released, use the numbers from its paper and mark them (`references/table-types.md`, rule 3).
+1. Search the main benchmark for the strongest methods of the past 12 months: recent proceedings of the top venues in the field, arXiv, and benchmark leaderboards.
+2. Add the strongest one to the main comparison table, with its own row and citation. If you cannot run it, copy its numbers from its paper into that table and mark them with † (`references/table-types.md`, rule 3), even if its protocol differs slightly. A one-line table note and a short clause in the text are enough; never put reported numbers in a separate table.
 3. Discuss it in the text: how ours compares and why. If ours does not beat it, say so, and state where ours is better, e.g., speed or memory.
 4. Record it in the closest-work plan block; the checker verifies each line:
 
@@ -60,7 +60,7 @@ Then find the latest state of the art, which is often newer than the closest wor
    % Latest SOTA: MethodZ (Author et al., ICCV 2025) -> not comparable: it needs multi-view input, while ours is monocular
    ```
 
-   Missing code or missing numbers is not a reason to leave a method out.
+   Leave a method out only when it solves a different task or needs different input. Missing code, missing numbers, or a different protocol is not a reason.
 
 ```mermaid
 flowchart TB
