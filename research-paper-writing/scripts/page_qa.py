@@ -834,7 +834,7 @@ def reference(pdf, rec):
     save_record(pdf, rec)
     print(f"{os.path.relpath(pdf)}: {len(keep)} page(s) on {len(views)} sheet(s). Open every sheet and see how this "
           "paper is built: the order of its sections and what it shows where. Read its text as well. Decide what "
-          "our paper shows from our story, never by copying this one:")
+          "our paper shows yourself, never by copying this one:")
     for v in views:
         print(f"  {os.path.relpath(os.path.join(qa_dir(pdf), v['path']))}")
     print(f"Then run python3 {_me()} {os.path.relpath(pdf)} --confirm <the code on each sheet>")

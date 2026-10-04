@@ -1,17 +1,35 @@
-# Figures: Decide What to Show from the Story
+# Figures: Informative, Good-Looking, Convincing
 
-Read this file before you make any figure; for tables, read `references/table-types.md`. Decide every figure from the story (`references/story.md`): which claim it must prove, and what a reader must see to believe it. Never copy the figures of another paper, and never pick a figure from a list because it is common.
+Read this file before you make any figure, and `references/table-types.md` before any table. A figure earns its place by showing something informative, such as a result, a comparison, a trend, a visual difference, how the method works, or what the model learns. It need not prove a claim of the story, since a paper has many figures and only a few claims. Above all, every figure must look good and convince.
+
+## Make It Look Good
+
+Reviewers judge a paper by its figures before they read a word.
+
+- One look across the paper. Every figure uses the same fonts and line widths, and the same color and marker for each method.
+- Text at least as large as the caption text at print size.
+- Clean layouts, with aligned panels, shared axes and one legend for related panels, and no clutter or wasted space.
+- Crisp output, with vector PDF for plots and diagrams and high-resolution images for photos and renders.
+- Finished details, such as aligned boxes and straight arrows in diagrams, even gaps between panels, and labels that never overlap.
+
+## Make It Convince
+
+- Show the evidence directly. Put ours next to the baselines, on the same inputs, at the same scale.
+- Lead the eye to the difference, with zoom-ins where ours is better and the key numbers where the eye lands.
+- Use real data and honest axes (Figures That Hide the Message, below). One trick makes reviewers doubt every figure.
+- Show enough cases that the effect cannot be luck, e.g., several scenes rather than one.
+- Let it stand alone. From the figure and its caption, a reader sees the point within five seconds.
 
 ## Decide What to Show
 
-1. Start from a claim of the story. Write the figure's message as one sentence with a number, e.g., "Ours keeps 70% accuracy at noise level 0.5, while every baseline falls below 45%." It becomes the conclusion at the end of the caption (A2.4). If no claim needs the figure, do not make it (A2.1).
-2. Name the comparison inside the message: ours against which methods, and along which variable. The variable can be a cost, a data size, a difficulty level, a category, or an image region.
-3. Choose the form that makes that comparison the most visible thing in the figure, and let nothing else compete for attention. The table below lists common choices. Use it as a starting point, never as a rule: the claim decides.
+1. Pick content that tells the reader something, such as an advantage of ours, a result reviewers expect, how the method works, what the model learns, or a non-obvious finding. Never draw a figure for decoration, or one that only repeats a table's numbers (A2.1).
+2. Write what it shows in one sentence, with a number when it is a result, e.g., "Ours keeps 70% accuracy at noise level 0.5, while every baseline falls below 45%." It becomes the conclusion at the end of the caption (A2.4).
+3. Choose the form that shows it most clearly and convincingly. The table below lists common choices. Use it as a starting point, never as a rule.
 4. Add the figure to the figure plan (below) before drawing it. If its form already appears in two main-text figures, follow Vary the Forms.
-5. Draw it with real data, export it to PDF, and check it (Check Every Figure, below). Then test it: from the figure and its caption alone, can a reader confirm the message within five seconds? If not, change what it shows.
-6. Put numbers that readers will cite or compare in a table, and trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix. Never draw a figure of numbers that a table already shows, unless it reveals what the table cannot, such as a trend or a trade-off (A2.1).
+5. Draw it with real data, export it to PDF, check it (Check Every Figure, below), and look at it at print size. Redraw it until it looks good and convinces.
+6. Put numbers that readers will cite or compare in a table, and trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix.
 
-| What the story claims | A form that can show it |
+| What you want to show | A form that can show it |
 |---|---|
 | Ours beats the baselines on standard benchmarks. | SOTA comparison table (`references/table-types.md`). |
 | Ours is better and cheaper (speed, memory, parameters, data). | Quality against cost, one point per method. |
@@ -25,6 +43,7 @@ Read this file before you make any figure; for tables, read `references/table-ty
 | Our module helps every method it is added to. | Plug-in table (`references/table-types.md`). |
 | Ours fixes a visible failure (artifacts, blur, wrong geometry). | The same inputs for each method, with zoom-ins on the failure. |
 | What the model learns or attends to. | Maps overlaid on the input. |
+| The task or the data. | Example inputs and outputs, or dataset statistics. |
 | How the method works. | Pipeline diagram (`references/method.md`). |
 | The key idea, at first glance. | Teaser (Part D of `references/introduction.md`). |
 
@@ -34,16 +53,16 @@ Keep one line per figure and per table at the top of the main `.tex` file. Write
 
 ```latex
 % Figure plan (label: message -> form):
-% fig:teaser: [C1] ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
-% fig:pipeline: [Method] how the method works -> pipeline diagram
-% fig:qualitative: [C2] ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
-% fig:views: [C3] our lead grows as the input views get sparser -> lines over the number of views
-% fig:per_class: [C2] the gain comes from thin categories -> sorted gain bars
+% fig:teaser: ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
+% fig:pipeline: how the method works -> pipeline diagram
+% fig:qualitative: ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
+% fig:views: [C2] our lead grows as the input views get sparser -> lines over the number of views
+% fig:per_class: the gain comes from thin categories -> sorted gain bars
 % tab:main: [C1] ours has the best PSNR on both datasets -> SOTA comparison table
-% tab:ablation: [C4] each module helps; the deformation module the most -> ablation table
+% tab:ablation: [C3] each module helps; the deformation module the most -> ablation table
 ```
 
-Start each message with the story claim it supports, e.g., `[C1]`, or `[Method]` or `[Insight]` for a pipeline diagram or a basic-idea teaser (`references/story.md`). Name the form with one of these words, so the checker can count it: teaser, diagram, qualitative grid, scatter, lines, bars, cumulative curve, map, or table. Synonyms also work: pipeline, curves, histogram, box plot. For a table, name its type from `references/table-types.md`, e.g., SOTA comparison table or plug-in table. A figure whose panels use different forms names each, e.g., `lines over noise; sorted gain bars`.
+When a figure or table is the evidence for a claim of the story, start its message with that claim, e.g., `[C1]`, so every claim has evidence (`references/story.md`). Other figures need no tag. Name the form with one of these words, so the checker can count it: teaser, diagram, qualitative grid, scatter, lines, bars, cumulative curve, map, or table. Synonyms also work: pipeline, curves, histogram, box plot. For a table, name its type from `references/table-types.md`, e.g., SOTA comparison table or plug-in table. A figure whose panels use different forms names each, e.g., `lines over noise; sorted gain bars`.
 
 ### Vary the Forms
 

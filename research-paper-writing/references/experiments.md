@@ -1,6 +1,6 @@
 # Experiments Writing Guide
 
-Start from the `% Story:` block (`references/story.md`): the Experiments test the story's claims in turn. Every figure and table names its claim in the figure plan (`[C1]`), and the text says what each result means for the story.
+Start from the `% Story:` block (`references/story.md`): the Experiments test the story's claims in turn, each with a figure or table as evidence (tagged `[C1]` in the figure plan), and the text says what each result means for the story. Other figures and tables add informative results.
 
 Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
 
@@ -26,13 +26,13 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
 
 ## Experiment Planning
 
-Every figure and table must show an advantage of our method or a non-obvious finding (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Search every result you have for evidence of the story, even a few scenes or one subset (`references/story.md`, Find the Evidence). Before making a figure or table, write the claim of the story it supports as a one-line conclusion; if you cannot, do not make it. Then choose the form that shows that conclusion most directly (`references/figures.md`).
+Every figure and table must show something informative (Writing Rule A2.1 in `SKILL.md`). Beyond the analyses of the closest work, look for where ours differs most: hard cases where baselines fail, trade-offs (quality against speed, memory, or data), scaling with data or model size, robustness to noise or sparse input, and per-category breakdowns that show where the gain comes from. Search every result you have for evidence of the story, even a few scenes or one subset (`references/story.md`, Find the Evidence). Before making a figure or table, write what it shows as a one-line conclusion. If it shows nothing informative, do not make it. Then choose the form that shows it most clearly and convincingly (`references/figures.md`).
 
 Whenever the paper has an Experiments section, write the closest-work plan before writing Experiments or making any figure or table (Core Workflow step 2 in `SKILL.md`). The checker verifies it and reports every gap as an ERROR.
 
 1. Name the 1-3 closest prior works: the methods ours is most directly compared with.
 2. Open each paper, including its supplementary material, and count its figures and tables. Use the alphaXiv tools, the web, or PDFs from the user; if you cannot open a paper, ask the user for its PDF or link. The closest works are usually style references too, so reuse their PDFs and sheets (`references/style-references.md`).
-3. Give every figure and table of each paper one line, and decide it by our story. Reproduce it, under the same setting (dataset, split, metrics, protocol) with ours included, when it supports one of our claims or when reviewers will expect that comparison. Otherwise skip it and write why, e.g., "-> skipped: their pipeline; our story does not need it". Never reproduce a figure only because they have it.
+3. Give every figure and table of each paper one line. Reproduce it, under the same setting (dataset, split, metrics, protocol) with ours included, when it shows something informative about ours or reviewers will expect that comparison. Otherwise skip it and write why, e.g., "-> skipped: a diagram of their pipeline, nothing to compare". Never reproduce a figure only because they have it.
 4. Missing data is never a reason to skip: create the figure or table now, and run the experiment behind it (Run Missing Experiments, below). Until its results exist, use `[TODO]` cells or a placeholder box that states the planned message.
 5. Record the plan as a comment block at the start of the Experiments section. Start with one count line per closest paper (main-paper figures and tables). Each reproduced item names the label of our figure or table, which must exist in the paper or the Supplementary Material. Items that share a target can share a line, and supplementary items (`Supp. Fig. 3`) may be listed too:
 
@@ -71,7 +71,7 @@ Then find the latest state of the art, which is often newer than the closest wor
 
 When the paper needs a result that does not exist yet, run the experiment yourself; do not leave it for the author. This covers a claim of the story, an item of the closest-work plan, the latest SOTA, an ablation, or any `[TODO]` in a table or figure.
 
-1. Log it: one line per experiment in an `% Experiment log:` block next to the closest-work plan, with the claim it serves and the figure or table it fills.
+1. Log it: one line per experiment in an `% Experiment log:` block next to the closest-work plan, with the claim it serves, if any, and the figure or table it fills.
 2. Check what it needs: the method's code (usually in the project), the datasets, the baselines' official code, the compute (`nvidia-smi`), and a time estimate.
 3. Run it when you can. Put the script in the project (e.g., `experiments/`), fix the seeds, and test it on a small subset first. Write the results to a file, e.g., `results/views.json`, and keep the command and the commit hash in the log. Run long jobs in the background and check on them.
 4. Fill the table or figure from the result files, by script when there are many numbers. A number in the paper comes from a result file or from a cited paper (marked †); never invent, estimate, or round it in your favor.
@@ -132,7 +132,7 @@ Write the setup before any result, even when earlier sections already covered pa
 
 ## Figure/Table Writing Rules
 
-Decide each table and figure from the claim of the story it supports: the table type from `references/table-types.md`, and the figure from `references/figures.md`.
+Pick each table's type from `references/table-types.md` and each figure's form from `references/figures.md`: whatever shows the result most clearly and convincingly.
 
 `Good tables are part of experiment communication quality, not decoration.`
 
