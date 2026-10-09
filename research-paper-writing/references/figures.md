@@ -9,7 +9,7 @@ Reviewers judge a paper by its figures before they read a word.
 - One look across the paper. Every figure uses the same fonts and line widths, and the same color and marker for each method.
 - Text at least as large as the caption text at print size.
 - Clean layouts, with aligned panels, shared axes and one legend for related panels, and no clutter or wasted space.
-- Crisp output, with vector PDF for plots and diagrams and high-resolution images for photos and renders.
+- Crisp output, with vector PDF for plots and drawn diagrams, and high-resolution images for generated figures, photos, and renders.
 - Finished details, such as aligned boxes and straight arrows in diagrams, even gaps between panels, and labels that never overlap.
 
 ## Make It Convince
@@ -44,7 +44,7 @@ Reviewers judge a paper by its figures before they read a word.
 | Ours fixes a visible failure (artifacts, blur, wrong geometry). | The same inputs for each method, with zoom-ins on the failure. |
 | What the model learns or attends to. | Maps overlaid on the input. |
 | The task or the data. | Example inputs and outputs, or dataset statistics. |
-| How the method works. | Pipeline diagram (`references/method.md`). |
+| How the method works. | Architecture figure, required in the Method and generated with `generate_image` (`references/method.md`). |
 | The key idea, at first glance. | Teaser (Part D of `references/introduction.md`). |
 
 ### The Figure Plan
@@ -54,7 +54,7 @@ Keep one line per figure and per table at the top of the main `.tex` file. Write
 ```latex
 % Figure plan (label: message -> form):
 % fig:teaser: ours matches the best PSNR at 50x the speed -> results teaser with FPS labels
-% fig:pipeline: how the method works -> pipeline diagram
+% fig:arch: how the method works -> architecture diagram
 % fig:qualitative: ours keeps thin structures that baselines blur -> qualitative grid with zoom-ins
 % fig:views: [C2] our lead grows as the input views get sparser -> lines over the number of views
 % fig:per_class: the gain comes from thin categories -> sorted gain bars
@@ -105,8 +105,8 @@ A caption first says what the figure or table shows, then what each part shows, 
 
 1. What it shows, in one sentence: "Qualitative comparison on the D-NeRF dataset." or "PSNR versus rendering speed on Mip-NeRF 360." You may set it in bold as a title.
 2. For subfigures or panels, what each one shows: "(a) Lego. (b) Jumping Jacks." Add a reading aid only when the figure needs it, e.g., "Insets zoom into the boxed regions."
-3. Then the conclusion, from the figure plan, in at most 2 short sentences: "Ours keeps the thin structures that the baselines blur."
-4. Keep the caption within 50 words, or 80 for a teaser or pipeline figure. A pipeline figure may describe its steps (a), (b), (c) and needs no conclusion.
+3. Then the conclusion, from the figure plan, in at most 2 sentences: "Ours keeps the thin structures that the baselines blur."
+4. Keep the caption within 50 words, or 80 for a teaser or architecture figure. An architecture figure may describe its stages (a), (b), (c) and needs no conclusion.
 5. Leave out how the figure or table was made and its formatting: "best in bold, second underlined", "ours is shaded", "plotted with Matplotlib", "↑ means higher is better". Readers know these conventions. Leave out analysis (it goes in the text) and significance tests (they go in the Appendix).
 6. Titles inside a figure and subfigure captions name what is shown ("PSNR vs. views", "Input", "Ours"), never the conclusion.
 7. Tables follow the same rules, with the caption above the table (A2.4).
@@ -153,5 +153,5 @@ Check every figure after drawing it, and again after every change (Writing Rule 
 ## Technical Requirements
 
 1. Draw each figure at its printed width and include it at that width (`width=\columnwidth` or `\linewidth`), so its text stays at the caption size (A2.2). Typical widths: CVPR and ICCV 3.25 in per column and 6.875 in across; ICML 3.25 in and 6.75 in; ACL 3.03 in and 6.3 in; NeurIPS and ICLR 5.5 in; ECCV 4.8 in. Confirm with `\the\columnwidth` and `\the\textwidth` in the template.
-2. Save plots and diagrams as vector PDF with embedded fonts (in Matplotlib, set `pdf.fonttype` to 42; A1.4). Use PNG or JPEG only for photos and renderings, at 300 dpi or more at print size.
+2. Save plots and drawn diagrams as vector PDF with embedded fonts (in Matplotlib, set `pdf.fonttype` to 42; A1.4). Use PNG or JPEG only for generated figures such as the architecture figure (`references/method.md`), photos, and renderings, at 300 dpi or more at print size.
 3. Show each method under the same name, and in the same order, in every figure and table (A2.3).

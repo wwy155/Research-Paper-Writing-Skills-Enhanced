@@ -122,7 +122,7 @@ Write the setup before any result, even when earlier sections already covered pa
 
 1. Datasets and benchmarks: cite each again at its first mention in Experiments (Writing Rule A4.6 in `SKILL.md`), and give the split and resolution.
 2. Baselines: cite each again at its first mention here and in every table row that names it. Say how its results were obtained: official code, numbers from its paper, or retrained by us.
-3. Metrics (Writing Rule A4.9): explain every metric in a table or figure anywhere at the start of Experiments, before the first result. Say in one short sentence what it measures and which direction is better. Cite its source paper when it has one (SSIM, LPIPS, FID, BLEU, ...), and restate it even if the Introduction or Method already did.
+3. Metrics (Writing Rule A4.9): explain every metric in a table or figure anywhere at the start of Experiments, before the first result. Say in one sentence what it measures and which direction is better. Cite its source paper when it has one (SSIM, LPIPS, FID, BLEU, ...), and restate it even if the Introduction or Method already did.
 4. Implementation details: hardware, training time, and key hyperparameters; move the rest to the Appendix.
 5. Statistical significance (Writing Rule B4.5): one sentence at most, such as the standard deviation over seeds, or a pointer to the tests in the Appendix (`references/table-types.md`, Statistical Significance).
 
@@ -156,7 +156,7 @@ Pick each table's type from `references/table-types.md` and each figure's form f
 5. Group multi-dataset or multi-setting results using `\multicolumn` + `\cmidrule`, not vertical separators.
 6. One table, one message: do not mix unrelated results in a single table.
 7. If rows represent different attributes/ablations, encode that explicitly in row names or attribute columns.
-8. Captions (Writing Rule A2.4 in `SKILL.md`): first what the table or figure shows, then (a)/(b) for its parts, then the conclusion in at most 2 short sentences. Keep it within 50 words, with no formatting notes such as "best in bold" (`references/figures.md`, Write the Caption).
+8. Captions (Writing Rule A2.4 in `SKILL.md`): first what the table or figure shows, then (a)/(b) for its parts, then the conclusion in at most 2 sentences. Keep it within 50 words, with no formatting notes such as "best in bold" (`references/figures.md`, Write the Caption).
 9. Analyze every figure and table in the text: the observation with numbers, the reason ours behaves this way, and what follows. A figure or table that the text never discusses should be cut.
 10. For single-column figures/tables in two-column papers, prefer placing them in the right column when layout allows, so readers can enter the page from the left-top text without breaking reading flow.
 
