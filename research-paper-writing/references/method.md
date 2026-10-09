@@ -9,7 +9,7 @@ Then reread this section in each style reference (`references/style-references.m
 Write the Method section clearly by following this sequence:
 
 1. Answer key method-design questions.
-2. Draw a pipeline figure sketch.
+2. Sketch the architecture, then generate the architecture figure (The Architecture Figure, below).
 3. Write the method section step by step.
 
 ## Pre-Writing Questions
@@ -29,15 +29,28 @@ Recommended organization:
 
 ## Method Writing Steps
 
-`Method writing steps: (1) draw pipeline figure sketch, (2) map subsections from the sketch, (3) plan each subsection with motivation/design/advantages, (4) write module design first, (5) then add motivation and technical advantages.`
+`Method writing steps: (1) sketch the architecture and generate its figure, (2) map subsections from the figure, (3) plan each subsection with motivation/design/advantages, (4) write module design first, (5) then add motivation and technical advantages.`
 
 Step-by-step workflow:
 
-1. Draw the pipeline figure sketch.
-2. Use the sketch to organize Method subsection structure.
+1. Sketch the architecture, and generate the architecture figure from the sketch.
+2. Use the figure to organize the Method subsections, one per module or stage.
 3. For each subsection, plan three parts: motivation, module design, and technical advantages.
 4. Write module design first to build a concrete backbone.
 5. Add motivation and technical advantages afterward.
+
+## The Architecture Figure
+
+Every Method section has an architecture figure (Writing Rule A2.10 in `SKILL.md`). Readers study it before they read the section, so it shows the whole method at a glance: the inputs, each module under the name the text uses, the data flow between the modules, the outputs, and the training losses where they matter. Like every figure, it must look good and convince (`references/figures.md`).
+
+1. Sketch it first. Fix the order of the modules from left to right, the arrows between them, and the groups, such as the stages or the trainable and frozen parts. Add its line to the figure plan, e.g., `% fig:arch: how the method works -> architecture diagram`.
+2. Write a detailed prompt for the image-generation tool. Ask for a clean, flat academic diagram on a white background in the layout of the sketch, and specify every block with its exact label, every arrow, one color per stage that matches the other figures, and the aspect ratio of the printed figure (about 2:1 to 3:1 for a `figure*` across both columns). Ask for no text beyond the given labels, no 3D effects, and no decoration.
+3. Generate the figure with `generate_image`, or with the environment's equivalent tool if it has another name, at the largest size the tool offers. Save the prompt next to the image, e.g., `figures/arch.prompt.txt`, so that the figure can be regenerated when the method changes.
+4. Open the result at full size, and check every label letter by letter against the text, every arrow, and the order of the modules. Image models often misspell words, so keep the labels short, and regenerate with a corrected prompt until the figure is right.
+5. Save it in the figure folder, e.g., `figures/arch.png`, crop any white border, and include it at `\textwidth` in a `figure*` at the start of the Method section. Refer to it in the Overview, and run `scripts/figure_qa.py` on it.
+6. If the tool is missing, returns an error, or still produces wrong labels or structure after three attempts, ask the user with the ask-user tool. State what failed, include the prompt, and offer three options: the user supplies the figure, the user enables an image-generation tool, or you draw the figure as a vector diagram in TikZ. Until the user answers, the checker keeps reporting the missing figure, so the loop cannot end without it.
+
+The checker reports an ERROR when the Method section neither contains nor references an architecture figure, that is, a figure whose figure-plan form is a diagram (architecture, pipeline, overview, or framework) or whose caption names one of these words in its first sentence.
 
 ## Three Elements of a Pipeline Module
 
@@ -159,13 +172,13 @@ Local cite:
 
 ## Overview Subsection
 
-`Overview should usually include: setting, core contribution, optional pipeline figure pointer, and a map of what each subsection contains.`
+`Overview should include: setting, core contribution, a pointer to the architecture figure, and a map of what each subsection contains.`
 
 Writing structure:
 
 1. One to two sentences for task setting.
 2. One to two sentences for core contribution.
-3. If pipeline/framework is novel, point to overview figure.
+3. Point to the architecture figure, and walk through it from input to output.
 4. Tell readers what Section 3.1/3.2/3.3 covers.
 
 Local cite:

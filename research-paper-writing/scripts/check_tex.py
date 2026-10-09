@@ -3,7 +3,7 @@ r"""Check a LaTeX paper against the mechanical Writing Rules in SKILL.md.
 
 Usage:
   python3 check_tex.py main.tex [more.tex ...] [--bib refs.bib] [--log main.log]
-                       [--pdf main.pdf] [--review] [--max-words 25] [--min-refs 35] [--min-figures 3]
+                       [--pdf main.pdf] [--review] [--max-words 35] [--min-refs 35] [--min-figures 3]
 
 main.pdf and main.log next to main.tex are read without --pdf and --log.
 
@@ -69,7 +69,7 @@ SENT_START = r"(?:^|(?<=[.!?}]))[ \t]*"
 
 PROSE_PATTERNS = [
     (ERROR, "B3.1",
-     "Trailing participle: state the consequence as its own sentence, or delete it",
+     "Trailing participle: state the concrete consequence in a full clause (', which reduces ...'), or delete it",
      r",\s+(?:highlighting|underscoring|showcasing|emphasi[sz]ing|"
      r"paving the way|enabling|fostering|allowing|making|leading to|"
      r"resulting in|ensuring|facilitating|providing|offering|yielding|"
@@ -104,6 +104,22 @@ PROSE_PATTERNS = [
      r"widespread|tremendous|great) (?:attention|interest)|"
      r"[Tt]he (?:\w+ )?community (?:has|have|is|are|was|were)\b|"
      r"(?:attention|interest) (?:from|of|in) the (?:\w+ )?community)"),
+    (ERROR, "B2.4", "Contraction: write the full form ('do not', 'it is') in a formal paper",
+     r"\b[A-Za-z]+n't\b|\b(?:[Ii]t|[Tt]hat|[Tt]here|[Hh]ere|[Ww]hat|[Ww]ho|[Ll]et)'s\b|"
+     r"\b(?:[Ww]e|[Tt]hey|[Yy]ou|I)'(?:re|ve|ll|d|m)\b"),
+    (ERROR, "B2.4", "Exclamation mark: state the point as a formal declarative sentence",
+     r"(?<=[A-Za-z0-9)\]])!(?=\s|$)"),
+    (WARN, "B2.4", "Question in the text: state the point or the open problem as a formal statement",
+     r"(?<=[A-Za-z0-9)\]])\?(?=\s|$)"),
+    (WARN, "B2.4", "Informal wording: use a formal, precise term ('many', 'substantially', 'in fact')",
+     r"(?i:\b(?:a lot of|lots of|a bunch of|tons of|a couple of|pretty (?:much|good|well|fast|close|similar|"
+     r"simple|easy|hard|large|small|high|low)|really|huge|stuff|basically|actually|totally|nowadays|okay|"
+     r"gonna|wanna)\b)"),
+    (WARN, "B2.4", "Informal verb 'get': use 'obtain', 'achieve', 'reach', or 'become'",
+     r"(?i:\b(?:get|gets|got|gotten|getting)\b)"),
+    (WARN, "B2.4", "Informal sentence opener: use a formal connective ('However', 'Therefore', 'In addition'), "
+     "or join the sentence to the previous one",
+     SENT_START + r"(?:And|But|So|Also|Plus|Anyway|Well|Now)\b(?!-)"),
     (WARN, "B2.3", "Ambiguous This/It: name the noun ('This design ...')",
      SENT_START + r"(?:This|These|It)\s+(?:is|are|was|were|makes?|allows?|"
      r"enables?|leads?|shows?|means|motivates|results|helps|ensures|provides|"
@@ -368,8 +384,8 @@ def check_prose(f, rep, max_words):
                     f"{len(hits)} stacked adverbs (Notably/Furthermore/Moreover...) in one "
                     "paragraph: keep only real relations")
     check_punctuation(f, rep)
-    # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3).
-    protected, spans = sentence_spans(f.prose)
+    # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3), outside the bibliography.
+    protected, spans = sentence_spans(without_bibliography(f.prose, f.nonverbatim))
     for a, b in spans:
         sent = protected[a:b]
         text = re.sub(r"\\[A-Za-z]+\*?", " ", sent)
@@ -380,10 +396,51 @@ def check_prose(f, rep, max_words):
         start = a + (first.start() if first else 0)
         if len(words) > max_words:
             rep.add(f, start, WARN, "B2.1",
-                    f"Sentence has {len(words)} words (> {max_words}): split it")
+                    f"Sentence has {len(words)} words (> {max_words}): split it into two complete sentences")
         if RESULT_WORDS.search(sent) and not re.search(r"\d", f.keys_masked[a:b]):
             rep.add(f, start, WARN, "B4.3",
                     "Result sentence without numbers: name metric, dataset, baseline, and magnitude")
+    check_short_sentences(f, rep)
+
+
+MIN_WORDS = 8
+
+
+def without_bibliography(text, source):
+    """text with every thebibliography environment of source blanked; offsets are kept."""
+    for m in re.finditer(r"\\begin\{thebibliography\}.*?(?:\\end\{thebibliography\}|$)", source, re.S):
+        text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
+    return text
+
+
+def check_short_sentences(f, rep):
+    """B2.1: no ultra-short sentences in the body text. Headings, run-in heads, list items, captions,
+    footnotes, and floats are left out."""
+    text = without_bibliography(f.prose, f.nonverbatim)
+    for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")(\*?)\}.*?\\end\{\1\2\}", f.nonverbatim, re.S):
+        text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
+    for m in re.finditer(r"\\(?:caption|footnote|thanks)\*?\s*(?:\[[^\]]*\])?\s*\{", text):
+        end = brace_end(text, m.end() - 1) or len(text)
+        text = text[:m.start()] + blank(text[m.start():end]) + text[end:]
+    protected, spans = sentence_spans(text)
+    for a, b in spans:
+        if protected[max(0, a - 5):a] == "\\item":
+            continue
+        sent = protected[a:b]
+        lead = re.match(r"\s*((?:\\[A-Za-z]+\*?\s*)*)(\[[^\]]*\]\s*)?", sent)
+        rest = sent[lead.end():]
+        if rest.startswith("{"):
+            end = brace_end(rest, 0)
+            if end is None or not rest[end:].strip():  # a heading or run-in head on its own
+                continue
+            if not lead.group(1).strip():  # the title of a heading, then the sentence
+                sent, a = rest[end:], a + lead.end() + end
+        words = re.findall(r"[A-Za-z0-9]+(?:['\-][A-Za-z0-9]+)*", re.sub(r"\\[A-Za-z]+\*?", " ", sent))
+        if 0 < len(words) < MIN_WORDS and re.search(r"[.!?][)}\]'\"]*\s*$", sent):
+            first = re.search(r"(?<![\\A-Za-z])[A-Za-z0-9]", sent)
+            rep.add(f, a + (first.start() if first else 0), WARN, "B2.1", f"Ultra-short sentence ('{' '.join(words)}', "
+                    f"{len(words)} words): join it to a neighboring sentence, or expand it into one complete, formal "
+                    "sentence")
 
 
 def check_math(f, rep):
@@ -408,7 +465,7 @@ def check_math(f, rep):
 
 
 CAPTION_WORDS, DIAGRAM_CAPTION_WORDS = 50, 80
-DIAGRAM_LABEL = re.compile(r"teaser|pipeline|overview|framework|architecture|arch\b|method", re.I)
+DIAGRAM_LABEL = re.compile(r"teaser|pipeline|overview|framework|architecture|(?<![a-z])arch\b|method", re.I)
 SUBFLOATS = r"\\begin\{(subfigure|subtable)\}.*?\\end\{\1\}"
 # A caption first says what is shown: usually a noun phrase ("Qualitative comparison on ...").
 DESCRIPTION_START = re.compile(
@@ -463,7 +520,7 @@ def states_conclusion(sentence):
 
 
 def check_caption(f, rep, pos, arg, limit, results=True, kind="figure"):
-    """A2.4: what it shows first, then (a)/(b), then at most 2 short sentences of conclusion; no filler."""
+    """A2.4: what it shows first, then (a)/(b), then at most 2 sentences of conclusion; no filler."""
     sentences = caption_sentences(arg)
     if not sentences:
         rep.add(f, pos, ERROR, "A2.4", "Empty caption: say what it shows, then the conclusion in 1-2 sentences")
@@ -474,10 +531,10 @@ def check_caption(f, rep, pos, arg, limit, results=True, kind="figure"):
     rest = [s for s in sentences[1:] if not SUBFIGURE_SENTENCE.match(s)]
     if len(rest) > 3:
         rep.add(f, pos, WARN, "A2.4", f"Caption has {len(rest)} sentences after the first: keep what it shows, "
-                "(a)/(b), and at most 2 short sentences of conclusion")
+                "(a)/(b), and at most 2 sentences of conclusion")
     elif results and not states_conclusion(sentences[0]) and not any(CLAIM_ANY.search(s) for s in rest):
         rep.add(f, pos, WARN, "A2.4", "The caption has no conclusion: after saying what it shows, add it in 1-2 "
-                "short sentences")
+                "sentences")
     m = FILLER.search(arg)
     if m:
         rep.add(f, pos, WARN, "A2.4", f"Formatting filler in the caption ('{m.group(0)[:40]}'): readers know the "
@@ -558,7 +615,12 @@ def is_named(tok):
 
 
 def experiment_spans(files, root):
-    """{path: [(start, end)]}: the parts of each file inside a main-text Experiments section.
+    """{path: [(start, end)]}: the parts of each file inside a main-text Experiments section."""
+    return section_spans(files, root, lambda title: bool(EXP_TITLE.search(title)))
+
+
+def section_spans(files, root, wanted):
+    """{path: [(start, end)]}: the parts of each file inside a main-text section whose title satisfies wanted.
     An \\input file starts in the section that surrounds its \\input command."""
     appendix_paths = split_main(files, root)[0]
     inherited, spans = {}, {}
@@ -575,8 +637,90 @@ def experiment_spans(files, root):
                 state = [s for s in marks if s[0] <= m.start()][-1]
                 inherited.setdefault(os.path.abspath(child), state[1:])
         ends = [s[0] for s in marks[1:]] + [len(f.clean)]
-        spans[key] = [(a, b) for (a, title, app), b in zip(marks, ends) if not app and EXP_TITLE.search(title)]
+        spans[key] = [(a, b) for (a, title, app), b in zip(marks, ends) if not app and wanted(title)]
     return spans
+
+
+METHOD_TITLE = re.compile(r"\b(?:Methods?|Methodology|Approach|Proposed|Framework|Our Model|Algorithm)\b", re.I)
+OTHER_TITLE = re.compile(r"Introduction|Related|Background|Prior|Preliminar|Problem|Notation|Motivation|"
+                         r"Conclusion|Discussion|Limitation|Acknowledg|Broader|Ethic|Impact|Future|Appendi|"
+                         r"Supplementar|Implementation|Reproducib|Checklist", re.I)
+ARCH_WORDS = re.compile(r"\b(?:overview|pipeline|architecture|framework|workflow)\b", re.I)
+
+
+def main_titles(files, root):
+    """The titles of the main-text sections in document order, following \\input files."""
+    by_path = {os.path.abspath(f.path): f for f in files}
+    appendix_paths = split_main(files, root)[0]
+    titles, seen = [], set()
+
+    def walk(f):
+        key = os.path.abspath(f.path)
+        if key in seen or key in appendix_paths:
+            return True
+        seen.add(key)
+        cut = re.search(r"\\appendix\b", f.clean)
+        text = f.clean[:cut.start()] if cut else f.clean
+        for m in re.finditer(r"\\section\*?\{([^}]*)\}|\\(?:input|include|subfile)\{([^}]+)\}", text):
+            if m.group(1) is not None:
+                titles.append(m.group(1).strip())
+                continue
+            child = resolve(root, m.group(2).strip(), ".tex") or resolve(os.path.dirname(key), m.group(2).strip(), ".tex")
+            if child and os.path.abspath(child) in by_path and not walk(by_path[os.path.abspath(child)]):
+                return False
+        return cut is None
+
+    if files:
+        walk(files[0])
+    return titles
+
+
+def method_title(files, root):
+    """The title of the main-text Method section, or None. A section named after the method counts when it
+    comes before the Experiments and is not an Introduction, Related Work, Conclusion, or the like."""
+    titles = main_titles(files, root)
+    for t in titles:
+        if METHOD_TITLE.search(t) and not OTHER_TITLE.search(t) and not EXP_TITLE.search(t):
+            return t
+    for t in titles:
+        if EXP_TITLE.search(t):
+            break
+        if not OTHER_TITLE.search(t):
+            return t
+    return None
+
+
+def check_method_figure(files, root, rep, plan):
+    """A2.10: the Method section holds or references an architecture figure. Returns whether there is a
+    Method section."""
+    if APPENDIX_NAME.search(os.path.basename(files[0].path)):  # a supplementary document on its own
+        return False
+    title = method_title(files, root)
+    if title is None:
+        return False
+    spans = section_spans(files, root, lambda t: t.strip() == title)
+    refs = set()
+    for f in files:
+        for a, b in spans.get(os.path.abspath(f.path), []):
+            for m in re.finditer(r"\\(?:[cC]ref|ref|autoref|[fF]igref)\*?\{([^}]*)\}", f.clean[a:b]):
+                refs.update(x.strip() for x in m.group(1).split(","))
+    for f, a, b in main_parts(files, root):
+        mine = spans.get(os.path.abspath(f.path), [])
+        for m in re.finditer(r"\\begin\{figure(\*?)\}(.*?)\\end\{figure\1\}", f.nonverbatim[:b], re.S):
+            labels = [l.strip() for l in re.findall(r"\\label\{([^}]*)\}", m.group(2))]
+            kinds = set().union(*[plan[l][2] for l in labels if plan and l in plan])
+            cap = re.search(r"\\caption\*?\s*(?:\[[^\]]*\])?\s*\{", m.group(2))
+            caption = m.group(2)[cap.end():brace_end(m.group(2), cap.end() - 1) or len(m.group(2))] if cap else ""
+            arch = "teaser" not in kinds and ("diagram" in kinds or any(
+                re.search(r"pipeline|overview|framework|architecture|(?<![a-z])arch\b", l, re.I) for l in labels)
+                or bool(ARCH_WORDS.search(re.split(r"(?<=[.!?])\s", caption, 1)[0])))
+            if arch and (any(s <= m.start() < e for s, e in mine) or refs & set(labels)):
+                return True
+    rep.add_plain("(paper)", ERROR, "A2.10", f"The Method section ('{title}') has no architecture figure: generate "
+                  "one with the image-generation tool (generate_image) that shows the inputs, every module, the data "
+                  "flow, and the outputs. Plan it as '% fig:arch: how the method works -> architecture diagram', and "
+                  "place it in the Method section. If the tool is missing or fails, ask the user (references/method.md)")
+    return True
 
 
 def named_mentions(f):
@@ -833,7 +977,7 @@ def check_structure(files, root, rep, min_figures=3):
     n_fig = sum(len(re.findall(r"\\begin\{figure\*?\}", t)) for t in main_texts)
     if n_fig < min_figures:
         rep.add_plain("(paper)", ERROR, "A2.7", f"The main text has {n_fig} figure(s): add at least {min_figures - n_fig} "
-                      f"(e.g., teaser, pipeline, qualitative comparison, analysis), each with a key message in the "
+                      f"(e.g., teaser, architecture, qualitative comparison, analysis), each with a key message in the "
                       "figure plan. Draw diagrams now, and run the experiments behind result figures ('% Experiment log:')")
     extra = []
     for name in sibling:  # a separate Supplementary document, e.g. supp.tex next to main.tex
@@ -1990,9 +2134,9 @@ def check_venue(files, rep):
     return None
 
 
-def required_block(rep, venue, has_exp, min_figures):
+def required_block(rep, venue, has_exp, min_figures, has_method=True):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
-    groups = [  # (name, experiments only, matches a finding)
+    groups = [  # (name, the section it needs, matches a finding)
         ("Venue, template, and page limits (main text, references, total)", False,
          lambda rule, msg: rule == "Venue" or (rule == "A1.1" and "page" in msg and "limit" in msg)),
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
@@ -2000,13 +2144,15 @@ def required_block(rep, venue, has_exp, min_figures):
          lambda rule, msg: rule == "Story"),
         ("Style references: at least 3 closest papers viewed and read for the writing", False,
          lambda rule, msg: rule == "Style"),
-        ("Closest-work plan", True, lambda rule, msg: rule == "Experiments"),
-        ("Latest SOTA compared and discussed", True, lambda rule, msg: rule == "SOTA"),
+        ("Closest-work plan", "Experiments", lambda rule, msg: rule == "Experiments"),
+        ("Latest SOTA compared and discussed", "Experiments", lambda rule, msg: rule == "SOTA"),
         (f"At least {min_figures} main-text figures; every figure and table in the plan", False,
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
+        ("Architecture figure in the Method, generated with generate_image or obtained from the user", "Method",
+         lambda rule, msg: rule == "A2.10"),
         ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
         ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
-        ("Metrics explained and cited before the results", True, lambda rule, msg: rule == "A4.9"),
+        ("Metrics explained and cited before the results", "Experiments", lambda rule, msg: rule == "A4.9"),
         ("Compiled with pdflatex; every page viewed with page_qa.py; no white space", False,
          lambda rule, msg: rule == "View" or (rule == "Build" and "pdflatex" in msg)
          or (msg.endswith("(page_qa)") and rule == "A1.6")),
@@ -2014,11 +2160,12 @@ def required_block(rep, venue, has_exp, min_figures):
          lambda rule, msg: rule == "Loop")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
-    for k, (name, exp_only, match) in enumerate(groups, 1):
+    has = {"Experiments": has_exp, "Method": has_method}
+    for k, (name, needs, match) in enumerate(groups, 1):
         hits = [i for i in items if match(i[3], i[4])]
         errors = [i for i in hits if i[2] == ERROR]
-        if exp_only and not has_exp:
-            status = "n/a (no Experiments section yet)"
+        if needs and not has[needs]:
+            status = f"n/a (no {needs} section yet)"
         elif errors:
             head = errors[0][4].split(": ")[0]
             if re.fullmatch(r"p\. \d+", head):  # page_qa: keep what is wrong on that page
@@ -2046,7 +2193,7 @@ def main(argv=None):
     ap.add_argument("--pdf", help="compiled PDF")
     ap.add_argument("--supp-pdf", help="compiled supplementary PDF, when the venue wants it as a separate file")
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
-    ap.add_argument("--max-words", type=int, default=25, help="B2.1 sentence length limit (default 25)")
+    ap.add_argument("--max-words", type=int, default=35, help="B2.1 sentence length limit (default 35)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
     ap.add_argument("--min-figures", type=int, default=3, help="A2.7 figures in the main text (default 3)")
     args = ap.parse_args(argv)
@@ -2094,6 +2241,7 @@ def main(argv=None):
     check_latest_sota(files, rep, exp_spans, supp, plan)
     check_figure_qa(files, root, rep, supp)
     check_story(files, root, rep, read_story(files), plan)
+    has_method = check_method_figure(files, root, rep, plan)
     check_style_refs(files, root, rep)
     check_engine_source(files, rep)
     done = check_review_log(files, rep)
@@ -2142,7 +2290,7 @@ def main(argv=None):
     checked = ", ".join(os.path.relpath(f.path) for f in files)
     print(f"\nChecked: {checked}" + (f" (+ {', '.join(os.path.relpath(b) for b in bibs)})" if bibs else ""))
     venue = "; ".join(x for x in (venue, limits_summary(rules)) if x)
-    print(required_block(rep, venue, has_experiments(files), args.min_figures))
+    print(required_block(rep, venue, has_experiments(files), args.min_figures, has_method))
     print(f"== {rep.count(ERROR)} errors, {rep.count(WARN)} warnings ==")
     print("Fix every ERROR. Fix every WARN, or justify it in your reply. Then review the paper "
           "(references/paper-review.md), log the round in '% Review log:', and check again: repeat until a round's "
