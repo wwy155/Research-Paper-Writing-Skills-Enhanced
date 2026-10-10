@@ -2,7 +2,7 @@
 
 Note: This file stores the source content extracted from the PDF, with light formatting cleanup for Markdown readability.
 
-For papers, the Writing Rules in `SKILL.md` take precedence over this general advice: use a transition word only when it names a real relation (cause, contrast, consequence), and never stack additive adverbs such as "Furthermore, ... Moreover, ..." (B3.5).
+For papers, the Writing Rules in `SKILL.md` take precedence over this general advice: name the real relation between sentences with a transition word (B2.5 and `references/paragraph-clarity.md`), and avoid empty emphasis openers such as "Notably" or "Importantly" (B3.5).
 
 ## Original Content
 
