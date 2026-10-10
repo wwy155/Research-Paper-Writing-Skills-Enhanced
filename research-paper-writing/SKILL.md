@@ -56,7 +56,7 @@ The style references come first (Core Workflow step 2): imitate their vibe, neve
 #### A1. Page Layout and Compliance
 
 1. Never change the template's margins, fonts, or spacing; the main text must end exactly at the page limit.
-2. The last line of every paragraph must fill more than 60% of the line width; fix it by rewording, not by spacing tricks.
+2. The last line of every paragraph must fill more than 60% of the line width; fix it by rewording.
 3. Review version: no author names, acknowledgments, identifying links, or author PDF metadata; cite your own work in the third person.
 4. Embed all fonts and avoid Type 3 fonts (check with `pdffonts`; in Matplotlib set `pdf.fonttype` to 42).
 5. Leave no `??` or `[?]` in the paper or the supplement.
@@ -64,13 +64,13 @@ The style references come first (Core Workflow step 2): imitate their vibe, neve
 
 #### A2. Figures and Floats
 
-1. Make a figure or table only when it shows something informative, such as a result, an advantage of ours, how the method works, or a non-obvious finding. Never make one for decoration. End the caption with its conclusion, and analyze it in the text: what it shows, why, and what follows. Merge or cut any that repeats another's message, and never plot numbers a table already shows unless the figure reveals a trend or a trade-off.
+1. Make a figure or table only when it shows something informative, such as a result, an advantage of ours, how the method works, or a non-obvious finding. Never make one for decoration. End the caption with its conclusion, and analyze it in the text: what it shows, why, and what follows. Merge or cut any that repeats another's message.
 2. Use vector PDF for plots and drawn diagrams, and PNG at 300 dpi or more at print size for generated figures and photos; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name and order in every figure and table, and make ours easy to find.
 4. Captions: first what it shows, then what each part shows, then the conclusion in at most 2 sentences; within 50 words, or 80 for a teaser or architecture figure. No formatting notes ("best in bold"), no significance details, and no conclusion in figure titles. Figure captions go below, table captions above.
-5. Except for the teaser, place each float right after the paragraph that introduces it, in the same (sub)section (`flafter`, and `\FloatBarrier` from `placeins`); if that leaves white space (A1.6), move the source earlier or resize the float.
+5. Except for the teaser, place each float right after the paragraph that introduces it, in the same (sub)section (`flafter`, `\FloatBarrier`); if that leaves white space (A1.6), move the source earlier or resize the float.
 6. Above all, every figure must look good and convince. Write what it shows and its form in the figure plan before making it, and redraw it until it does (`references/figures.md`, `references/table-types.md`). Never copy another paper's figures or tables.
-7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, architecture, qualitative comparison, analysis), each with a key message (A2.1); create any missing one now, running the experiments behind result figures. Use one form for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
+7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, architecture, qualitative comparison, analysis); create any missing one now, running the experiments behind result figures. Use one form for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
 8. Tables: pick the type that fits the comparison (`references/table-types.md`), run every method you can under one protocol, cite each method in its row, and include the latest state of the art. Numbers you could not run go in the same table, marked † with a one-line note.
 9. Draw each figure at its printed width, run `scripts/figure_qa.py` on its script or file, fix every problem it reports, look at its preview, and repeat after every change.
 10. The Method section has an architecture figure that shows the inputs, each module under its name in the text, the data flow, and the outputs. Generate it with `generate_image` and check every label at full size; if the tool is missing or fails, ask the user (`references/method.md`).
@@ -89,10 +89,10 @@ The style references come first (Core Workflow step 2): imitate their vibe, neve
 3. Write ``` ``quotes'' ``` instead of `"quotes"`, `--` for ranges, and `e.g.,` / `i.e.,` with a comma.
 4. Remove full-width punctuation (`，。：（）`) left by Chinese input methods.
 5. Bibliography: consistent venue names, published versions instead of arXiv, protected capitals (`{NeRF}`).
-6. Cite every named model, method, baseline, dataset, benchmark, metric, or application at its first mention, right after the name: `ScanNet~\cite{a} and Replica~\cite{b}`, not `ScanNet and Replica~\cite{a,b}`. In Experiments, cite each one again at its first mention there and in each table row that names it. Every claim that is not our own result must cite a source, especially in the Introduction. Never invent a reference; mark an unknown source as `\cite{TODO}`.
+6. Cite every named model, method, baseline, dataset, benchmark, metric, or application at its first mention, right after the name (`ScanNet~\cite{a} and Replica~\cite{b}`). In Experiments, cite each one again at its first mention there and in each table row that names it. Every claim that is not our own result must cite a source, especially in the Introduction. Never invent a reference; mark an unknown source as `\cite{TODO}`.
 7. Do not end a long sentence with a long citation list; split it and cite each point where it is made.
 8. Aim for at least 35 references. Add only real papers whose title, authors, and venue you have checked; if there are fewer, list the gaps as `[TODO: cite ...]` for the author instead of padding the bibliography.
-9. At the start of Experiments, before the first result, explain every reported metric in one sentence (what it measures and which direction is better) and cite its source paper (`LPIPS~\cite{lpips}`), even if an earlier section explained it.
+9. At the start of Experiments, before the first result, explain every reported metric in one sentence (what it measures and which direction is better) and cite its source paper, even if an earlier section explained it.
 
 ### B. Wording
 
@@ -102,10 +102,11 @@ One concept, one term: never alternate `module / block / component` for the same
 
 #### B2. Sentence Clarity
 
-1. Write complete, formal sentences of about 15-30 words, each built around one main idea. Avoid ultra-short sentences (under 8 words): join related statements with a subordinate clause or a precise connective (because, whereas, which). Split any sentence over 35 words.
+1. Write complete, formal sentences of about 15-25 words, each built around one main idea. Avoid ultra-short sentences (under 8 words) by joining related statements with a subordinate clause or a transition word (B2.5), and split any sentence over 30 words.
 2. Old-to-new: start with what the reader already knows, end with the new information.
 3. No ambiguous `this` / `it`: write "This design ...", not "This ...".
 4. Keep a formal academic register: no contractions, colloquialisms ("a lot of", "huge", "get"), exclamation marks, rhetorical questions, or casual openers ("So", "And", "But", "Also"); prefer precise verbs ("obtain", "preserve", "reduce").
+5. Link sentences with transition words that name the real relation: contrast (however, whereas), concession (although, yet, despite, regardless of), addition (moreover, in addition), and cause (therefore, thus). Vary them, and never use one whose relation does not hold (`references/paragraph-clarity.md`).
 
 #### B3. Sentence Patterns Overused by LLMs
 
@@ -115,13 +116,13 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 2. Negate-then-correct: "not merely A, but B", "not only A but also B", or "It is A, not B" -> state B, or write "A and B".
 3. Summary closer: "Overall, these results demonstrate ..." -> delete it, or turn it into a transition.
 4. Progress-then-gap opener: "While X has achieved remarkable progress, ..." -> name what fails and why.
-5. Stacked adverbs: "Notably, ... Importantly, ... Furthermore, ..." -> keep only real relations.
+5. Empty emphasis openers: "Notably, ...", "Importantly, ...", "Interestingly, ..." -> name the real relation (B2.5), or delete them.
 6. Unsupported triplets: "efficient, scalable, and robust" -> keep only what the experiments show.
-7. Heavy punctuation: an em dash (`---`, `—`), a colon that announces a point ("The idea is simple: ..."), or clauses chained by semicolons -> rephrase it as one complete sentence, or as two. Never use an em dash, and use at most one colon or semicolon per paragraph. Hyphens and en dashes (`-`, `--`) are fine.
+7. Heavy punctuation: an em dash (`---`, `—`), a colon that announces a point ("The idea is simple: ..."), or clauses chained by semicolons -> rephrase it as one complete sentence, or as two. Never use an em dash, and use at most one colon or semicolon per paragraph.
 
 #### B4. Section-Specific Wording
 
-1. Opening: no clichés such as "With the rapid development of deep learning, ..." or "The community has ..."; start from the task and its concrete difficulty.
+1. Opening: no clichés such as "With the rapid development of deep learning, ..."; start from the task and its concrete difficulty.
 2. Contributions: parallel, concrete, and each checkable against an experiment.
 3. Results: every result sentence names metric, dataset, baseline, and magnitude. Write where ours wins, never where it loses or fails (Principle 3).
 4. Related Work: specific and fair ("does not model X"), never dismissive.
@@ -143,7 +144,7 @@ Load from `references/` what the task needs: one guide per section (`introductio
 ## Execution Rules
 
 1. First, before any other work, settle the target venue and its template:
-   - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, never guess: ask with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues; without such a tool, ask in plain text and wait.
+   - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, never guess: ask with the ask-user tool, offering 2-4 likely venues; without such a tool, ask in plain text and wait.
    - Look up this year's author guidelines, and record with their source the Appendix rules and the page limits of the main text (long paper), the references, and the whole paper (`references/venue-rules.md`). If not found, use 8 pages of main text, references excluded, and tell the user.
    - If the project lacks the venue's template, search for its latest official author kit and download it; if that fails, ask the user for its URL or files.
 2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (`references/venue-rules.md`). Move details there (implementation, per-scene and extra qualitative results, proofs), and reference them from the main text.

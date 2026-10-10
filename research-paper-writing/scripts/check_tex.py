@@ -3,7 +3,7 @@ r"""Check a LaTeX paper against the mechanical Writing Rules in SKILL.md.
 
 Usage:
   python3 check_tex.py main.tex [more.tex ...] [--bib refs.bib] [--log main.log]
-                       [--pdf main.pdf] [--review] [--max-words 35] [--min-refs 35] [--min-figures 3]
+                       [--pdf main.pdf] [--review] [--max-words 30] [--min-refs 35] [--min-figures 3]
 
 main.pdf and main.log next to main.tex are read without --pdf and --log.
 
@@ -134,9 +134,18 @@ PROSE_PATTERNS = [
      r"(?<![\w.\-])\d+(?:\.\d+)?-\d+(?:\.\d+)?(?![\w.\-])"),
 ]
 EM_DASH = r"-{3,}|[\u2014\u2015\u2e3a\u2e3b]|\\textemdash\b"
-ADVERBS = (SENT_START + r"(?:Notably|Importantly|Furthermore|Moreover|"
-           r"Additionally|Crucially|Interestingly|Remarkably|Significantly|"
-           r"Besides|In addition)\s*,")
+EMPHASIS = (SENT_START + r"(?:Notably|Importantly|Crucially|Interestingly|Remarkably|Significantly|Strikingly|"
+            r"Surprisingly)\s*,")
+ADDITIVE = SENT_START + r"(?:Furthermore|Moreover|Additionally|Besides|In addition|Also)\s*,"
+# Transition words by relation (B2.5): contrast, concession, addition, cause and effect, example, sequence,
+# similarity, and purpose.
+TRANSITIONS = re.compile(
+    r"\b(?:however|whereas|in contrast|by contrast|on the other hand|conversely|unlike|instead|rather than|while|"
+    r"although|though|yet|despite|in spite of|regardless of|nevertheless|nonetheless|"
+    r"moreover|furthermore|additionally|in addition|also|besides|"
+    r"because|since|therefore|thus|hence|consequently|as a result|accordingly|so that|"
+    r"for example|for instance|such as|in particular|specifically|namely|"
+    r"first|second|then|finally|subsequently|meanwhile|similarly|likewise|to this end|in order to)\b", re.I)
 HEAVY_PUNCT = re.compile(r"(?<![\d:])[:;](?![:=])|(?<=\d)[:;](?![\d:=])")  # not in ratios or times (1:1, 10:30)
 TODO_SPAN = re.compile(r"\[\s*TODO\b[^\]]*\]|\\(?:TODO|todo)\s*\{[^{}]*\}")
 REVEAL_COLON = re.compile(r"\b(?:simple|clear|straightforward|twofold|two-fold|threefold|three-fold|question|answer|"
@@ -383,11 +392,16 @@ def check_prose(f, rep, max_words):
             rep.add(f, m.start(), WARN, "B3.6",
                     "Adjective triplet: keep only the properties the experiments show")
     for para in re.finditer(r"(?:(?!\n[ \t]*\n).)+", f.prose, re.S):
-        hits = list(re.finditer(ADVERBS, para.group(0), re.M))
+        hits = list(re.finditer(EMPHASIS, para.group(0), re.M))
         if len(hits) >= 2:
             rep.add(f, para.start() + hits[1].start(), ERROR, "B3.5",
-                    f"{len(hits)} stacked adverbs (Notably/Furthermore/Moreover...) in one "
-                    "paragraph: keep only real relations")
+                    f"{len(hits)} empty emphasis openers (Notably/Importantly/Interestingly...) in one paragraph: "
+                    "name the real relation with a transition word (B2.5), or delete them")
+        adds = list(re.finditer(ADDITIVE, para.group(0), re.M))
+        if len(adds) >= 3:
+            rep.add(f, para.start() + adds[2].start(), WARN, "B2.5",
+                    f"{len(adds)} sentences of one paragraph open with an additive transition (Moreover/In "
+                    "addition...): vary the relations, or merge the points into fewer sentences")
     check_punctuation(f, rep)
     # Sentences: long sentences (B2.1) and result sentences without numbers (B4.3), outside the bibliography.
     protected, spans = sentence_spans(without_bibliography(f.prose, f.nonverbatim))
@@ -418,15 +432,37 @@ def without_bibliography(text, source):
     return text
 
 
-def check_short_sentences(f, rep):
-    """B2.1: no ultra-short sentences in the body text. Headings, run-in heads, list items, captions,
-    footnotes, and floats are left out."""
+def body_text(f):
+    """The prose of f without the bibliography, floats, captions, and footnotes; offsets are kept."""
     text = without_bibliography(f.prose, f.nonverbatim)
     for m in re.finditer(r"\\begin\{(" + FLOAT_ENVS + r")(\*?)\}.*?\\end\{\1\2\}", f.nonverbatim, re.S):
         text = text[:m.start()] + blank(text[m.start():m.end()]) + text[m.end():]
     for m in re.finditer(r"\\(?:caption|footnote|thanks)\*?\s*(?:\[[^\]]*\])?\s*\{", text):
         end = brace_end(text, m.end() - 1) or len(text)
         text = text[:m.start()] + blank(text[m.start():end]) + text[end:]
+    return text
+
+
+def check_transitions(f, rep, text):
+    """B2.5: a paragraph of four or more sentences links them with at least one transition word."""
+    for para in re.finditer(r"(?:(?!\n[ \t]*\n).)+", text, re.S):
+        if "\\item" in para.group(0):  # a list: its items need no transitions
+            continue
+        protected, spans = sentence_spans(para.group(0))
+        sentences = [protected[a:b] for a, b in spans
+                     if re.search(r"[A-Za-z]{3}", protected[a:b]) and re.search(r"[.!?]\W*$", protected[a:b].strip())]
+        if len(sentences) >= 4 and not TRANSITIONS.search(para.group(0)):
+            lead = len(para.group(0)) - len(para.group(0).lstrip())
+            rep.add(f, para.start() + lead, WARN, "B2.5", f"A paragraph of {len(sentences)} sentences has no transition "
+                    "word: show how each sentence relates to the last (however, whereas, although, moreover, "
+                    "therefore, for example, ...)")
+
+
+def check_short_sentences(f, rep):
+    """B2.1: no ultra-short sentences in the body text. Headings, run-in heads, list items, captions,
+    footnotes, and floats are left out. B2.5: transitions in every long paragraph."""
+    text = body_text(f)
+    check_transitions(f, rep, text)
     protected, spans = sentence_spans(text)
     for a, b in spans:
         if protected[max(0, a - 5):a] == "\\item":
@@ -2294,7 +2330,7 @@ def main(argv=None):
     ap.add_argument("--pdf", help="compiled PDF")
     ap.add_argument("--supp-pdf", help="compiled supplementary PDF, when the venue wants it as a separate file")
     ap.add_argument("--review", action="store_true", help="anonymous review version: check A1.3")
-    ap.add_argument("--max-words", type=int, default=35, help="B2.1 sentence length limit (default 35)")
+    ap.add_argument("--max-words", type=int, default=30, help="B2.1 sentence length limit (default 30)")
     ap.add_argument("--min-refs", type=int, default=35, help="A4.8 reference target (default 35)")
     ap.add_argument("--min-figures", type=int, default=3, help="A2.7 figures in the main text (default 3)")
     args = ap.parse_args(argv)
