@@ -62,7 +62,7 @@ Tag the figure-plan lines of the figures and tables that are evidence for a clai
 |---|---|
 | Title | Names the key idea or the main result. |
 | Abstract | One or two sentences per story part: problem, insight, method, the strongest evidence. |
-| Introduction | Problem, then why prior methods fail, then the insight, the method, the evidence, and contributions that restate the claims. |
+| Introduction | Background, then the problem or motivation, the insight, the method, and contributions that restate the claims (`references/introduction.md`). |
 | Related Work | Groups prior work by what it lacks relative to the insight; each topic ends with how ours differs. |
 | Method | Motivates every module by the problem, and shows how it realizes the insight; nothing in it is unrelated to the story. |
 | Experiments | Tests each claim in turn, with a figure or table as evidence, and says what each result means for the story. |

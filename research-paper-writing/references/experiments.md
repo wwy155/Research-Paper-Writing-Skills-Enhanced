@@ -2,7 +2,7 @@
 
 Start from the `% Story:` block (`references/story.md`): the Experiments test the story's claims in turn, each with a figure or table as evidence (tagged `[C1]` in the figure plan), and the text says what each result means for the story. Other figures and tables add informative results.
 
-Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+Then reread this section in each style reference (`references/style-references.md`), and imitate its vibe, such as its structure, length, tone, and pace, in your own sentences. Never copy its sentences or specific content. The templates and examples below are secondary and only fill what the references leave open.
 
 ## Goal
 

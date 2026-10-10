@@ -2,7 +2,7 @@
 
 Start from the `% Story:` block (`references/story.md`): restate the problem, the insight, the strongest evidence, and the takeaway.
 
-Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+Then reread this section in each style reference (`references/style-references.md`), and imitate its vibe, such as its structure, length, tone, and pace, in your own sentences. Never copy its sentences or specific content. The templates and examples below are secondary and only fill what the references leave open.
 
 ## Goal
 

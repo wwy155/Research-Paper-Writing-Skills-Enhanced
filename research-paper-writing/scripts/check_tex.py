@@ -1737,11 +1737,13 @@ STYLE_LINE = re.compile(r"^\s*%\s*(?P<paper>[^\n]*?)(?:,\s*(?P<pdf>[^\s,]+\.pdf)
 
 
 def check_style_refs(files, root, rep):
-    """Core Workflow step 2: the papers closest to ours are the reference for the writing, and were viewed."""
+    """Core Workflow step 2: recent, closest, and similar-contribution papers set the vibe of the writing, and
+    were viewed."""
     import hashlib
     src = next((f for f in files if STYLE_HEAD.search(f.raw)), None)
     if not src:
-        rep.add_plain("(paper)", ERROR, "Style", "No '% Style references:' block: pick 3-5 papers closest to ours, "
+        rep.add_plain("(paper)", ERROR, "Style", "No '% Style references:' block: pick 3-5 papers, recent, closest, and similar in "
+                      "contribution to ours, "
                       "view their PDFs with page_qa.py --reference, and record what to follow from each "
                       "(references/style-references.md)")
         return
@@ -1759,8 +1761,8 @@ def check_style_refs(files, root, rep):
                     "refs/paper.pdf -> what to follow'")
         pos += len(line) + 1
     if len(refs) < 3:
-        rep.add(src, head.start(), ERROR, "Style", f"{len(refs)} style reference(s): study at least 3 papers closest "
-                "to ours (references/style-references.md)")
+        rep.add(src, head.start(), ERROR, "Style", f"{len(refs)} style reference(s): study at least 3 papers, recent, "
+                "closest, or similar in contribution to ours (references/style-references.md)")
     for at, m in refs:
         paper, pdf, aspects = m.group("paper").strip(" ,"), m.group("pdf"), m.group("aspects") or ""
         if not aspects.strip():
@@ -2142,7 +2144,8 @@ def required_block(rep, venue, has_exp, min_figures, has_method=True):
         ("Appendix, following the venue's rules", False, lambda rule, msg: rule == "Appendix"),
         ("Story written; every claim has evidence", False,
          lambda rule, msg: rule == "Story"),
-        ("Style references: at least 3 closest papers viewed and read for the writing", False,
+        ("Style references: at least 3 recent, closest, or similar papers viewed; the writing follows their vibe",
+         False,
          lambda rule, msg: rule == "Style"),
         ("Closest-work plan", "Experiments", lambda rule, msg: rule == "Experiments"),
         ("Latest SOTA compared and discussed", "Experiments", lambda rule, msg: rule == "SOTA"),

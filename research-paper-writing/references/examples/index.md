@@ -15,7 +15,9 @@ Use this folder for concrete writing patterns and locally organized cite targets
 
 ## Usage
 
-1. Pick one template from a section guide.
+The example bank is secondary. The style references come first (`references/style-references.md`), so open an example only when they leave a gap.
+
+1. Pick the matching pattern from a section guide.
 2. Open the matching examples file.
-3. Reuse the sentence logic, never the exact wording. The examples are quoted from published papers, and a few break the Writing Rules in `SKILL.md` (a note under the title says which); the Writing Rules win.
+3. Take the logic of the move, never its sentences or details. The examples are quoted from published papers, and a few break the Writing Rules in `SKILL.md` (a note under the title says which); the Writing Rules win.
 4. Keep citation links in your notes for traceability.

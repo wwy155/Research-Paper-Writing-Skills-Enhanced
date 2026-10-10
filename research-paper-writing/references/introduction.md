@@ -1,84 +1,67 @@
 # Introduction Writing Guide
 
-Start from the `% Story:` block (`references/story.md`): the Introduction tells the problem, why prior methods fail, the insight, the method, and the evidence, and its contributions restate the story's claims.
+Start from the `% Story:` block (`references/story.md`). The Introduction carries the story through the five blocks of the Logic Map below, and its contributions restate the story's claims.
 
-Then reread this section in each style reference (`references/style-references.md`), and follow its structure, length, and tone. The templates and examples below only fill what they leave open.
+Then read the Introductions of the style references (`references/style-references.md`), which are recent papers on the task, the closest prior works, and papers whose contribution is of a similar size and kind to ours. Imitate their vibe, that is, how they open, how quickly they reach the problem, how they present the insight, how confident their claims sound, and the length and pace of their paragraphs. Never copy their sentences or their specific content. The patterns in Parts A-D and the example bank below are secondary, so consult them only where the references leave a choice open.
 
 ## Goal
 
 Write a strong introduction in three steps:
 
-1. Think through the introduction logic.
-2. Pick one version in each of Parts A, B, C, and D below by its condition ("If the task is ...", "For novel tasks ..."), name your picks and the reason in your reply, and follow their sentence skeletons. Do not open with a sentence that no skeleton gives, such as "The community has ..." (B4.1).
+1. Think through the introduction logic, using the Logic Map and the backward questions below.
+2. Draft each block in the vibe of the style references and in your own words. Where the references leave a choice open, pick a version in Parts A-D by its condition ("If the task is ...", "For novel tasks ..."), and use its structure but never its wording. Do not open with a cliché such as "The community has ..." (B4.1).
 3. Revise the introduction repeatedly.
 
-In most cases, use a funnel structure: start from the broad task and its applications, narrow down through prior methods and the remaining technical challenge, and end at our solution and contributions.
+In most cases, use a funnel structure that starts from the broad task, narrows down through prior methods and the remaining technical challenge, and ends at our solution and contributions.
 
 ## Introduction Logic Map
 
+Most Introductions move through five blocks, often one or two paragraphs each. Merge or split them as the style references do.
+
 ```mermaid
 graph LR
-  L1[What task are we solving]
-  L2[Which metrics should this task improve]
-  L3[SOTA methods fail to meet target metrics]
-  L4[Root technical issue behind this failure]
-  L5[Our technical solution and method pipeline]
-  L6[Why the solution works]
-  L7[Additional technical contributions]
-
-  R1[Part 1 Task applications and target metrics]
-  R2[Part 2 SOTA methods failure and root issue]
-  R3[Part 3 Proposed solution and why it works]
-  R4[Part 4 Additional contributions and impact]
-  R5[Part 5 Experiments]
-
-  L1 --> L2
-  L2 --> L3
-  L3 --> L4
-  L4 --> L5
-  L5 --> L6
-  L6 --> L7
-
-  R1 --> R2
-  R2 --> R3
-  R3 --> R4
-  R4 --> R5
-
-  L1 --> R1
-  L2 --> R1
-  L3 --> R2
-  L4 --> R2
-  L5 --> R3
-  L6 --> R3
-  L7 --> R4
+  B[Background] --> P[Problem or motivation] --> I[Insight] --> M[Method] --> C[Contributions]
 ```
+
+| Block | What it does |
+|---|---|
+| Background | Introduces the task and why it matters. |
+| Problem or motivation | Shows what prior methods cannot yet do, and the technical reason behind it. |
+| Insight | States the key observation or idea that makes the problem solvable. |
+| Method | Explains how our method builds on the insight, and why it works. |
+| Contributions | Lists what the paper contributes, as parallel items. |
 
 ## How to Think About Introduction: Backward First, Then Forward
 
 ### Backward reasoning (answer these first)
 
 1. What technical problem do we solve, and why is there no well-established solution? (important)
-2. What are the contributions of our pipeline (e.g., a new valuable task, a new valuable metric, a new technical problem, or a new technique)?
+2. What are the contributions of our pipeline (e.g., a new task, a new technical problem, or a new technique)?
 3. What are the benefits of our contributions, why can they solve this technical challenge, and what new insight do they bring? (important)
 4. How do we use prior methods to lead readers to our solved challenge and our new insight?
 
 ### Forward story (write in this order)
 
-1. Introduce the paper's task.
-2. Use prior methods to lead to the technical challenge we solve.
-3. Present xx contributions to solve this technical challenge.
-4. Explain technical advantages of our contributions and explicitly express our new insight. (important)
+1. Background: introduce the task and why it matters.
+2. Problem or motivation: use prior methods to lead to the technical challenge we solve.
+3. Insight: state the observation or idea that makes the challenge solvable. (important)
+4. Method: present our method, built on the insight, and explain why it works.
+5. Contributions: list what the paper contributes.
 
 ## Section Skeleton
 
 ```latex
 \section{Introduction}
-% Task and application
-% Technical challenge for previous methods (discuss around the technical challenge that we solved. A technical challenge includes both limitation and technical reason)
-% Introduce our pipeline for solving the challenge
-% Experiment
+% Background: the task and why it matters
+% Problem or motivation: what prior methods cannot yet do, and why (the technical challenge we solve)
+% Insight: the key observation or idea
+% Method: our method, built on the insight, and why it works
 % Contributions
 ```
+
+## Patterns for Each Block (Secondary)
+
+Parts A-D give fallback patterns for the blocks: Part A for the Background, Part B for the Problem or motivation, Part C for the Insight and the Method, and Part D for the figure or table of the Introduction. Consult them only where the style references leave a choice open, take the structure of a move, and write every sentence yourself.
 
 ## Part A: Introduce Task and Application
 
@@ -140,7 +123,7 @@ Local cite:
 
 ### Version 4
 
-`Version 4: If the task is familiar, introduce applications directly and expose the target technical challenge in the opening paragraph via previous methods (failure cases / target metric improvements).`
+`Version 4: If the task is familiar, introduce applications directly and expose the target technical challenge in the opening paragraph via previous methods (failure cases).`
 
 Writing structure:
 
@@ -453,6 +436,8 @@ Local cite:
 
 ## Example Bank
 
+The example bank is secondary. Open it only when the style references leave a gap, and take the logic of a move, never its sentences or details.
+
 1. `references/examples/introduction-examples.md`
 2. `references/examples/introduction/version-1-task-then-application.md`
 3. `references/examples/introduction/version-2-application-first.md`
@@ -477,3 +462,5 @@ Local cite:
 5. Is terminology stable across all sections?
 6. Does every claim that is not our own result cite a source?
 7. Does the figure or table of the Introduction (Part D) show the paper's main point at a glance, with every ✓ or ✗ checked against the cited paper?
+8. Does the Introduction move through the five blocks of the Logic Map?
+9. Does it read in the vibe of the style references, with every sentence written anew?
