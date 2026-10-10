@@ -146,6 +146,11 @@ RESULT_WORDS = re.compile(r"\b(?:outperform\w*|state-of-the-art|SOTA|superior|"
                           r"surpass\w*|better than|significant(?:ly)? improve\w*)")
 
 
+# A comment line that opens another block; block readers stop there.
+BLOCK_HEAD = re.compile(r"^\s*%\s*(?:Story|Figure plan|Analysis plan|Closest-work plan|Latest SOTA|Experiment log|"
+                        r"Style references?|Review log)\b[^:(\n]*(?:\([^)\n]*\))?\s*:\s*$", re.I)
+
+
 def blank(s):
     """Replace every character except newlines with a space, keeping offsets."""
     return re.sub(r"[^\n]", " ", s)
@@ -723,6 +728,95 @@ def check_method_figure(files, root, rep, plan):
     return True
 
 
+MAIN_TABLE = re.compile(r"\b(?:SOTA|state[- ]of[- ]the[- ]art|main comparison|comparison with)\b", re.I)
+PLACEHOLDER = re.compile(r"\[\s*TODO\b|\\(?:TODO|todo)\b|\?\?|\bxx(?:\.x+)?\b", re.I)
+ANALYSIS_HEAD = re.compile(r"^[ \t]*%[ \t]*Analysis plan\b[^:\n]*:[ \t]*$", re.I | re.M)
+ANALYSIS_LINE = re.compile(r"^\s*%\s*(\S+?):\s+(.*?)\s*$")
+
+
+def main_tables_done(files, root, plan):
+    """Whether the main comparison table and the ablation table are in the main text without placeholders."""
+    done = {"main": False, "ablation": False}
+    for t in split_main(files, root)[1]:
+        for m in re.finditer(r"\\begin\{table\*?\}(.*?)\\end\{table\*?\}", t, re.S):
+            body = m.group(1)
+            labels = [l.strip() for l in re.findall(r"\\label\{([^}]*)\}", body)]
+            cap = re.search(r"\\caption\*?\s*(?:\[[^\]]*\])?\s*\{", body)
+            caption = body[cap.end():brace_end(body, cap.end() - 1) or len(body)] if cap else ""
+            forms = " ".join(plan[l][1] for l in labels if plan and l in plan)
+            text = " ".join([forms] + labels + [caption])
+            if re.search(r"ablat|(?<![a-z])abl(?![a-z])", text, re.I):
+                kind = "ablation"
+            elif MAIN_TABLE.search(text) or any(re.search(r"(?<![a-z])(?:main|sota)(?![a-z])", l, re.I) for l in labels):
+                kind = "main"
+            else:
+                continue
+            if not PLACEHOLDER.search(body):
+                done[kind] = True
+    return all(done.values())
+
+
+def check_showcase(files, root, rep, plan, supp=()):
+    """A2.11: once the main table and the ablation are complete, at least 2 showcase analyses tied to the core
+    idea, chosen from at least 5 candidates in '% Analysis plan:'. Returns whether they are due."""
+    if not main_tables_done(files, root, plan):
+        return False
+    src = next((f for f in files if ANALYSIS_HEAD.search(f.raw)), None)
+    if src is None:
+        rep.add_plain("(paper)", ERROR, "A2.11", "The main table and the ablation are complete, but there is no "
+                      "'% Analysis plan:' block: think deeply about how the core idea shows itself, list at least 5 "
+                      "candidate analyses, and make the 2-4 strongest (references/showcase-analyses.md)")
+        return True
+    head = ANALYSIS_HEAD.search(src.raw)
+    pos = src.raw.find("\n", head.start()) + 1 or len(src.raw)
+    mechanism, selected, dropped = None, [], []
+    for line in src.raw[pos:].split("\n"):
+        if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
+            break
+        m = ANALYSIS_LINE.match(line)
+        if m:
+            key, body = m.group(1), m.group(2)
+            if key.lower() == "mechanism":
+                mechanism = body
+            elif key.lower() == "dropped":
+                dropped.append((pos, body))
+            else:
+                selected.append((pos, key, body))
+        pos += len(line) + 1
+    at = head.start()
+    if not mechanism:
+        rep.add(src, at, ERROR, "A2.11", "The analysis plan has no 'Mechanism:' line: state in one sentence what ours "
+                "does differently from prior methods and why it matters")
+    if len(selected) + len(dropped) < 5:
+        rep.add(src, at, ERROR, "A2.11", f"The analysis plan lists {len(selected) + len(dropped)} candidate(s): think "
+                "deeply, list at least 5 candidate analyses with a verdict each, and keep the strongest")
+    if len(selected) < 2:
+        rep.add(src, at, ERROR, "A2.11", f"{len(selected)} showcase analysis(es) selected: make at least 2 that tie "
+                "directly to the core idea (references/showcase-analyses.md)")
+    labels = {l.strip() for f in list(files) + list(supp) for l in re.findall(r"\\label\{([^}]*)\}", f.clean)}
+    main_labels = {l.strip() for t in split_main(files, root)[1] for l in re.findall(r"\\label\{([^}]*)\}", t)}
+    for p, label, body in selected:
+        claim, _, form = body.partition("->")
+        if not re.search(r"\bbecause\b", claim, re.I):
+            rep.add(src, p, ERROR, "A2.11", f"Tie {label} to the core idea: write 'because <mechanism>, <phenomenon or "
+                    "advantage>' before the arrow")
+        if not form.strip():
+            rep.add(src, p, ERROR, "A2.11", f"Name the form of {label} after '->', e.g., 'lines over motion magnitude'")
+        if not re.search(r"\bcontrol\s*:\s*\S", form, re.I):
+            rep.add(src, p, ERROR, "A2.11", f"Name the control of {label} ('; control: <the ablated variant or "
+                    "baseline that isolates our component>')")
+        if label not in labels:
+            rep.add(src, p, ERROR, "A2.11", f"{label} is in the analysis plan but not in the paper: make it, or move it "
+                    "to a 'dropped:' line with the reason")
+    for p, body in dropped:
+        if "->" not in body or not body.partition("->")[2].strip():
+            rep.add(src, p, WARN, "A2.11", "Give the reason for each dropped candidate ('dropped: <candidate> -> "
+                    "<reason>')")
+    if selected and not any(label in main_labels for _, label, _ in selected):
+        rep.add(src, at, WARN, "A2.11", "No showcase analysis is in the main text: move the strongest one there")
+    return True
+
+
 def named_mentions(f):
     """(position, name, cited, adjective) for every named item in the prose of f, outside the abstract.
     adjective: the name was used with a suffix, as in "NeRF-based"."""
@@ -1045,7 +1139,7 @@ def check_closest_plan(files, rep, extra=()):
     pos = src.raw.find("\n", head_pos) + 1 or len(src.raw)
     lines = []
     for line in src.raw[pos:].split("\n"):
-        if not line.lstrip().startswith("%"):
+        if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
             break
         lines.append((pos, line))
         pos += len(line) + 1
@@ -1154,7 +1248,7 @@ def read_plan(files):
             continue
         plan = {}
         for line in f.raw[m.end():].split("\n")[1:]:
-            if not line.lstrip().startswith("%"):
+            if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
                 break
             p = PLAN_LINE.match(line)
             if p:
@@ -1421,7 +1515,7 @@ def read_story(files):
             continue
         story = {"claims": {}, "file": f, "pos": m.start()}
         for line in f.raw[m.end():].split("\n")[1:]:
-            if not line.lstrip().startswith("%"):
+            if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
                 break
             s = STORY_LINE.match(line)
             if s and s.group(2):
@@ -1601,7 +1695,7 @@ def check_experiment_log(files, root, rep, extra=()):
             continue
         pos = f.raw.find("\n", h.start()) + 1 or len(f.raw)
         for line in f.raw[pos:].split("\n"):
-            if not line.lstrip().startswith("%"):
+            if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
                 break
             e = EXP_LINE.match(line)
             if e:
@@ -1751,7 +1845,7 @@ def check_style_refs(files, root, rep):
     pos = src.raw.find("\n", head.start()) + 1 or len(src.raw)
     refs = []
     for line in src.raw[pos:].split("\n"):
-        if not line.lstrip().startswith("%"):
+        if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
             break
         m = STYLE_LINE.match(line)
         if m and m.group("paper").strip(" ,"):
@@ -1802,7 +1896,7 @@ def check_review_log(files, rep):
     pos = src.raw.find("\n", head.start()) + 1 or len(src.raw)
     rounds = []
     for line in src.raw[pos:].split("\n"):
-        if not line.lstrip().startswith("%"):
+        if not line.lstrip().startswith("%") or BLOCK_HEAD.match(line):
             break
         m = REVIEW_ROUND.match(line)
         if m:
@@ -2136,7 +2230,7 @@ def check_venue(files, rep):
     return None
 
 
-def required_block(rep, venue, has_exp, min_figures, has_method=True):
+def required_block(rep, venue, has_exp, min_figures, has_method=True, showcase_due=False):
     """The pass/fail list of 'Required in Every Paper' in SKILL.md, for the agent to copy into its reply."""
     groups = [  # (name, the section it needs, matches a finding)
         ("Venue, template, and page limits (main text, references, total)", False,
@@ -2153,6 +2247,8 @@ def required_block(rep, venue, has_exp, min_figures, has_method=True):
          lambda rule, msg: (rule == "A2.7" and "figure(s)" in msg) or (rule == "A2.1" and "plan" in msg.lower())),
         ("Architecture figure in the Method, generated with generate_image or obtained from the user", "Method",
          lambda rule, msg: rule == "A2.10"),
+        ("Showcase analyses tied to the core idea, once the main table and the ablation are complete", "Showcase",
+         lambda rule, msg: rule == "A2.11"),
         ("Every image checked with figure_qa.py", False, lambda rule, msg: rule == "A2.9"),
         ("Missing experiments run, or logged as running or blocked", False, lambda rule, msg: rule == "Run"),
         ("Metrics explained and cited before the results", "Experiments", lambda rule, msg: rule == "A4.9"),
@@ -2163,12 +2259,14 @@ def required_block(rep, venue, has_exp, min_figures, has_method=True):
          lambda rule, msg: rule == "Loop")]
     items = sorted(set(rep.items), key=lambda i: (i[0], i[1]))
     lines = ["Required in Every Paper (SKILL.md); copy this list into your reply:"]
-    has = {"Experiments": has_exp, "Method": has_method}
+    has = {"Experiments": has_exp, "Method": has_method, "Showcase": showcase_due}
+    why = {"Experiments": "no Experiments section yet", "Method": "no Method section yet",
+           "Showcase": "the main table or the ablation is not complete yet"}
     for k, (name, needs, match) in enumerate(groups, 1):
         hits = [i for i in items if match(i[3], i[4])]
         errors = [i for i in hits if i[2] == ERROR]
         if needs and not has[needs]:
-            status = f"n/a (no {needs} section yet)"
+            status = f"n/a ({why[needs]})"
         elif errors:
             head = errors[0][4].split(": ")[0]
             if re.fullmatch(r"p\. \d+", head):  # page_qa: keep what is wrong on that page
@@ -2242,6 +2340,7 @@ def main(argv=None):
     supp = [File(os.path.join(root, n)) for n in os.listdir(root) if n.endswith(".tex") and APPENDIX_NAME.search(n)
             and os.path.abspath(os.path.join(root, n)) not in {os.path.abspath(f.path) for f in files}]
     check_latest_sota(files, rep, exp_spans, supp, plan)
+    showcase_due = check_showcase(files, root, rep, plan, supp)
     check_figure_qa(files, root, rep, supp)
     check_story(files, root, rep, read_story(files), plan)
     has_method = check_method_figure(files, root, rep, plan)
@@ -2293,7 +2392,7 @@ def main(argv=None):
     checked = ", ".join(os.path.relpath(f.path) for f in files)
     print(f"\nChecked: {checked}" + (f" (+ {', '.join(os.path.relpath(b) for b in bibs)})" if bibs else ""))
     venue = "; ".join(x for x in (venue, limits_summary(rules)) if x)
-    print(required_block(rep, venue, has_experiments(files), args.min_figures, has_method))
+    print(required_block(rep, venue, has_experiments(files), args.min_figures, has_method, showcase_due))
     print(f"== {rep.count(ERROR)} errors, {rep.count(WARN)} warnings ==")
     print("Fix every ERROR. Fix every WARN, or justify it in your reply. Then review the paper "
           "(references/paper-review.md), log the round in '% Review log:', and check again: repeat until a round's "

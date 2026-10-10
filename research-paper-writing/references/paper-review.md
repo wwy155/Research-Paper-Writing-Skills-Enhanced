@@ -12,7 +12,7 @@ With sub-agents, run these reviewers in parallel. Give each the absolute paths o
 
 1. Venue reviewer. Reads the paper as a skeptical reviewer of the target venue, answers the self-review questions below, and lists the weaknesses most likely to get it rejected.
 2. Story reviewer. Checks that every claim of the story has evidence, that the paper sells it, and that no sentence discusses where ours loses (`references/story.md`).
-3. Writing and figure reviewer. Compares the writing with the style references (`references/style-references.md`), checks that the prose is formal and academic, with complete sentences of moderate length (B2.1, B2.4), and judges every figure: informative, good-looking, and convincing (`references/figures.md`). Confirms that the Method has an architecture figure whose labels match the text (A2.10).
+3. Writing and figure reviewer. Compares the writing with the style references (`references/style-references.md`), checks that the prose is formal and academic, with complete sentences of moderate length (B2.1, B2.4), and judges every figure: informative, good-looking, and convincing (`references/figures.md`). Confirms that the Method has an architecture figure whose labels match the text (A2.10), and that each showcase analysis ties to the core idea and is valid and interesting (A2.11).
 4. Rules reviewer. Checks every Writing Rule in the text, rule by rule, including the ones the scripts cannot check.
 5. References and venue reviewer. Checks that every reference exists and matches the real paper, and that the paper follows the venue's template, its page limits for the main text, the references, and the whole paper, its anonymity rules, and its Appendix rules.
 
