@@ -23,6 +23,9 @@ Convince reviewers with complete evidence on effectiveness, causality, and pract
    - Run demos/evaluations on harder or out-of-distribution settings.
    - Add stress-test scenarios (more complex scenes, rarer cases, noisier inputs, or stricter constraints).
    - Find the settings and subsets where ours gains the most, and show them. Never discuss where ours loses (`references/story.md`, Find the Evidence).
+4. Why does the method work?
+   - Once the main table and the ablation are complete, design 2-4 showcase analyses that tie directly to the core idea and explain an interesting phenomenon or show an advantage of ours (`references/showcase-analyses.md`).
+   - Think deeply about each one, and record the candidates, the reasoning, and the verdicts in `% Analysis plan:`.
 
 ## Experiment Planning
 
@@ -114,6 +117,7 @@ flowchart TB
     S1["Experimental Setup"] --> S2["Validation Experiment 1"]
     S2 --> S3["Validation Experiment 2"]
     S3 --> S4["Ablation Studies"]
+    S4 --> S5["Showcase Analyses of the Core Idea"]
 ```
 
 ## Experimental Setup

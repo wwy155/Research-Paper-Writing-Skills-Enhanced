@@ -6,21 +6,22 @@ description: Write or improve academic paper writing quality for ML/CV/NLP-style
 
 ## Required in Every Paper
 
-These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: create the figure or table, and run the experiment behind it (item 10).
+These hold after every task that edits the paper, even a narrow one, unless the user explicitly says to skip one. The checker reports each gap as an ERROR and ends with a pass/fail list of these items; copy that list into your reply. Missing data never excuses a gap: create the figure or table, and run the experiment behind it (item 11).
 
 1. The venue is settled, its rules are looked up and recorded, and its template is in use. The main text ends exactly at its page limit, and the references and the whole paper stay within theirs (Execution Rule 1).
-2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules (placement, page limit, format), holds the detailed content, and the main text references it (Execution Rule 2).
+2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules, holds the detailed content, and the main text references it (Execution Rule 2).
 3. The story is written down, and every claim has evidence (Core Workflow step 3).
 4. At least 3 style references were viewed with `scripts/page_qa.py --reference`, and the writing follows their vibe (Core Workflow step 2).
 5. The closest-work plan gives every figure and table of each closest paper a line, each reproduced where it informs our comparison or reviewers expect it, or skipped with a reason (Core Workflow step 2).
 6. The main comparison includes the latest state of the art, and the text discusses it (`references/experiments.md`).
 7. The main text has at least 3 figures, and every figure and table has its message and form in the figure plan (A2.1, A2.7).
 8. The Method section has an architecture figure (A2.10).
-9. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
-10. Every needed result is run and filled in from its result file, or logged as running, or as blocked with the user asked (`% Experiment log:` in `references/experiments.md`).
-11. Experiments explains and cites every metric before the first result (A4.9).
-12. The paper was compiled with pdflatex after the last edit, every page was viewed with `scripts/page_qa.py`, and no page shows white space (Execution Rule 3, Checking the Writing Rules step 4).
-13. The loop ran to the end: the last round in `% Review log:` found no errors and nothing new in review (Core Workflow step 7).
+9. Once the main table and the ablation are complete, at least 2 showcase analyses are made (A2.11).
+10. Every included image passed `scripts/figure_qa.py` after its last change (A2.9).
+11. Every needed result is run and filled in from its result file, or logged as running, or as blocked with the user asked (`% Experiment log:` in `references/experiments.md`).
+12. Experiments explains and cites every metric before the first result (A4.9).
+13. The paper was compiled with pdflatex after the last edit, every page was viewed with `scripts/page_qa.py`, and no page shows white space (Execution Rule 3, Checking the Writing Rules step 4).
+14. The loop ran to the end: the last round in `% Review log:` found no errors and nothing new in review (Core Workflow step 7).
 
 ## Core Workflow
 
@@ -66,13 +67,14 @@ The style references come first (Core Workflow step 2): imitate their vibe, neve
 1. Make a figure or table only when it shows something informative, such as a result, an advantage of ours, how the method works, or a non-obvious finding. Never make one for decoration. End the caption with its conclusion, and analyze it in the text: what it shows, why, and what follows. Merge or cut any that repeats another's message, and never plot numbers a table already shows unless the figure reveals a trend or a trade-off.
 2. Use vector PDF for plots and drawn diagrams, and PNG at 300 dpi or more at print size for generated figures and photos; text inside a figure should be no smaller than the caption font.
 3. Give each method the same name and order in every figure and table, and make ours easy to find.
-4. Captions: first what it shows ("Qualitative comparison on D-NeRF."), then what each part shows ("(a) ... (b) ..."), then the conclusion in at most 2 sentences; within 50 words, or 80 for a teaser or architecture figure. No formatting notes ("best in bold"), no significance details, and no conclusion in figure titles. Figure captions go below, table captions above.
-5. Except for the teaser, place a figure, table, or algorithm right after the paragraph that introduces it, in the same (sub)section: `flafter`, and `\FloatBarrier` (`placeins`) before the next (sub)section. If the barrier leaves white space (A1.6), move the source earlier or resize the float.
+4. Captions: first what it shows, then what each part shows, then the conclusion in at most 2 sentences; within 50 words, or 80 for a teaser or architecture figure. No formatting notes ("best in bold"), no significance details, and no conclusion in figure titles. Figure captions go below, table captions above.
+5. Except for the teaser, place each float right after the paragraph that introduces it, in the same (sub)section (`flafter`, and `\FloatBarrier` from `placeins`); if that leaves white space (A1.6), move the source earlier or resize the float.
 6. Above all, every figure must look good and convince. Write what it shows and its form in the figure plan before making it, and redraw it until it does (`references/figures.md`, `references/table-types.md`). Never copy another paper's figures or tables.
-7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, architecture, qualitative comparison, analysis), each with a key message (A2.1); create any missing one now, running the experiments behind result figures. Use one form (e.g., line plots) for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
+7. The main text has at least 3 figures, 4 when space allows (e.g., teaser, architecture, qualitative comparison, analysis), each with a key message (A2.1); create any missing one now, running the experiments behind result figures. Use one form for at most 2 main-text figures; merge related ones into one multi-panel figure, or move one to the Appendix.
 8. Tables: pick the type that fits the comparison (`references/table-types.md`), run every method you can under one protocol, cite each method in its row, and include the latest state of the art. Numbers you could not run go in the same table, marked † with a one-line note.
-9. Draw each figure at its printed width and run `scripts/figure_qa.py` on the script that draws it, or on the file. Fix every problem it reports, look at the preview it writes, and repeat after every change.
+9. Draw each figure at its printed width, run `scripts/figure_qa.py` on its script or file, fix every problem it reports, look at its preview, and repeat after every change.
 10. The Method section has an architecture figure that shows the inputs, each module under its name in the text, the data flow, and the outputs. Generate it with `generate_image` and check every label at full size; if the tool is missing or fails, ask the user (`references/method.md`).
+11. Once the main table and the ablation are complete, add 2-4 showcase analyses tied directly to our core idea that explain an interesting phenomenon or show an advantage of ours. Think deeply about each, and record the reasoning in `% Analysis plan:` (`references/showcase-analyses.md`).
 
 #### A3. Math
 
@@ -124,11 +126,11 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 3. Results: every result sentence names metric, dataset, baseline, and magnitude. Write where ours wins, never where it loses or fails (Principle 3).
 4. Related Work: specific and fair ("does not model X"), never dismissive.
 5. Statistical significance: one sentence in the main text, such as the standard deviation over runs or a pointer to the tests in the Appendix. Never in captions; main tables show at most mean ± std.
-6. Bold run-in headings (`\paragraph`, an opening `\textbf`): use them sparingly, only where the reader needs to find a part again; never on every paragraph, least of all in Method.
+6. Use bold run-in headings (`\paragraph`, an opening `\textbf`) sparingly, only where readers need to find a part again, and least of all in Method.
 
 ### Checking the Writing Rules
 
-1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows (e.g., "DynaSplat: our method, no citation"). "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks.
+1. After every edit, run `python3 <this skill's directory>/scripts/check_tex.py main.tex`. Fix every `ERROR`; fix every `WARN`, or justify it in your reply with a reason the rule itself allows. "Not requested", "out of scope", and "no data yet" are not reasons. Never lower the checker's thresholds (`--min-figures`, `--min-refs`, `--max-words`) unless the user asks.
 2. Run `scripts/figure_qa.py` after every figure change (A2.9).
 3. The scripts cannot check A2.1-A2.3, A2.5, A2.6, A3.1, B1, B2.2, B4.2, or B4.4: check them by rereading the text you changed.
 4. After every compile (Execution Rule 3), look at every page: run `scripts/page_qa.py main.pdf`, open every image it writes at full size, fix what you see, and confirm with their codes (`references/page-check.md`). Then re-run the checker, with `--review` for the anonymous version; it also checks `main.pdf` and `main.log`.
@@ -136,7 +138,7 @@ LLMs overuse these patterns: never introduce them, and fix every instance.
 
 ## Section Guides
 
-Load from `references/` what the task needs: one guide per section (`introduction.md`, `abstract.md`, `related-work.md`, `method.md`, `experiments.md`, `conclusion.md`, `preliminary.md`), plus `story.md` and `style-references.md` (read first), `figures.md` and `table-types.md` (read before any figure or table), `venue-rules.md`, `page-check.md`, `paper-review.md`, `paragraph-clarity.md`, and `examples/index.md`.
+Load from `references/` what the task needs: one guide per section (`introduction.md`, `abstract.md`, `related-work.md`, `method.md`, `experiments.md`, `conclusion.md`, `preliminary.md`), plus `story.md` and `style-references.md` (read first), `figures.md` and `table-types.md` (read before any figure or table), `showcase-analyses.md`, `venue-rules.md`, `page-check.md`, `paper-review.md`, `paragraph-clarity.md`, and `examples/index.md`.
 
 ## Execution Rules
 
@@ -144,15 +146,15 @@ Load from `references/` what the task needs: one guide per section (`introductio
    - Determine the venue from the user's request or the LaTeX preamble, and record it, e.g., `% Venue: CVPR 2027`. If it is unknown, never guess: ask with the ask-user tool (`AskUserQuestion` in Claude Code), offering 2-4 likely venues; without such a tool, ask in plain text and wait.
    - Look up this year's author guidelines, and record with their source the Appendix rules and the page limits of the main text (long paper), the references, and the whole paper (`references/venue-rules.md`). If not found, use 8 pages of main text, references excluded, and tell the user.
    - If the project lacks the venue's template, search for its latest official author kit and download it; if that fails, ask the user for its URL or files.
-2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (placement, page limit, format; `references/venue-rules.md`). Move details there (implementation, per-scene and extra qualitative results, proofs), and reference them from the main text.
-3. Compile only with pdflatex, as Overleaf and arXiv do (`pdflatex`, `bibtex`, `pdflatex` twice, or `latexmk -pdf`), never with XeLaTeX, LuaLaTeX, Tectonic, or another tool, and never skip it. If pdflatex is missing, install TeX Live, or ask the user with the ask-user tool until `pdflatex --version` works (`references/page-check.md`). Look at every page after each compile (Checking the Writing Rules, step 4).
+2. Create the Appendix or Supplementary Material at the start, following the venue's Appendix rules (`references/venue-rules.md`). Move details there (implementation, per-scene and extra qualitative results, proofs), and reference them from the main text.
+3. Compile only with pdflatex, as Overleaf and arXiv do, never with XeLaTeX, LuaLaTeX, Tectonic, or another tool, and never skip it. If pdflatex is missing, install TeX Live, or ask the user with the ask-user tool until `pdflatex --version` works (`references/page-check.md`). Look at every page after each compile (Checking the Writing Rules, step 4).
 
 ## Output Contract
 
 When asked to rewrite or draft sections, return:
 
 1. A section outline (3-7 bullets).
-2. The revised paragraphs, each labeled with its role (opening, challenge, method, advantage, evidence).
+2. The revised paragraphs, each labeled with its role.
 3. A claim-evidence map of the story's claims: `Claim: ... | Evidence: ... | Status: supported/needs evidence`.
 
 After any edit, including a final polish, also return:

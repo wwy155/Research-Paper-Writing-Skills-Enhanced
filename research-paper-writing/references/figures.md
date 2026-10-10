@@ -29,6 +29,8 @@ Reviewers judge a paper by its figures before they read a word.
 5. Draw it with real data, export it to PDF, check it (Check Every Figure, below), and look at it at print size. Redraw it until it looks good and convinces.
 6. Put numbers that readers will cite or compare in a table, and trends, trade-offs, and distributions in a plot. When both matter, plot in the main text and give the full table in the Appendix.
 
+Once the main table and the ablation are complete, the most valuable figures are usually showcase analyses that reveal the core idea at work, and they deserve the most thought (`references/showcase-analyses.md`).
+
 | What you want to show | A form that can show it |
 |---|---|
 | Ours beats the baselines on standard benchmarks. | SOTA comparison table (`references/table-types.md`). |
