@@ -11,7 +11,7 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 1. The venue is settled, its rules are looked up and recorded, and its template is in use. The main text ends exactly at its page limit, and the references and the whole paper stay within theirs (Execution Rule 1).
 2. The Appendix or Supplementary file exists from the start, follows the venue's Appendix rules (placement, page limit, format), holds the detailed content, and the main text references it (Execution Rule 2).
 3. The story is written down, and every claim has evidence (Core Workflow step 3).
-4. At least 3 style references, the papers closest to ours, were viewed with `scripts/page_qa.py --reference`, and the writing follows how they write (Core Workflow step 2).
+4. At least 3 style references were viewed with `scripts/page_qa.py --reference`, and the writing follows their vibe (Core Workflow step 2).
 5. The closest-work plan gives every figure and table of each closest paper a line, each reproduced where it informs our comparison or reviewers expect it, or skipped with a reason (Core Workflow step 2).
 6. The main comparison includes the latest state of the art, and the text discusses it (`references/experiments.md`).
 7. The main text has at least 3 figures, and every figure and table has its message and form in the figure plan (A2.1, A2.7).
@@ -27,7 +27,7 @@ These hold after every task that edits the paper, even a narrow one, unless the 
 Steps 1-3 set the paper up. Steps 4-7 are a loop: repeat them until a round finds nothing to fix.
 
 1. Settle the target venue first, asking the user if needed (Execution Rule 1), then create the Appendix or Supplementary file (Execution Rule 2).
-2. Pick 3-5 papers closest to ours as style references for the writing, and view them (`references/style-references.md`). Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`).
+2. Pick 3-5 style references for the writing, recent, closest, and similar in contribution to ours, and view them (`references/style-references.md`). Whenever the paper has an Experiments section, also write the closest-work plan and find the latest state of the art before any other Experiments or figure work (`references/experiments.md`).
 3. Before editing any section, find the story and record it as a `% Story:` block (`references/story.md`). Tell the whole paper around it: every section and paragraph advances it, and the rest goes to the Appendix or is cut.
 4. Edit. Write paragraph by paragraph, and follow the Writing Rules in every sentence you write or edit.
 5. Check everything that applies (Checking the Writing Rules): `check_tex.py`, `figure_qa.py` for changed figures, a pdflatex compile with `page_qa.py`, and a reverse outline of each changed section (`references/paragraph-clarity.md`).
@@ -42,7 +42,7 @@ Steps 1-3 set the paper up. Steps 4-7 are a loop: repeat them until a round find
 
 ## Writing Rules (Apply to Every Edit)
 
-The style references come first (Core Workflow step 2). The examples in `references/examples/` only fill gaps: reuse their logic, never their wording. These rules win over both.
+The style references come first (Core Workflow step 2): imitate their vibe, never their sentences or content. The examples in `references/examples/` only fill gaps. These rules win over both.
 
 ### Do Not Violate
 
@@ -161,4 +161,4 @@ After any edit, including a final polish, also return:
 5. A Writing Rules report, one line per group (A1-A4, B1-B4), with each rule's status (pass, fixed, or not checked with the reason). Never mark a rule pass without checking it.
 6. For a final polish: a short change log with one example per type of change. Always: the experiments still running or blocked, and what you need from the user.
 7. A setup line: the story in one sentence, the venue and its page limits, the style references, and the Appendix path; after Experiments, figure, or table work, also the closest-work plan and the latest-SOTA line with each item's status.
-8. For each figure or table you created or changed, its figure-plan line and, for a figure, its `figure_qa.py` result. After a compile, one line per page on what its images show.
+8. For each figure or table you created or changed, its figure-plan line and its `figure_qa.py` result; after a compile, one line per page on what its images show.
